@@ -6,7 +6,7 @@
 #include <libconfig.h>
 #include <SDL2/SDL_ttf.h>
 #include "main.h"
-#include "level.h"
+//#include "level.h"
 
 extern pthread_mutex_t display_mutex;
 extern pthread_mutex_t clock_mutex;

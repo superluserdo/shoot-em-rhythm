@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include <pthread.h>
 #include <SDL2/SDL.h>
-#include "level.h"
+#include "main.h"
 
 
 

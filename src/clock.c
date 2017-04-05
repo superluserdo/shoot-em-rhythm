@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include "level.h"
+//#include "level.h"
 
 
 pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -41,6 +41,12 @@ void *frametimer(void *unused) {
 	int startpause = 1;
 	Uint32 ticks;
 	Uint32 pausetimelast = 0;
+	int fpsframecount = 0;
+	int fpsframecountlast = 0;
+	int fpstimercount = 0;
+	int fpstimer;
+	int fpstimerlast = 0;
+	float actualfps;
 
 	while(1) {
 
@@ -48,6 +54,17 @@ void *frametimer(void *unused) {
 	        pthread_mutex_lock( &clock_mutex );
 		ticks = SDL_GetTicks();
 		ticktime = ticks - zerotime;
+
+		if (fpstimercount >= 10) {
+			fpsframecountlast = fpsframecount;
+			fpsframecount = framecount;
+			fpstimerlast = fpstimer;
+			fpstimer = ticktime;
+			actualfps = (fpsframecount - fpsframecountlast)/((float)(fpstimer - fpstimerlast)/1000);
+			printf("%6f\n", actualfps);
+		}
+
+
 		if (pauselevel) {
 			if (startpause) {
 				pausetimelast = ticks;

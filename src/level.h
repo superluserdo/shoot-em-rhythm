@@ -1,3 +1,5 @@
+//#include "main.h"
+
 #define PXPB 83.24
 //#define SPRITE_PATH "../art/rubysprites2.png"
 //#define TILE_PATH "../art/tileset2.png"
@@ -62,7 +64,7 @@ int totalnativedist = 0;
 
 /* Timing */
 
-extern char countbeats;
+extern int countbeats;
 extern float bps;
 extern float startbeat;
 extern float currentbeat;
@@ -184,7 +186,10 @@ void dropin( char arg[], int map[100][100][2], int posx, int posy);
 
 void quitlevel(SDL_Texture *img, SDL_Texture *Timg, SDL_Texture *Laserimg, SDL_Texture *Swordimg, SDL_Renderer *renderer);
 
+/* Helper Functions */
+
 void int2array(int number, int (*array)[SCORE_DIGITS]);
 
 void deleteList(struct node** head_ref);
+
 
