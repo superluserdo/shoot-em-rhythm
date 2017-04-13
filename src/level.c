@@ -6,7 +6,41 @@
 #include <libconfig.h>
 #include "main.h"
 #include "level.h"
+#include "music.h"
 #include "helpers.h"
+
+/*	Global Variables	*/
+
+/* Status of the Level */
+
+//TODO: Convert into level.gameover, level.pause, etc...
+int gameover = 0;
+int pauselevel = 0;
+int currentlevel = 1;
+int partymode = 0;
+
+/* Status of the Player */
+
+int HP, power, score;
+int max_HP;
+int max_PP;
+int invincibility = 0;
+int invinciblecounter[2];
+int sword = 1;
+
+/* Audio */
+
+int track = 0;
+int newtrack = 0;
+int noise = 0;
+
+/* Graphics */
+
+int local_grid_x;
+int local_grid_y;
+int totallanes = TOTAL_LANES;
+int maxscreens;
+int totalnativedist = 0;
 
 int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) {
 
@@ -112,7 +146,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	SDL_QueryTexture(Timg, NULL, NULL, &w, &h); // get the width and height of the texture
 
 	/* Create "film strip" of sequential background screens */
-	int maxscreens = 300;
+	maxscreens = 300;
 	int currentscreen = 0;
 
 	if (NATIVE_RES_X % TILE_SIZE == 0) {
@@ -1552,46 +1586,46 @@ void PPup(int *max_PPptr, int PPuppts) {
 }
 
 
-void int2array(int number, int (*array)[SCORE_DIGITS]) {
-        int digits = 1;
-        int numchecker = number;
-        while (numchecker /= 10)
-                digits++;
-
-        for (int i = 0; i < SCORE_DIGITS; i++ )
-                (*array)[i] = 0;
-
-        int diff = SCORE_DIGITS - digits;
-        for (int i = 0; i < SCORE_DIGITS; i++) {
-                if ( i < diff ) {
-                        (*array)[i] = 0;
-                }
-                else {
-                        (*array)[SCORE_DIGITS - (i - diff) - 1] = number%10;
-                        number /= 10;
-                }
-        }
-
-}
-
-
-/* Function to delete the entire linked list [geeksforgeeks.org]*/
-void deleteList(struct node** head_ref) {
-   /* deref head_ref to get the real head */
-   struct node* current = *head_ref;
-   struct node* next;
-
-   while (current != NULL) 
-   {
-       next = current->next;
-       free(current);
-       current = next;
-   }
-
-   /* deref head_ref to affect the real head back
-      in the caller. */
-   *head_ref = NULL;
-}
-
-
+//void int2array(int number, int (*array)[SCORE_DIGITS]) {
+//        int digits = 1;
+//        int numchecker = number;
+//        while (numchecker /= 10)
+//                digits++;
+//
+//        for (int i = 0; i < SCORE_DIGITS; i++ )
+//                (*array)[i] = 0;
+//
+//        int diff = SCORE_DIGITS - digits;
+//        for (int i = 0; i < SCORE_DIGITS; i++) {
+//                if ( i < diff ) {
+//                        (*array)[i] = 0;
+//                }
+//                else {
+//                        (*array)[SCORE_DIGITS - (i - diff) - 1] = number%10;
+//                        number /= 10;
+//                }
+//        }
+//
+//}
+//
+//
+///* Function to delete the entire linked list [geeksforgeeks.org]*/
+//void deleteList(struct node** head_ref) {
+//   /* deref head_ref to get the real head */
+//   struct node* current = *head_ref;
+//   struct node* next;
+//
+//   while (current != NULL) 
+//   {
+//       next = current->next;
+//       free(current);
+//       current = next;
+//   }
+//
+//   /* deref head_ref to affect the real head back
+//      in the caller. */
+//   *head_ref = NULL;
+//}
+//
+//
 

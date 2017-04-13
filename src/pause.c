@@ -55,8 +55,7 @@ int pause (SDL_Renderer *renderer, SDL_Texture *levelcapture) {
 
 		fprintf(stderr, "Init TTF  failed\n");
 		//return -1;
-	}
-
+	} 
 	TTF_Font *dejavu = TTF_OpenFont("DejaVuSans.ttf",300);
 	SDL_Color fg;
 	fg.r = 100;
@@ -121,11 +120,11 @@ int pause (SDL_Renderer *renderer, SDL_Texture *levelcapture) {
 				return 0;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP) {
-				if (cursorpos > 0)
+				//if (cursorpos > 0)
 					cursorpos--;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN) {
-				if (cursorpos < count-1)
+				//if (cursorpos < count-1)
 					cursorpos++;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
@@ -144,6 +143,13 @@ int pause (SDL_Renderer *renderer, SDL_Texture *levelcapture) {
 			}
 		}
 
+		if (cursorpos < 0) {
+				printf("%d\n", cursorpos);
+				cursorpos = count - 1;
+		}
+		
+		cursorpos %= count;
+		
 		if (resume) {
 			return 0;
 		}

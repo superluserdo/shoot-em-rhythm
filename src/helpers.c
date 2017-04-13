@@ -2,6 +2,8 @@
 #include <pthread.h>
 #include <SDL2/SDL.h>
 #include "main.h"
+#include "level.h"
+#include "helpers.h"
 
 
 

@@ -2,23 +2,20 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include "main.h"
+#include "music.h"
 #define SAMPLE_RATE 44100
 #define BIT_DEPTH 32
 #define CHANNELS 2
 #define END_COUNT_MAX 8
 #define START_COUNT_MAX 8
 
-extern pthread_mutex_t track_mutex;
-extern pthread_mutex_t display_mutex;
-extern pthread_cond_t display_cond;
-extern int framecount;
 pthread_cond_t soundstatus_cond;
 pthread_mutex_t soundstatus_mutex;
+pthread_mutex_t track_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  cond_end   = PTHREAD_COND_INITIALIZER;
+pthread_cond_t  cond_end2   = PTHREAD_COND_INITIALIZER;
 
 
-extern int track;
-extern int noise;
-extern int soundchecklist[MAX_SOUNDS_LIST];
 void *playmusic(void* soundpath);
 int offset_time = 87; //time in 100ths of a second
 
@@ -40,9 +37,6 @@ int endsound = 0;
 int endingcount = END_COUNT_MAX;
 int starting = 1;
 int startingcount = START_COUNT_MAX;
-extern int pauselevel;
-pthread_cond_t  cond_end   = PTHREAD_COND_INITIALIZER;
-pthread_cond_t  cond_end2   = PTHREAD_COND_INITIALIZER;
 
 int fade = 0;
 

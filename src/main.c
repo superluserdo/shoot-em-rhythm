@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "main.h"
+#include "music.h"
 
 int width = NATIVE_RES_X * ZOOM_MULT;
 int height = NATIVE_RES_Y * ZOOM_MULT;

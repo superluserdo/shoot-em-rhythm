@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "main.h"
+#include "music.h"
 #define START_PATH0 "../art/startimgbg.png"
 #define START_PATH1 "../art/startimgtext1.png"
 #define START_PATH2 "../art/startimgtext2.png"

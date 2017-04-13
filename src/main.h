@@ -7,17 +7,8 @@
 void *frametimer(void *);
 int pause(SDL_Renderer *renderer, SDL_Texture *levelcapture);
 
-
-
 int level(SDL_Window *win, SDL_Renderer *renderer);
 int startscreen(SDL_Window *win, SDL_Renderer *renderer);
-
-void *musicstart(void* ptr);
-void *playsound(void* soundpath);
-void *playmusic(void* soundpath);
-void musicstop(void);
-void soundstart(void);
-void soundstop(void);
 
 void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture *startimgtext2, SDL_Renderer *renderer);
 
