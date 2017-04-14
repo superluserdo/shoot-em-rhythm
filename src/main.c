@@ -6,9 +6,11 @@
 #include "main.h"
 #include "music.h"
 
-int width = NATIVE_RES_X * ZOOM_MULT;
-int height = NATIVE_RES_Y * ZOOM_MULT;
-extern int framecount;
+extern struct time_struct time_status;
+struct program_struct program = {
+	.width = NATIVE_RES_X * ZOOM_MULT,
+	.height = NATIVE_RES_Y * ZOOM_MULT
+};
 int soundchecklist[MAX_SOUNDS_LIST] = {0};
 
 SDL_Renderer *renderer;
@@ -47,7 +49,7 @@ int main() {
         // create the window and renderer
         // note that the renderer is accelerated
 	//printf("main says %d\n", width);
-        win = SDL_CreateWindow("TOM'S SUPER COOL RPG", 100, 100, width, height, 0);
+        win = SDL_CreateWindow("TOM'S SUPER COOL RPG", 100, 100, program.width, program.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
 	int returncode = startscreen(win, renderer);
@@ -77,6 +79,6 @@ int main() {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
-	printf("%d\n", framecount);
+	printf("%d\n", time_status.framecount);
 	return 0;
 }

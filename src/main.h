@@ -4,6 +4,94 @@
 #define NATIVE_RES_Y 360
 #define MAX_SOUNDS_LIST 10
 
+/*		Structs		*/
+
+struct grid_struct {
+	int x;
+	int y;
+} grid;
+/* Status Struct */
+
+struct status_struct {
+	struct level_struct *level;
+	struct player_struct *player;
+	struct audio_struct *audio;
+	struct time_struct *time;
+};
+
+/* Status of the Level */
+
+struct level_struct {
+	int gameover;
+	int levelover;
+	int pauselevel;
+	int currentlevel;
+	struct grid_struct grid;
+	int maxscreens;
+	int totalnativedist;
+	int partymode;
+	float speedmult;
+	float speedmultmon;
+	struct lane_struct *lanes;
+};
+
+struct lane_struct {
+	int total;
+	int currentlane;
+	int lanewidth;
+	int *laneheight;
+};
+
+/* Status of the Player */
+
+struct player_struct {
+
+	int HP, power;
+	int max_HP;
+	int max_PP;
+	int invincibility;
+	int invinciblecounter[2];
+	int sword;
+	int direction;
+	int flydir;
+};
+
+/* Whole Program */
+
+struct program_struct {
+	int width, height;
+	int score;
+};
+
+/* Audio */
+
+struct audio_struct {
+
+	int track;
+	int newtrack;
+	int noise;
+	int soundchecklist[MAX_SOUNDS_LIST];
+};
+
+/* Timing */
+
+struct time_struct {
+
+	int countbeats;
+	float bps;
+	float startbeat;
+	float currentbeat;
+	float pxperbeat;
+	int framecount;
+	int fpsanim;
+	int fpsglobal;
+	int ticks;
+	int zerotime;
+	int pausetime;
+	float intervalanim;
+	float intervalglobal;
+};
+
 void *frametimer(void *);
 int pause(SDL_Renderer *renderer, SDL_Texture *levelcapture);
 

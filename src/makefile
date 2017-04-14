@@ -7,13 +7,13 @@ main.o: main.c main.h music.h
 music.o: music.c music.h
 	gcc -c music.c
 
-clock.o: clock.c
+clock.o: clock.c clock.h
 	gcc -c clock.c
 
 startscreen.o: startscreen.c music.h
 	gcc -c startscreen.c
 
-level.o: level.c main.h level.h helpers.h music.h
+level.o: level.c main.h level.h helpers.h music.h clock.h
 	gcc -c level.c
 
 pause.o: pause.c

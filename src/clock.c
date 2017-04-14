@@ -2,7 +2,8 @@
 #include <SDL2/SDL.h>
 #include <pthread.h>
 #include <semaphore.h>
-//#include "level.h"
+#include "clock.h"
+#include "main.h"
 
 
 pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -11,36 +12,29 @@ pthread_cond_t display_cond = PTHREAD_COND_INITIALIZER;
 
 extern int local_grid_x;
 extern int local_grid_y;
-int framecount;
-int countbeats;
-float bps;
-float startbeat;
-float currentbeat;
-float intervalanim;
-float intervalglobal;
-float pxperbeat;
-//float beatstoplayer;
-Uint32 zerotime;
-Uint32 pausetime = 0;
+
+struct time_struct time_status = {
+	.pxperbeat = 140,
+	.bps = 1.5185*2.0,
+	.framecount = 0,
+	.fpsanim = 30,
+	.fpsglobal = 60,
+	.pausetime = 0
+};
+
 
 void *frametimer(void *unused) {
 
-	zerotime = SDL_GetTicks();
-	Uint32 SDL_GetTicks(void);
-	Uint32 ticktime;
-	bps = 1.5185*2.0;
-	pxperbeat = 140;
+		time_status.zerotime = SDL_GetTicks();
+		time_status.intervalanim = 1000.0/time_status.fpsanim;
+		time_status.intervalglobal = 1000.0/(float)time_status.fpsglobal;
+
+	extern struct level_struct level_status;
+	//int SDL_GetTicks(void);
+	int ticktime;
 	//beatstoplayer = 4.0;
-	//currentbeat;
-	int fpsanim = 30;
-	intervalanim = 1000.0/fpsanim;
-	int fpsglobal = 60;
-	intervalglobal = 1000.0/(float)fpsglobal;
-	framecount = 0;
-	extern int pauselevel;
 	int startpause = 1;
-	Uint32 ticks;
-	Uint32 pausetimelast = 0;
+	int pausetimelast = 0;
 	int fpsframecount = 0;
 	int fpsframecountlast = 0;
 	int fpstimercount = 0;
@@ -50,14 +44,14 @@ void *frametimer(void *unused) {
 
 	while(1) {
 
-		SDL_Delay(intervalglobal);
+		SDL_Delay(time_status.intervalglobal);
 	        pthread_mutex_lock( &clock_mutex );
-		ticks = SDL_GetTicks();
-		ticktime = ticks - zerotime;
+		time_status.ticks = SDL_GetTicks();
+		ticktime = time_status.ticks - time_status.zerotime;
 
 		if (fpstimercount >= 10) {
 			fpsframecountlast = fpsframecount;
-			fpsframecount = framecount;
+			fpsframecount = time_status.framecount;
 			fpstimerlast = fpstimer;
 			fpstimer = ticktime;
 			actualfps = (fpsframecount - fpsframecountlast)/((float)(fpstimer - fpstimerlast)/1000);
@@ -65,20 +59,20 @@ void *frametimer(void *unused) {
 		}
 
 
-		if (pauselevel) {
+		if (level_status.pauselevel) {
 			if (startpause) {
-				pausetimelast = ticks;
+				pausetimelast = time_status.ticks;
 				startpause = 0;
 			}
-			pausetime += ticks - pausetimelast;
-			pausetimelast = ticks;
+			time_status.pausetime += time_status.ticks - pausetimelast;
+			pausetimelast = time_status.ticks;
 		}
 		else {
 			startpause = 1;
 		}
-		currentbeat = (float)(ticktime - pausetime)* bps / 1000 + startbeat + 1;
+		time_status.currentbeat = (float)(ticktime - time_status.pausetime)* time_status.bps / 1000 + time_status.startbeat + 1;
 	        pthread_mutex_unlock( &clock_mutex );
 	pthread_cond_broadcast(&display_cond);
-		framecount++;
+		time_status.framecount++;
 	}
 }

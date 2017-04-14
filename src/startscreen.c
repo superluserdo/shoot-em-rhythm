@@ -13,15 +13,14 @@ extern pthread_mutex_t track_mutex;
 extern pthread_mutex_t display_mutex;
 extern pthread_cond_t display_cond;
 extern pthread_cond_t cond_end;
-extern int track;
-extern int newtrack;
-extern int width, height;
+extern struct audio_struct audio_status;
+extern struct program_struct program;
 
 int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 
 	pthread_t soundthread;
-	newtrack = 1;
-	int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&newtrack);
+	audio_status.newtrack = 1;
+	int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&audio_status.newtrack);
 	if (rc) {
 	printf("ya dun goofed. return code is %d\n.", rc);
 	exit(-1);
@@ -29,7 +28,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 
 
         pthread_mutex_lock( &track_mutex );
-        track = 1;
+        audio_status.track = 1;
         pthread_mutex_unlock( &track_mutex );
 
 	SDL_Texture * startimgbg = NULL;
@@ -54,7 +53,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartbgSrc.h = 360;
 
 	SDL_Rect rcStartt1, rcStartt1Src;
-	rcStartt1.x = 0.1 * width;
+	rcStartt1.x = 0.1 * program.width;
 	rcStartt1.y = 0;
 	rcStartt1.w = 444 * ZOOM_MULT;
 	rcStartt1.h = 58 * ZOOM_MULT;
@@ -64,8 +63,8 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartt1Src.h = 58;
 
 	SDL_Rect rcStartt2, rcStartt2Src;
-	rcStartt2.x = 0.3 * width;
-	rcStartt2.y = 0.6 * height;
+	rcStartt2.x = 0.3 * program.width;
+	rcStartt2.y = 0.6 * program.height;
 	rcStartt2.w = 356 * ZOOM_MULT;
 	rcStartt2.h = 27 * ZOOM_MULT;
 	rcStartt2Src.x = 0;

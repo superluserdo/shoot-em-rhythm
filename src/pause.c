@@ -11,7 +11,7 @@
 extern pthread_mutex_t display_mutex;
 extern pthread_mutex_t clock_mutex;
 extern pthread_cond_t display_cond;
-extern int currentlevel;
+extern struct level_struct level_status;
 
 int pause (SDL_Renderer *renderer, SDL_Texture *levelcapture) {
 
@@ -154,7 +154,7 @@ int pause (SDL_Renderer *renderer, SDL_Texture *levelcapture) {
 			return 0;
 		}
 		else if (restart) {
-			return 200 + currentlevel;
+			return 200 + level_status.currentlevel;
 		}
 		else if (quittostart) {
 	TTF_CloseFont(dejavu);
