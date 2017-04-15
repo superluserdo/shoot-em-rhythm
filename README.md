@@ -1,4 +1,4 @@
-#Shoot-'em Rhythm
+# Shoot-'em Rhythm
 
 Shoot-'em Rhythm is a (very early on) rhythm shootemup game made in SDL
 

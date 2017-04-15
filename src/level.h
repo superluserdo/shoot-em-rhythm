@@ -158,7 +158,7 @@ struct item *itempokedex[10],
 int (*itemscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][2], 
 int *levelover);
 
-int invinciblefunc(struct player_struct player_status);
+int invinciblefunc(struct player_struct *player_status);
 
 void gethurt(int attack, int *levelover);
 

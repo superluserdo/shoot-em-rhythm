@@ -1,4 +1,4 @@
-> Turn BIG array of SDL_Rects into one of only monsternum every frame
+?DONE?> Turn BIG array of SDL_Rects into one of only monsternum every frame
 > Feed this little array into movemap
 
 ~~~ Movement and timing ~~~
@@ -6,3 +6,5 @@
 !DONE!	> Turn frame-based translations into time-based (for vastly easier rhythm making)
 	> Possibly keep sprite animations frame-based -- maybe multiples of 30fps? Would mean game can run at 30x fps.	This would mean having some kind of time-based clock and a frame based clock.
 	> Take animations out of level.c code and into some kind of organised function that finds the right animation frame -- maybe for each sprite have an "animation frame #" value, with an array of animation frame numbers that are pointers to the coordinates on the png?
+
+	> Turn big list of all different sprite objects into some kind of unified array.

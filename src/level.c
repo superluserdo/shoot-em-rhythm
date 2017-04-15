@@ -877,6 +877,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 		}
 
 		/* The real business */
+		printf("%d\n", player_status.invinciblecounter[player_status.invincibility]);
 		moveme(&lanes.currentlane, lanes.total, &player_status.direction);
 
 		/* set sprite position */
@@ -896,7 +897,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 		if ( player_status.sword )
 			swordfunc(&swordcount, &sword_down, &sword_swing, &rcSword, &rcSwordSrc, rcSprite, lanes.laneheight, lanes.currentlane, time_status.framecount, linkptrs_start);
 
-		invinciblefunc(player_status);
+		invinciblefunc(&player_status);
 
 		amihurt(lanes.currentlane, linkptrs_start, rcSprite, bestiary, &level_status.levelover);
 
@@ -1536,16 +1537,16 @@ void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, struct ite
 }
 
 
-int invinciblefunc(struct player_struct player_status) {
+int invinciblefunc(struct player_struct *player_status) {
 
-	if ( player_status.invincibility != 0 ) {
-		player_status.invinciblecounter[player_status.invincibility]--;
-		if ( player_status.invinciblecounter[player_status.invincibility] <= 0 ) {
-			player_status.invincibility = 0;
+	if ( player_status->invincibility != 0 ) {
+		player_status->invinciblecounter[player_status->invincibility]--;
+		if ( player_status->invinciblecounter[player_status->invincibility] <= 0 ) {
+			player_status->invincibility = 0;
 		}
 	}
 
-	return player_status.invincibility;
+	return player_status->invincibility;
 }
 
 void gethurt(int attack, int *levelover) {
