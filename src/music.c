@@ -15,7 +15,7 @@ pthread_mutex_t track_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  cond_end   = PTHREAD_COND_INITIALIZER;
 pthread_cond_t  cond_end2   = PTHREAD_COND_INITIALIZER;
 
-struct audio_struct audio_status = {
+struct audio_struct audio = {
 		
 	.track = 0,
 	.newtrack = 0,
@@ -53,7 +53,7 @@ int fade = 0;
 
 void musicstop(void) {
 
-	if (audio_status.noise) {
+	if (audio.noise) {
 		if (!ending)
 			ending = 1;
 	}
@@ -90,21 +90,21 @@ void* musicstart(void* argvoid) {
 	trackarray[4] = "../music/rubyremix.wav";	
 	
 	pthread_mutex_lock( &track_mutex );
-	int oldtrack = audio_status.track;
+	int oldtrack = audio.track;
 	pthread_mutex_unlock( &track_mutex );
 
 	ending = 1;
 
 //	endingcount = END_COUNT_MAX - startingcount;
 	pthread_mutex_lock( &track_mutex );
-	audio_status.track = arguments->newtrack;
+	audio.track = arguments->newtrack;
 	pthread_mutex_unlock( &track_mutex );
 
 
 	if ( arguments->newtrack != 0 ) {
 		printf("track ... %d\n\n", arguments->newtrack);
 
-		audio_status.noise = 1;
+		audio.noise = 1;
 		starting = 1;
 		ending = 0;
 		endingcount = END_COUNT_MAX;
@@ -225,7 +225,7 @@ void *playsound(void* soundpath){
 
 		pthread_mutex_lock( &soundstatus_mutex);
 		for (int i = 0; i < MAX_SOUNDS_LIST; i++ ) {
-			soundchecklisttemp[i] = audio_status.soundchecklist[i];
+			soundchecklisttemp[i] = audio.soundchecklist[i];
 		}
 		pthread_cond_broadcast( &soundstatus_cond );
 		pthread_mutex_unlock( &soundstatus_mutex);
@@ -391,7 +391,7 @@ void *playmusic(void* argvoid){
 		}
 	SDL_Delay(100);
 	}
-	audio_status.noise = 0;
+	audio.noise = 0;
 	pthread_cond_signal( &cond_end);
 
 	Mix_Quit();

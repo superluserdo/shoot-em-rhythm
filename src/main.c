@@ -6,7 +6,7 @@
 #include "main.h"
 #include "music.h"
 
-extern struct time_struct time_status;
+extern struct time_struct timing;
 struct program_struct program = {
 	.width = NATIVE_RES_X * ZOOM_MULT,
 	.height = NATIVE_RES_Y * ZOOM_MULT
@@ -56,7 +56,7 @@ int main() {
 	while (1) {
 
 		if ( returncode == 0 ) {
-			returncode = level(win, renderer);
+			returncode = levelfunc(win, renderer);
 		}
 		else if ( returncode >0 && returncode <100 ) {
 			break;
@@ -68,7 +68,7 @@ int main() {
 			break;
 		}
 		else if ( returncode >= 200 ) {
-			returncode = level(win, renderer);
+			returncode = levelfunc(win, renderer);
 		}
 		else {
 			break;
@@ -78,6 +78,6 @@ int main() {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
-	printf("%d\n", time_status.framecount);
+	printf("%d\n", timing.framecount);
 	return 0;
 }

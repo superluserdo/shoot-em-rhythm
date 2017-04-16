@@ -13,24 +13,24 @@ extern pthread_mutex_t track_mutex;
 extern pthread_mutex_t display_mutex;
 extern pthread_cond_t display_cond;
 extern pthread_cond_t cond_end;
-extern struct audio_struct audio_status;
+extern struct audio_struct audio;
 extern struct program_struct program;
 
 int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 
 	pthread_t soundthread;
-	audio_status.newtrack = 1;
+	audio.newtrack = 1;
 	struct musicstart_struct {
 		int newtrack;
 		int *pause;
 	};
 	int dummypause = 0;
 	struct musicstart_struct musicstart_struct = {
-		.newtrack = audio_status.newtrack,
+		.newtrack = audio.newtrack,
 		.pause = &dummypause
 	};
 	int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&musicstart_struct);
-//int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&audio_status.newtrack);
+//int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&audio.newtrack);
 	if (rc) {
 	printf("ya dun goofed. return code is %d\n.", rc);
 	exit(-1);
@@ -38,7 +38,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 
 
         pthread_mutex_lock( &track_mutex );
-        audio_status.track = 1;
+        audio.track = 1;
         pthread_mutex_unlock( &track_mutex );
 
 	SDL_Texture * startimgbg = NULL;

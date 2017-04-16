@@ -11,21 +11,27 @@ struct grid_struct {
 	int y;
 } grid;
 
-	struct laser_struct {
-		int power;
-		int count;
-		int on;
-		int turnon;
-		int turnoff;
-	};
+struct laser_struct {
+	int power;
+	int count;
+	int on;
+	int turnon;
+	int turnoff;
+};
 
+struct sword_struct {
+	int power;
+	int count;
+	int down;
+	int swing;
+};
 /* Status Struct */
 
 struct status_struct {
 	struct level_struct *level;
 	struct player_struct *player;
 	struct audio_struct *audio;
-	struct time_struct *time;
+	struct time_struct *timing;
 };
 
 /* Status of the Level */
@@ -106,7 +112,7 @@ struct time_struct {
 void *frametimer(void *);
 int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel);
 
-int level(SDL_Window *win, SDL_Renderer *renderer);
+int levelfunc(SDL_Window *win, SDL_Renderer *renderer);
 int startscreen(SDL_Window *win, SDL_Renderer *renderer);
 
 void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture *startimgtext2, SDL_Renderer *renderer);

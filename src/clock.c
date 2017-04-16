@@ -13,10 +13,11 @@ pthread_cond_t display_cond = PTHREAD_COND_INITIALIZER;
 extern int local_grid_x;
 extern int local_grid_y;
 
-struct time_struct time_status = {
+struct time_struct timing = {
 	.pxperbeat = 140,
 	.bps = 1.5185*2.0,
 	.framecount = 0,
+	.pauselevel = NULL,
 	.fpsanim = 30,
 	.fpsglobal = 60,
 	.pausetime = 0
@@ -25,9 +26,9 @@ struct time_struct time_status = {
 
 void *frametimer(void *unused) {
 
-		time_status.zerotime = SDL_GetTicks();
-		time_status.intervalanim = 1000.0/time_status.fpsanim;
-		time_status.intervalglobal = 1000.0/(float)time_status.fpsglobal;
+		timing.zerotime = SDL_GetTicks();
+		timing.intervalanim = 1000.0/timing.fpsanim;
+		timing.intervalglobal = 1000.0/(float)timing.fpsglobal;
 
 	//int SDL_GetTicks(void);
 	int ticktime;
@@ -43,14 +44,14 @@ void *frametimer(void *unused) {
 
 	while(1) {
 
-		SDL_Delay(time_status.intervalglobal);
+		SDL_Delay(timing.intervalglobal);
 	        pthread_mutex_lock( &clock_mutex );
-		time_status.ticks = SDL_GetTicks();
-		ticktime = time_status.ticks - time_status.zerotime;
+		timing.ticks = SDL_GetTicks();
+		ticktime = timing.ticks - timing.zerotime;
 
 		if (fpstimercount >= 10) {
 			fpsframecountlast = fpsframecount;
-			fpsframecount = time_status.framecount;
+			fpsframecount = timing.framecount;
 			fpstimerlast = fpstimer;
 			fpstimer = ticktime;
 			actualfps = (fpsframecount - fpsframecountlast)/((float)(fpstimer - fpstimerlast)/1000);
@@ -58,20 +59,22 @@ void *frametimer(void *unused) {
 		}
 
 
-		if (time_status.pauselevel) {
-			if (startpause) {
-				pausetimelast = time_status.ticks;
-				startpause = 0;
+		if (timing.pauselevel) {
+			if (*timing.pauselevel) {
+				if (startpause) {
+					pausetimelast = timing.ticks;
+					startpause = 0;
+				}
+				timing.pausetime += timing.ticks - pausetimelast;
+				pausetimelast = timing.ticks;
 			}
-			time_status.pausetime += time_status.ticks - pausetimelast;
-			pausetimelast = time_status.ticks;
 		}
 		else {
 			startpause = 1;
 		}
-		time_status.currentbeat = (float)(ticktime - time_status.pausetime)* time_status.bps / 1000 + time_status.startbeat + 1;
+		timing.currentbeat = (float)(ticktime - timing.pausetime)* timing.bps / 1000 + timing.startbeat + 1;
 	        pthread_mutex_unlock( &clock_mutex );
 	pthread_cond_broadcast(&display_cond);
-		time_status.framecount++;
+		timing.framecount++;
 	}
 }
