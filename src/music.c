@@ -15,8 +15,6 @@ pthread_mutex_t track_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  cond_end   = PTHREAD_COND_INITIALIZER;
 pthread_cond_t  cond_end2   = PTHREAD_COND_INITIALIZER;
 
-extern struct level_struct level_status;
-
 struct audio_struct audio_status = {
 		
 	.track = 0,
@@ -24,7 +22,12 @@ struct audio_struct audio_status = {
 	.noise = 0
 };
 
-void *playmusic(void* soundpath);
+struct playmusic_struct {
+	char *soundpath;
+	int *pause;
+};
+
+void *playmusic(void* argvoid);
 int offset_time = 87; //time in 100ths of a second
 
 void music_Finished();
@@ -69,12 +72,15 @@ void soundstop(void) {
 
 }
 
-void* musicstart(void* ptr) {
+void* musicstart(void* argvoid) {
 	pthread_t pthread_self(void);
 	int x = pthread_self();
 	//printf("THREAD ... %d\n", x);
-	int newtrackplay;
-	newtrackplay = *(int*)ptr;
+	struct musicstart_struct {
+		int newtrack;
+		int *pause;
+	};
+	struct musicstart_struct *arguments = (struct musicstart_struct *)argvoid;
 	pthread_t soundthread;
 	char *trackarray[5];
 	trackarray[0] = "0";	
@@ -91,20 +97,24 @@ void* musicstart(void* ptr) {
 
 //	endingcount = END_COUNT_MAX - startingcount;
 	pthread_mutex_lock( &track_mutex );
-	audio_status.track = newtrackplay;
+	audio_status.track = arguments->newtrack;
 	pthread_mutex_unlock( &track_mutex );
 
 
-	if ( newtrackplay != 0 ) {
-		printf("track ... %d\n\n", newtrackplay);
+	if ( arguments->newtrack != 0 ) {
+		printf("track ... %d\n\n", arguments->newtrack);
 
 		audio_status.noise = 1;
 		starting = 1;
 		ending = 0;
 		endingcount = END_COUNT_MAX;
 		char mystr[40];
-		strcpy(mystr, trackarray[newtrackplay]);
-		int rc = pthread_create(&soundthread, NULL, playmusic, (void*)mystr);
+		strcpy(mystr, trackarray[arguments->newtrack]);
+		struct playmusic_struct playmusic_struct = {
+			.soundpath = mystr,
+			.pause = arguments->pause
+		};
+		int rc = pthread_create(&soundthread, NULL, playmusic, (void*)&playmusic_struct);
 		if (rc) {
 			printf("ya dun goofed. return code is %d\n.", rc);
 			exit(-1);
@@ -299,15 +309,15 @@ void my_audio_callback(void *userdata, Uint8 *stream, int len) {
 }
 
 
-void *playmusic(void* soundpath){
+void *playmusic(void* argvoid){
 
+	struct playmusic_struct *arguments = (struct playmusic_struct *)argvoid;
 	// open 44.1KHz, signed 16bit, system byte order,
 	//      stereo audio, using 1024 byte chunks
 	if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
 	    printf("Mix_OpenAudio: %s\n", Mix_GetError());
 	    exit(2);
 	}
-
 
 	// print the number of music decoders available
 	//printf("There are %d music deocoders available\n", Mix_GetNumMusicDecoders());
@@ -319,7 +329,7 @@ void *playmusic(void* soundpath){
 	//for(i=0; i<max; ++i)
 	//      printf("Music decoder %d is for %s",Mix_GetMusicDecoder(i));
 
-	const char *path = soundpath;
+	const char *path = arguments->soundpath;
 
 	//load the MP3 file "music.mp3" to play as music
 	music=Mix_LoadMUS(path);
@@ -365,18 +375,18 @@ void *playmusic(void* soundpath){
 			}
 		        break;
 	        }
-		else if (level_status.pauselevel) {
+		else if (*arguments->pause) {
 			Mix_PauseMusic();
 			while (1) {
 				if (ending) {
 					Mix_HaltMusic();
 					break;
 				}
-				else if (!level_status.pauselevel) {
+				else if (!*arguments->pause) {
 					Mix_ResumeMusic();
 					break;
 				}
-			SDL_Delay(10);
+				SDL_Delay(10);
 			}
 		}
 	SDL_Delay(100);

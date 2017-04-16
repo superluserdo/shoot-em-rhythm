@@ -12,13 +12,23 @@
 
 /*	Global Variables	*/
 
-struct program_struct program;
+/* Time */
 
-/* Status of the Level */
+extern struct program_struct program;
+extern struct time_struct time_status;
 
 struct lane_struct lanes = {
 	.total = TOTAL_LANES
 };
+
+int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) {
+
+	/*	Some Variables	*/
+
+
+
+/* Status of the Level */
+
 struct level_struct level_status = {
 	.gameover = 0,
 	.levelover = 0,
@@ -29,6 +39,7 @@ struct level_struct level_status = {
 	.lanes = &lanes
 };
 
+time_status.pauselevel = &level_status.pauselevel;
 
 /* Status of the Player */
 
@@ -41,10 +52,6 @@ struct player_struct player_status = {
 };
 
 
-/* Time */
-
-extern struct time_struct time_status;
-
 /* All Status */
 
 struct status_struct status = {
@@ -53,13 +60,6 @@ struct status_struct status = {
 	.audio = &audio_status,
 	.time = &time_status
 };
-
-/* Graphics */
-
-int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) {
-
-	/*	Some Variables	*/
-
 
 
 
@@ -156,7 +156,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 
 	/* Create "film strip" of sequential background screens */
 	level_status.maxscreens = 300;
-	int currentscreen = 0;
+	level_status.currentscreen = 0;
 
 	if (NATIVE_RES_X % TILE_SIZE == 0) {
 		grid.x = NATIVE_RES_X / TILE_SIZE;
@@ -296,6 +296,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	potion.itemnumber = 0;
 	potion.int1 = &player_status.HP;
 	potion.int2 = 50; //Amount of HP restored by potion
+	potion.otherdata = (void *)&player_status;
 	potion.functionptr = &restorehealth;	
 	memcpy(&potion.Src, &(int [2]){ 0, 0 }, sizeof potion.Src);
 	memcpy(&potion.wh, &(int [2]){ 20,20 }, sizeof potion.wh);
@@ -306,6 +307,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	laserjuice.itemnumber = 1;
 	laserjuice.int1 = &player_status.power;
 	laserjuice.int2 = 200; //Amount of HP restored by laserjuice
+	laserjuice.otherdata = (void *)&player_status;
 	laserjuice.functionptr = &restorepower;	
 	memcpy(&laserjuice.Src, &(int [2]){ 0, 20 }, sizeof laserjuice.Src);
 	memcpy(&laserjuice.wh, &(int [2]){ 20,20 }, sizeof laserjuice.wh);
@@ -328,21 +330,23 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 
 	/* Item Functions */
 
-	void (*itemfunctionarray[10])(int *int1ptr, int int2);
+	void (*itemfunctionarray[10])(int *int1ptr, int int2, void *otherdata);
 	itemfunctionarray[0] = &restorehealth;
 	itemfunctionarray[1] = &restorepower;
-	(*itemfunctionarray[0])(&player_status.HP, 3);
+//	(*itemfunctionarray[0])(&player_status.HP, 3);
 
 
 	/*		Weapons		*/
 
 	/* Laser Beam */
 
-	int lasercount = 0;
-	int laser_on = 0;
-	int laser_turnon = 0;
-	int laser_turnoff = 0;
-
+	struct laser_struct laser = {
+		.power = 10,
+		.count = 0,
+		.on = 0,
+		.turnon = 0,
+		.turnoff = 0
+	};
 	Laserimg = IMG_LoadTexture(renderer, LASER_PATH);
 	SDL_QueryTexture(Laserimg, NULL, NULL, &w, &h); // get the width and height of the texture
 	SDL_Rect rcTSrc[grid.x * 3][grid.y], rcTile[grid.x * 3][grid.y];
@@ -626,7 +630,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 //	multidrop(); //	dropin( "house", sampletilemapmid, 20, 20);
 
 
-	refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, 0, lanes.laneheight, monsterpokedex, itempokedex);
+	refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, level_status.currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, 0, lanes.laneheight, monsterpokedex, itempokedex);
 
 	/*	Event Handling	*/
 
@@ -634,10 +638,10 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	int history [4] = {0, 0, 0, 0};
 	int histwrite = 0;
 	int histread = 0;
-        int actionbuttonlist [4] = {0, 0, 0, 0}; //a, b, start, select
-        int acthistory [4] = {0, 0, 0, 0};
-        int acthistwrite = 0;
-        int acthistread = 0;
+	int actionbuttonlist [4] = {0, 0, 0, 0}; //a, b, start, select
+	int acthistory [4] = {0, 0, 0, 0};
+	int acthistwrite = 0;
+	int acthistread = 0;
 
 	/* Play some music */
 
@@ -646,7 +650,16 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	pthread_t threads;
 	int rc;
 	audio_status.newtrack = 2;
-	rc = pthread_create(&threads, NULL, musicstart, (void*)&audio_status.newtrack);
+
+	struct musicstart_struct {
+		int newtrack;
+		int *pause;
+	};
+	struct musicstart_struct musicstart_struct = {
+		.newtrack = audio_status.newtrack,
+		.pause = &level_status.pauselevel
+	};
+	rc = pthread_create(&threads, NULL, musicstart, (void*)&musicstart_struct);
 	if (rc) {
 		printf("ya dun goofed. return code is %d\n.", rc);
 		exit(-1);
@@ -730,7 +743,7 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
 				level_status.pauselevel = 1;
-				int rc = pause(renderer, texTarget);
+				int rc = pausefunc(renderer, texTarget, level_status.currentlevel);
 				level_status.pauselevel = 0;
 				SDL_SetRenderTarget(renderer, NULL);
 
@@ -777,33 +790,33 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 				player_status.direction = 0;
 				}
 
-                        if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_a){
-                                actionbuttonlist[0] = 0;}
-                        else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_a){
-                                actionbuttonlist[0] = 1;
-                                acthistory[acthistwrite] = 0;
-                                }
-
-                        else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_s){
-                                actionbuttonlist[1] = 0;}
-                        else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_s){
-                                actionbuttonlist[1] = 1;
-                                acthistory[acthistwrite] = 0;
-                                }
-
-                        else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_d){
-                                actionbuttonlist[2] = 0;}
-                        else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_d){
-                                actionbuttonlist[2] = 1;
-                                acthistory[acthistwrite] = 0;
-                                }
-
-                        else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_f){
-                                actionbuttonlist[3] = 0;}
-                        else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_f){
-                                actionbuttonlist[3] = 1;
-                                acthistory[acthistwrite] = 0;
-                                }
+			if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_a){
+				actionbuttonlist[0] = 0;}
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_a){
+				actionbuttonlist[0] = 1;
+				acthistory[acthistwrite] = 0;
+				}
+			
+			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_s){
+				actionbuttonlist[1] = 0;}
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_s){
+				actionbuttonlist[1] = 1;
+				acthistory[acthistwrite] = 0;
+				}
+			
+			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_d){
+				actionbuttonlist[2] = 0;}
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_d){
+				actionbuttonlist[2] = 1;
+				acthistory[acthistwrite] = 0;
+				}
+			
+			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_f){
+				actionbuttonlist[3] = 0;}
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_f){
+				actionbuttonlist[3] = 1;
+				acthistory[acthistwrite] = 0;
+				}
 
 
 		}
@@ -815,12 +828,12 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 			for (int i = 0; i < 3; i++) {
 				if (actionbuttonlist[i] == 1) {
 					hue = i;
-					laser_turnoff = 0;
+					laser.turnoff = 0;
 
-					if (lasercount < 4) {
-						laser_on = 1;
-						laser_turnon = 1;
-						if  ( lasercount == 0 )
+					if (laser.count < 4) {
+						laser.on = 1;
+						laser.turnon = 1;
+						if ( laser.count == 0 )
 							audio_status.soundchecklist[1] = 1;
 					}
 					else {
@@ -831,11 +844,11 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 				}
 			}
 			if ( !donehere ) {
-				if (laser_on)
-					//laser_turnon = 0;
-					laser_turnoff = 1;
+				if (laser.on)
+					//laser.turnon = 0;
+					laser.turnoff = 1;
 					audio_status.soundchecklist[2] = 0;
-					if ( lasercount == 4 ){
+					if ( laser.count == 4 ){
 						audio_status.soundchecklist[3] = 1;
 					}
 			}
@@ -843,9 +856,9 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 		}
 		else {
 		/* In the case the power has run out */
-			if (laser_on)
-				//laser_turnon = 0;
-				laser_turnoff = 1;
+			if (laser.on)
+				//laser.turnon = 0;
+				laser.turnoff = 1;
 				audio_status.soundchecklist[2] = 0;
 		}
 
@@ -877,7 +890,6 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 		}
 
 		/* The real business */
-		printf("%d\n", player_status.invinciblecounter[player_status.invincibility]);
 		moveme(&lanes.currentlane, lanes.total, &player_status.direction);
 
 		/* set sprite position */
@@ -887,11 +899,11 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 		rcSprite.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
 
 
-		movemap(grid, player_status.flydir, &rcSrc, &rcSprite, rcTile, level_status.speedmult, rcTilemid, rcTSrc, rcTSrcmid, screenstrip, monsterscreenstrip, itemscreenstrip, &currentscreen, level_status.maxscreens, &level_status.levelover, &lanes.laneheight, &monsterpokedex, &itempokedex);
+		movemap(&level_status, &player_status, grid, &rcSrc, &rcSprite, rcTile, rcTilemid, rcTSrc, rcTSrcmid, screenstrip, monsterscreenstrip, itemscreenstrip, &monsterpokedex, &itempokedex);
 
 		movemon(level_status.speedmultmon, linkptrs_start, linkptrs_end, monsterlanenum, time_status.bps, time_status.currentbeat, time_status.intervalglobal, time_status.pxperbeat, &remainder, rcSprite, rcSword);
-		if (laser_on) {
-			laserfire(&lasercount, &laser_on, &laser_turnon, &laser_turnoff, rcLaser, rcLaserSrc, rcSprite, lanes.laneheight, lanes.currentlane, time_status.framecount, monsterscreenstrip, currentscreen, hue);
+		if (laser.on) {
+			laserfire(&laser, &player_status, rcLaser, rcLaserSrc, rcSprite, lanes.laneheight, lanes.currentlane, time_status.framecount, monsterscreenstrip, level_status.currentscreen, hue);
 		}
 
 		if ( player_status.sword )
@@ -899,9 +911,9 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 
 		invinciblefunc(&player_status);
 
-		amihurt(lanes.currentlane, linkptrs_start, rcSprite, bestiary, &level_status.levelover);
+		amihurt(status, linkptrs_start, rcSprite, bestiary);
 
-		touchitem(lanes.currentlane, currentscreen, rcSprite, itempokedex, itemscreenstrip, &level_status.levelover);
+		touchitem(lanes.currentlane, level_status.currentscreen, rcSprite, itempokedex, itemscreenstrip, &level_status.levelover);
 
 //		printf("%f	%d\n", time_status.currentbeat, time_status.framecount);
 //		printf("%f\n", linkptrs_start[2]->entrybeat);
@@ -912,19 +924,19 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 	SDL_RenderClear(renderer);
 		/* Copy textures to renderer	*/
 		for (int i = 0; i < grid.x * 3; i++){
-	                for (int j = 0; j < grid.y; j++){
+			for (int j = 0; j < grid.y; j++){
 				SDL_RenderCopy(renderer, Timg, &rcTSrc[i][j], &rcTile[i][j]);
 			}
 		}
 		for (int i = 0; i < grid.x * 3; i++){
-	                for (int j = 0; j < grid.y; j++){
+			for (int j = 0; j < grid.y; j++){
 				SDL_RenderCopy(renderer, Timg, &rcTSrcmid[i][j], &rcTilemid[i][j]);
 			}
 		}
 
 		if ( !(player_status.invincibility == 1 && ( player_status.invinciblecounter[1]%8 <= 3 ) ) )
-			SDL_RenderCopy(renderer, img, &rcSrc,  &rcSprite);
-		//for (int lane =  0; lane < lanes.total; lane++) {
+			SDL_RenderCopy(renderer, img, &rcSrc, &rcSprite);
+		//for (int lane = 0; lane < lanes.total; lane++) {
 			//for (int screen = 0; screen < 3; screen++) {
 				//for (int i = 0; i < monsterlanenum[screen][lane]; i++ ) {
 					//if ( (*moninfoptrs[screen])[lane][i][2] != -1){
@@ -944,17 +956,17 @@ int level (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) 
 				ptr2mon = ptr2mon->next;
 			}
 		}
-		for (int lane =  0; lane < lanes.total; lane++) {
+		for (int lane = 0; lane < lanes.total; lane++) {
 			for (int screen = 0; screen < 3; screen++) {
 				for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
 					if ( (*iteminfoptrs[screen])[lane][i] != -1){
-						SDL_RenderCopy(renderer, *(*itempokedex[(*itemscreenstrip[currentscreen + screen])[lane][i][0]]).image, &rcItemSrc[screen][lane][i],  &rcItem[screen][lane][i]);
+						SDL_RenderCopy(renderer, *(*itempokedex[(*itemscreenstrip[level_status.currentscreen + screen])[lane][i][0]]).image, &rcItemSrc[screen][lane][i], &rcItem[screen][lane][i]);
 
 					}
 				}
 			}
 		}
-		if (laser_on){
+		if (laser.on){
 			for (int i = 0; i < 3; i++) {
 				SDL_RenderCopy(renderer, Laserimg, &rcLaserSrc[i], &rcLaser[i]);
 			}
@@ -1067,62 +1079,62 @@ if (*direction < 4) {
 }
 }
 
-void movemap(struct grid_struct grid, int flydir, SDL_Rect *rcSrc, SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x * 3][grid.y], int speedmult, SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int (*screenstrip [level_status.maxscreens]) [grid.x * 3][grid.y][2], int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level_status.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int *currentscreen, int maxscreens, int *levelover, int (*laneheight[lanes.total]), struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
-	if (flydir == 0){
+void movemap(struct level_struct *level_status_ptr, struct player_struct *player_status_ptr, struct grid_struct grid, SDL_Rect *rcSrc, SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x * 3][grid.y], SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int (*screenstrip [level_status.maxscreens]) [grid.x * 3][grid.y][2], int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level_status.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
+	if (player_status_ptr->flydir == 0){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].y += 4 * ZOOM_MULT * speedmult;
-				rcTilemid[i][j].y += 4 * ZOOM_MULT *speedmult;
+				rcTile[i][j].y += 4 * ZOOM_MULT * level_status_ptr->speedmult;
+				rcTilemid[i][j].y += 4 * ZOOM_MULT * level_status_ptr->speedmult;
 			}
 		}
 	}
-	if (flydir == 1 ){
+	if (player_status_ptr->flydir == 1 ){
 		if (rcTile[grid.x][0].x <= 0 ) {
 			int frameoffset = rcTile[grid.x][0].x;
-			(*currentscreen)++;
-			if (*currentscreen >= level_status.maxscreens - 3){
-				*levelover = 1;
+			(level_status_ptr->currentscreen)++;
+			if (level_status_ptr->currentscreen >= level_status_ptr->maxscreens - 3){
+				level_status_ptr->levelover = 1;
 			}
 			//else {
-				refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, *currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, frameoffset, *laneheight, *bestiary, *itempokedex);
+				refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, level_status_ptr->currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, frameoffset, level_status_ptr->lanes->laneheight, *bestiary, *itempokedex);
 			//}
 		}
 
-		if ( !(*levelover) ) {
+		if ( !(level_status_ptr->levelover) ) {
 			for (int i = 0; i < grid.x * 3; i++){
 				for(int j = 0; j < grid.y; j++){
-					rcTile[i][j].x -= 4 * ZOOM_MULT * speedmult;
-					rcTilemid[i][j].x -= 4 * ZOOM_MULT *speedmult;
-					level_status.totalnativedist += 4 * speedmult;
+					rcTile[i][j].x -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
+					rcTilemid[i][j].x -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
+					level_status_ptr->totalnativedist += 4 * level_status_ptr->speedmult;
 				}
 			}
 			for ( int screen = 0; screen < 3; screen++ ) {
 				for (int lane = 0; lane < lanes.total; lane++ ) {
 					//for (int i = 0; i < monsterlanenum[screen][lane]; i++ ) {
-					//		rcMonster[screen][lane][i].x -= 4 * ZOOM_MULT * speedmult;
+					//		rcMonster[screen][lane][i].x -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
 					//}
 					for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
-							rcItem[screen][lane][i].x -= 4 * ZOOM_MULT * speedmult;
+							rcItem[screen][lane][i].x -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
 					}
 				}
 			}
 		}
 	}
 
-	if (flydir == 2){
+	if (player_status_ptr->flydir == 2){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].y -= 4 * ZOOM_MULT * speedmult;
-				rcTilemid[i][j].y -= 4 * ZOOM_MULT *speedmult;
+				rcTile[i][j].y -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
+				rcTilemid[i][j].y -= 4 * ZOOM_MULT * level_status_ptr->speedmult;
 			}
 		}
 	}
 
-	if (flydir == 3){
+	if (player_status_ptr->flydir == 3){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].x += 4 * ZOOM_MULT * speedmult;
-				rcTilemid[i][j].x += 4 * ZOOM_MULT *speedmult;
+				rcTile[i][j].x += 4 * ZOOM_MULT * level_status_ptr->speedmult;
+				rcTilemid[i][j].x += 4 * ZOOM_MULT * level_status_ptr->speedmult;
 			}
 		}
 	}
@@ -1146,7 +1158,7 @@ void movemon(float speedmultmon, struct node *linkptrs_start[TOTAL_LANES], struc
 				ptr2mon->monster_rect.x -= transint;
 				ptr2mon = ptr2mon->next;
 			}
-			while (linkptrs_start[lane]->monster_rect.x  + linkptrs_start[lane]->monster_rect.w < 0) {
+			while (linkptrs_start[lane]->monster_rect.x + linkptrs_start[lane]->monster_rect.w < 0) {
 				struct node *tmp = linkptrs_start[lane];
 				linkptrs_start[lane] = linkptrs_start[lane]->next;
 				monsterlanenum[lane]--;
@@ -1310,23 +1322,22 @@ void refreshtiles(int (*screenstrip[level_status.maxscreens]) [grid.x][grid.y][2
 
 
 
-void laserfire(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_turnoff, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int currentscreen, int hue) {
-	int laserpower = 10;
-	if (*laser_turnon) {
-		(*lasercountptr)++;
+void laserfire(struct laser_struct *laser, struct player_struct *player_status, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int currentscreen, int hue) {
+	if (laser->turnon) {
+		(laser->count)++;
 
-		if (*lasercountptr >= 4) {
-			*laser_turnon = 0;
+		if (laser->count >= 4) {
+			laser->turnon = 0;
 		}
 	}
 
-	else if (*laser_turnoff) {
-//		if ( *laser_turnon )
-			(*lasercountptr)--;
+	else if (laser->turnoff) {
+//		if ( laser->turnon )
+			(laser->count)--;
 
-		if (*lasercountptr <= 0) {
-			*laser_on = 0;
-			*laser_turnoff = 0;
+		if (laser->count <= 0) {
+			laser->on = 0;
+			laser->turnoff = 0;
 			return;
 		}
 	}
@@ -1334,8 +1345,8 @@ void laserfire(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_
 
 
 	int lasersrcpos;
-	lasersrcpos = (*lasercountptr);
-	if (*lasercountptr >= 4 && framecount%4 == 0)
+	lasersrcpos = (laser->count);
+	if (laser->count >= 4 && framecount%4 == 0)
 		lasersrcpos --;
 	rcLaserSrc[0].x = LASER_SEPARATOR_X * 0 + 120 * hue;
 	rcLaserSrc[0].y = LASER_SEPARATOR_Y * lasersrcpos;
@@ -1360,7 +1371,7 @@ void laserfire(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_
 		if ( ptr2mon->monster_rect.x > ( rcSprite.x + rcSprite.w ) && (ptr2mon->status != -1)){
 			if ( ptr2mon->monster_rect.x <= NATIVE_RES_X * ZOOM_MULT ) {
 				laserlength = - rcSprite.x - rcSprite.w + ptr2mon->monster_rect.x;
-				damage(currentlane, ptr2mon, laserpower);
+				damage(currentlane, ptr2mon, laser->power);
 			}
 			break;
 		}
@@ -1382,7 +1393,7 @@ void laserfire(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_
 	rcLaser[2].w = LASER_SEPARATOR_X * ZOOM_MULT;
 	rcLaser[2].h = LASER_HEIGHT * ZOOM_MULT;
 
-	player_status.power--;
+	player_status->power--;
 }
 
 void swordfunc(int *swordcountptr, int *sword_down, int *sword_swing, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, struct node *linkptrs_start[TOTAL_LANES]) {
@@ -1472,15 +1483,15 @@ void damage(int currentlane, struct node *ptr2mon, int power) {
 	}
 }
 
-void amihurt(int currentlane, struct node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10], int *levelover) {
+void amihurt(struct status_struct status, struct node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]) {
 
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
 	//int done = 0;
 
-	struct node *ptr2mon = linkptrs_start[currentlane];
+	struct node *ptr2mon = linkptrs_start[status.level->lanes->currentlane];
 
-	for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
+	for ( int i = 0; i < monsterlanenum[status.level->lanes->currentlane]; i++ ) {
 
 		if ( ( ptr2mon->monster_rect.x > rcSprite.x ) && ( ptr2mon->monster_rect.x < ( rcSprite.x + rcSprite.w ) ) ) {
 
@@ -1491,7 +1502,7 @@ void amihurt(int currentlane, struct node *linkptrs_start[lanes.total], SDL_Rect
 	//			int order = i;
 	//			int monstertype = samplemonstermap[currentlane][order][0];
 				int monstertype = ptr2mon->montype;
-				gethurt((*bestiary[monstertype]).attack, levelover);
+				gethurt(status, (*bestiary[monstertype]).attack);
 			}
 			//done = 1;
 			break;
@@ -1522,8 +1533,8 @@ void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, struct ite
 	//				int itemtype = sampleitemmap[currentlane][order][0];
 					int itemtype = (*itemscreenstrip[currentscreen + screen])[currentlane][i][0];
 					struct item thisitem = *itempokedex[itemtype];
-					void (*functionptr)(int *int1, int int2) = thisitem.functionptr;
-					(*functionptr)(thisitem.int1, thisitem.int2);
+					void (*functionptr)(int *int1, int int2, void *otherdata) = thisitem.functionptr;
+					(*functionptr)(thisitem.int1, thisitem.int2, thisitem.otherdata);
 					(*iteminfoptrs[screen])[currentlane][i] = -1;
 					audio_status.soundchecklist[6] = 1;
 				}
@@ -1549,36 +1560,38 @@ int invinciblefunc(struct player_struct *player_status) {
 	return player_status->invincibility;
 }
 
-void gethurt(int attack, int *levelover) {
+void gethurt(struct status_struct status, int attack) {
 
-	if (player_status.invincibility == 0 ) {
+	if (status.player->invincibility == 0 ) {
 		int damage = attack;
-		player_status.HP -= damage;
-		if ( player_status.HP <= 0 ) {
-			audio_status.soundchecklist[5] = 1;
-			*levelover = 1;
+		status.player->HP -= damage;
+		if ( status.player->HP <= 0 ) {
+			status.audio->soundchecklist[5] = 1;
+			status.level->levelover = 1;
 		}
 		else {
-			audio_status.soundchecklist[4] = 1;
-			player_status.invincibility = 1;
-			player_status.invinciblecounter[1] = 40;
+			status.audio->soundchecklist[4] = 1;
+			status.player->invincibility = 1;
+			status.player->invinciblecounter[1] = 40;
 		}
 	}
 }
 
-void restorehealth(int *HPptr, int restoreHPpts) {
-	if ( player_status.max_HP - *HPptr <= restoreHPpts ) {
-		*HPptr = player_status.max_HP;
+void restorehealth(int *HPptr, int restoreHPpts, void *otherdata) {
+	struct player_struct *player_status = (struct player_struct *) otherdata; 
+	if ( player_status->max_HP - *HPptr <= restoreHPpts ) {
+		*HPptr = player_status->max_HP;
 	}
 	else
 		*HPptr += restoreHPpts;
 
 }
 
-void restorepower(int *powerptr, int restorepowerpts) {
+void restorepower(int *powerptr, int restorepowerpts, void *otherdata) { 
 
-	if ( player_status.max_PP - *powerptr <= restorepowerpts ) {
-		*powerptr = player_status.max_PP;
+	struct player_struct *player_status = (struct player_struct *)otherdata;
+	if ( player_status->max_PP - *powerptr <= restorepowerpts ) {
+		*powerptr = player_status->max_PP;
 	}
 	else
 		*powerptr += restorepowerpts;
@@ -1586,12 +1599,12 @@ void restorepower(int *powerptr, int restorepowerpts) {
 }
 
 
-void healthup(int *max_HPptr, int HPuppts) {
+void healthup(int *max_HPptr, int HPuppts, void *nullptr) {
 
 		*max_HPptr += HPuppts;
 }
 
-void PPup(int *max_PPptr, int PPuppts) {
+void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 
 		*max_PPptr += PPuppts;
 }

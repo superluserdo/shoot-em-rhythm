@@ -10,6 +10,15 @@ struct grid_struct {
 	int x;
 	int y;
 } grid;
+
+	struct laser_struct {
+		int power;
+		int count;
+		int on;
+		int turnon;
+		int turnoff;
+	};
+
 /* Status Struct */
 
 struct status_struct {
@@ -32,6 +41,7 @@ struct level_struct {
 	int partymode;
 	float speedmult;
 	float speedmultmon;
+	int currentscreen;
 	struct lane_struct *lanes;
 };
 
@@ -88,12 +98,13 @@ struct time_struct {
 	int ticks;
 	int zerotime;
 	int pausetime;
+	int *pauselevel;
 	float intervalanim;
 	float intervalglobal;
 };
 
 void *frametimer(void *);
-int pause(SDL_Renderer *renderer, SDL_Texture *levelcapture);
+int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel);
 
 int level(SDL_Window *win, SDL_Renderer *renderer);
 int startscreen(SDL_Window *win, SDL_Renderer *renderer);

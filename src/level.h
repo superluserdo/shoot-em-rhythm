@@ -26,6 +26,7 @@
 extern struct level_struct level_status;
 extern struct lane_struct lanes;
 extern struct grid_struct grid;
+extern struct laser_struct laser;
 
 /* Objects */
 
@@ -75,6 +76,7 @@ struct item {
 	int itemnumber;
 	int *int1;
 	int int2;
+	void *otherdata;
 	void *functionptr;
 	int Src[2];
 	int wh[2];
@@ -96,15 +98,14 @@ extern pthread_mutex_t track_mutex;
 
 void moveme(int *currentlane, int totallanes, int *direction);
 
-void movemap(struct grid_struct grid, int walkdir, SDL_Rect *rcSrc, 
-SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x][grid.y], int speedmult, 
+void movemap(struct level_struct *level_status_ptr, struct player_struct *player_status, struct grid_struct grid, SDL_Rect *rcSrc, 
+SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x][grid.y], 
 SDL_Rect rcTilemid[grid.x][grid.y], 
 SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], 
 int (*screenstrip[level_status.maxscreens]) [grid.x][grid.y][2], 
 int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
 int (*itemscreenstrip[level_status.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
-int *currentscreen, int maxscreens, int *levelover, int (*laneheight[lanes.total]), 
 struct monster *(*monsterpokedex)[10], struct item *(*itempokedex)[10]);
 
 void movemon(float speedmultmon, struct node *linkptrs_start[TOTAL_LANES], 
@@ -129,8 +130,7 @@ struct item *itempokedex[10]);
 
 /* Offence */
 
-void laserfire(int *lasercountptr, int *laser_on, int *laser_turnon, 
-int *laser_turnoff, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, 
+void laserfire(struct laser_struct *laser_ptr, struct player_struct *player_status, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, 
 int laneheight[lanes.total], int currentlane, int framecount, 
 int (*monsterscreenstrip[level_status.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
 int currentscreen, int hue);
@@ -146,12 +146,11 @@ void swordfunc(int *swordcountptr, int *sword_down, int *sword_swing, SDL_Rect *
 SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, 
 int framecount, struct node *linkptrs_start[TOTAL_LANES]);
 
-void damage(int currentlane, struct node *ptr2mon, int laserpower);
+void damage(int currentlane, struct node *ptr2mon, int power);
 
 /* Player Status */
 
-void amihurt(int currentlane, struct node *linkptrs_start[lanes.total], SDL_Rect rcSprite,
-struct monster *bestiary[10], int *levelover);
+void amihurt(struct status_struct status, struct node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]);
 
 void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, 
 struct item *itempokedex[10], 
@@ -160,15 +159,15 @@ int *levelover);
 
 int invinciblefunc(struct player_struct *player_status);
 
-void gethurt(int attack, int *levelover);
+void gethurt(struct status_struct status, int attack);
 
-void restorehealth(int *HPptr, int restoreHPpts);
+void restorehealth(int *HPptr, int restoreHPpts, void *otherdata);
 
-void restorepower(int *powerptr, int restorepowerpts);
+void restorepower(int *powerptr, int restorepowerpts, void *otherdata);
 
-void healthup(int *max_HPptr, int HPuppts);
+void healthup(int *max_HPptr, int HPuppts, void *nullptr);
 
-void PPup(int *max_PPptr, int PPuppts);
+void PPup(int *max_PPptr, int PPuppts, void *nullptr);
 
 /* Tools */
 

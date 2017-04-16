@@ -29,7 +29,6 @@ void *frametimer(void *unused) {
 		time_status.intervalanim = 1000.0/time_status.fpsanim;
 		time_status.intervalglobal = 1000.0/(float)time_status.fpsglobal;
 
-	extern struct level_struct level_status;
 	//int SDL_GetTicks(void);
 	int ticktime;
 	//beatstoplayer = 4.0;
@@ -59,7 +58,7 @@ void *frametimer(void *unused) {
 		}
 
 
-		if (level_status.pauselevel) {
+		if (time_status.pauselevel) {
 			if (startpause) {
 				pausetimelast = time_status.ticks;
 				startpause = 0;

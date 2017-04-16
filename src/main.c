@@ -19,7 +19,6 @@ SDL_Window *win;
 int main() {
 
 	pthread_t framethread;
-
 	int rc = pthread_create(&framethread, NULL, frametimer, NULL);
 	if (rc) {
 		printf("ya dun goofed. return code is %d\n.", rc);
