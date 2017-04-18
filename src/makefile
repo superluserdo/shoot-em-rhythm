@@ -1,5 +1,5 @@
 output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -pthread -lconfig -o ../bin/shoot-em-rhythm -Wall
+	gcc main.o music.o clock.o startscreen.o level.o pause.o helpers.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -pthread -lconfig -o ../bin/shoot-em-rhythm -Wall
 
 main.o: main.c main.h music.h
 	gcc -c main.c

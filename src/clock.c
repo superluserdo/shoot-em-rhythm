@@ -14,8 +14,8 @@ extern int local_grid_x;
 extern int local_grid_y;
 
 struct time_struct timing = {
-	.pxperbeat = 140,
-	.bps = 1.5185*2.0,
+	.pxperbeat = 0,
+	.bps = 0,
 	.framecount = 0,
 	.pauselevel = NULL,
 	.fpsanim = 30,

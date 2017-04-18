@@ -84,9 +84,9 @@ void* musicstart(void* argvoid) {
 	pthread_t soundthread;
 	char *trackarray[5];
 	trackarray[0] = "0";	
-	trackarray[1] = "../music/Gator.ogg";//nugopen.wav";	
-	trackarray[2] = "../music/rally2.ogg";//"../music/Chill.ogg";//nug.wav";	
-	trackarray[3] = "../music/fastroot.wav";	
+	trackarray[1] = "../music/Gator.ogg";
+	trackarray[2] = "../music/rally2.ogg";
+	trackarray[3] = "../music/world.ogg";	
 	trackarray[4] = "../music/rubyremix.wav";	
 	
 	pthread_mutex_lock( &track_mutex );
@@ -114,11 +114,13 @@ void* musicstart(void* argvoid) {
 			.soundpath = mystr,
 			.pause = arguments->pause
 		};
-		int rc = pthread_create(&soundthread, NULL, playmusic, (void*)&playmusic_struct);
-		if (rc) {
-			printf("ya dun goofed. return code is %d\n.", rc);
-			exit(-1);
-		}
+		playmusic((void*)&playmusic_struct);
+
+//		int rc = pthread_create(&soundthread, NULL, playmusic, (void*)&playmusic_struct);
+//		if (rc) {
+//			printf("ya dun goofed. return code is %d\n.", rc);
+//			exit(-1);
+//		}
 	}
 }
 void *playsound(void* soundpath){
@@ -319,6 +321,7 @@ void *playmusic(void* argvoid){
 	    exit(2);
 	}
 
+	printf("%s\n", arguments->soundpath);
 	// print the number of music decoders available
 	//printf("There are %d music deocoders available\n", Mix_GetNumMusicDecoders());
 

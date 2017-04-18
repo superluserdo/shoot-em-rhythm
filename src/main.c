@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include "main.h"
 #include "music.h"
+#include <libconfig.h>
 
 extern struct time_struct timing;
 struct program_struct program = {
@@ -48,7 +49,7 @@ int main() {
         // create the window and renderer
         // note that the renderer is accelerated
 	//printf("main says %d\n", width);
-        win = SDL_CreateWindow("TOM'S SUPER COOL RPG", 100, 100, program.width, program.height, 0);
+        win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, program.width, program.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
 	int returncode = startscreen(win, renderer);
@@ -58,7 +59,7 @@ int main() {
 		if ( returncode == 0 ) {
 			returncode = levelfunc(win, renderer);
 		}
-		else if ( returncode >0 && returncode <100 ) {
+		else if ( returncode > 0 && returncode < 100 ) {
 			break;
 		}
 		else if ( returncode == 101 ) {

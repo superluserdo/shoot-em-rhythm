@@ -63,7 +63,6 @@ struct status_struct status = {
 };
 
 
-
 	/* 	Initialisation	*/
 
 	/* Setup Config File */
@@ -82,22 +81,47 @@ struct status_struct status = {
 		return(EXIT_FAILURE);
 	}
 
+	config_setting_t *all_setting = config_lookup(&cfg, "all");
+	config_setting_t *thislevel_setting = config_setting_get_elem(all_setting, 0);
+	config_setting_t *timing_setting = config_setting_lookup(thislevel_setting, "timing");
+	if (timing_setting == NULL) {
+		printf("No settings found under 'timing' in the config file\n");
+		return -1;
+	}
+
+	double confdub;
+	config_setting_lookup_float(timing_setting, "pxperbeat", &confdub);
+	timing.pxperbeat = (float)confdub;
+	printf("pxpb = %f\n", timing.pxperbeat);
+	config_setting_lookup_float(timing_setting, "bpmin", &confdub);
+	timing.bps = (float)confdub/60.0;
+	printf("bps is %f\n", timing.bps);
+	config_setting_lookup_float(timing_setting, "startbeat", &confdub);
+	timing.startbeat = (float)confdub;
+
+
+	config_setting_t *level_setting = config_setting_lookup(thislevel_setting, "level");
 	double smd;
 
-	if(!config_lookup_float(&cfg, "speedmult", &smd))
+	if (level_setting == NULL) {
+			printf("No settings found under 'level' in the config file\n");
+			return -1;
+	}
+	if(!config_setting_lookup_float(level_setting, "speedmult", &smd))
 		fprintf(stderr, "'speedmult' not found in config file.\n");
-
 	level.speedmult = (float) smd;
-
-	if(!config_lookup_float(&cfg, "speedmultmon", &smd))
+	
+	if(!config_setting_lookup_float(level_setting, "speedmultmon", &smd))
 		fprintf(stderr, "'speedmultmon' not found in config file.\n");
-
 	level.speedmultmon = (float) smd;
-
+	
 	/* Lanes */
+	
+	config_setting_lookup_int(level_setting, "totallanes", &lanes.total);
 
 	int lanewidthnative;
-	config_lookup_int(&cfg, "lanewidthnative", &lanewidthnative);
+	config_setting_lookup_int(level_setting, "lanewidthnative", &lanewidthnative);
+	
 	int laneheightarray[lanes.total];
 
 	lanes.lanewidth = lanewidthnative * ZOOM_MULT; //in pixels
@@ -209,8 +233,16 @@ struct status_struct status = {
 	rcHP1.w = 50 * ZOOM_MULT * 2;
 	rcHP1.h = rcHP1Src.h * ZOOM_MULT * 2;
 
-	config_lookup_int(&cfg, "max_HP", &player.max_HP);
+
+	config_setting_t *player_setting = config_setting_lookup(thislevel_setting, "player");
+
+	if (player_setting == NULL) {
+			printf("No settings found for 'player' in the config file\n");
+			return -1;
+	}
+	config_setting_lookup_int(player_setting, "max_HP", &player.max_HP);
 	player.HP = player.max_HP;
+	
 
 	/*	Power	*/
 
@@ -242,7 +274,7 @@ struct status_struct status = {
 	rcPower1.w = 50 * ZOOM_MULT * 2;
 	rcPower1.h = rcPower1Src.h * ZOOM_MULT * 2;
 
-	config_lookup_int(&cfg, "max_PP", &player.max_PP);
+	config_setting_lookup_int(player_setting, "max_PP", &player.max_PP);
 	player.power = player.max_PP;
 
 	/*	Score	*/
@@ -411,69 +443,70 @@ struct status_struct status = {
 
 	/* Generate Monster Linked Lists */
 
-	int testarray[3][2] = {{1,1}, {2,2}, {2,3}};
-
-	const config_setting_t *arraysetting;
-	arraysetting = config_lookup(&cfg, "array");
-	int count = config_setting_length(arraysetting);
-
-	int lanearray[count];
-			/*   ^{entrybeat, montype}	*/
-	for (int index = 0; index < count; index++) {
-		int element = config_setting_get_int_elem(arraysetting, index);
-//		if (index%2 == 0) {
-			lanearray[index] = element;//[0] = element;
-//		}
-//		else {
-//			lanearray[index][1] = element;
-//		}
+	const config_setting_t *arrays_setting;
+	arrays_setting = config_setting_lookup(thislevel_setting, "arrays");
+	if (arrays_setting == NULL) {
+			printf("No settings found for 'arrays' in the config file\n");
+			return -1;
 	}
 
+	int count = config_setting_length(arrays_setting); 
+	config_setting_t *singlearray_setting;
 
 	struct node *ptr2mon;
 	for (int lane = 0; lane < lanes.total; lane++) {
-		linkptrs_start[lane] = malloc( sizeof(struct node));
-		if (linkptrs_start[lane] == NULL) {
-			return 1;
+		singlearray_setting = config_setting_get_elem(arrays_setting, lane);
+		if (singlearray_setting == NULL) {
+			linkptrs_start[lane] = NULL;
 		}
-		linkptrs_end[lane] = linkptrs_start[lane];
-		monsterlanenum[lane] = 0;
-		ptr2mon = linkptrs_start[lane];
-
-		if (lane != 2) {
+		else if (config_setting_length(singlearray_setting) <= 0) {
 			linkptrs_start[lane] = NULL;
 		}
 
-		if (lane == 2){
-		for (int index = 0; index < count; index++) {
-			ptr2mon->montype = 1;
-			ptr2mon->status = 0;
-			ptr2mon->health = bestiary[ptr2mon->montype]->health;
-			ptr2mon->speed = 1;
-			ptr2mon->entrybeat = (float)lanearray[index];
-			ptr2mon->remainder = 0;
-			ptr2mon->monster_rect.w = 32 * ZOOM_MULT;
-			ptr2mon->monster_rect.h = 32 * ZOOM_MULT;
-			ptr2mon->monster_rect.x = program.width;
-			ptr2mon->monster_rect.y = lanes.laneheight[lane] - ptr2mon->monster_rect.h/2;
-			ptr2mon->monster_src.x = bestiary[ptr2mon->montype]->Src[0];
-			ptr2mon->monster_src.y = bestiary[ptr2mon->montype]->Src[1];
-			ptr2mon->monster_src.w = bestiary[ptr2mon->montype]->wh[0];
-			ptr2mon->monster_src.h = bestiary[ptr2mon->montype]->wh[1];
-			if (index < count - 1) {
-				ptr2mon->next = malloc( sizeof(struct node) );
-				if (ptr2mon->next == NULL) {
-					return 1;
-				}
-				ptr2mon = ptr2mon->next;
+		else {
+			int count = config_setting_length(singlearray_setting);
+		
+			int lanearray[count];
+					/*   ^{entrybeat, montype}	*/
+			for (int index = 0; index < count; index++) {
+				lanearray[index] = config_setting_get_int_elem(singlearray_setting, index);
 			}
-		}
-		ptr2mon->next = NULL;
 
+			linkptrs_start[lane] = malloc( sizeof(struct node));
+			if (linkptrs_start[lane] == NULL) {
+				return 1;
+			}
+			linkptrs_end[lane] = linkptrs_start[lane];
+			monsterlanenum[lane] = 0;
+			ptr2mon = linkptrs_start[lane];
+	
+			for (int index = 0; index < count; index++) {
+				ptr2mon->montype = 0;
+				ptr2mon->status = 0;
+				ptr2mon->health = bestiary[ptr2mon->montype]->health;
+				ptr2mon->speed = 1;
+				ptr2mon->entrybeat = (float)lanearray[index];
+				ptr2mon->remainder = 0;
+				ptr2mon->monster_rect.w = 32 * ZOOM_MULT;
+				ptr2mon->monster_rect.h = 32 * ZOOM_MULT;
+				ptr2mon->monster_rect.x = program.width;
+				ptr2mon->monster_rect.y = lanes.laneheight[lane] - ptr2mon->monster_rect.h/2;
+				ptr2mon->monster_src.x = bestiary[ptr2mon->montype]->Src[0];
+				ptr2mon->monster_src.y = bestiary[ptr2mon->montype]->Src[1];
+				ptr2mon->monster_src.w = bestiary[ptr2mon->montype]->wh[0];
+				ptr2mon->monster_src.h = bestiary[ptr2mon->montype]->wh[1];
+				if (index < count - 1) {
+					ptr2mon->next = malloc( sizeof(struct node) );
+					if (ptr2mon->next == NULL) {
+						return 1;
+					}
+					ptr2mon = ptr2mon->next;
+				}
+			}
+			ptr2mon->next = NULL;
 		}
 	}
-	ptr2mon = linkptrs_start[2];
-
+	//ptr2mon = linkptrs_start[2];
 
 	/*		Maps & Mapstrips	*/
 
@@ -637,7 +670,7 @@ struct status_struct status = {
 
 	/*	Event Handling	*/
 
-	int buttonlist [4] = {0, 0, 0, 0};
+	int directionbuttonlist [4] = {0, 0, 0, 0};
 	int history [4] = {0, 0, 0, 0};
 	int histwrite = 0;
 	int histread = 0;
@@ -652,7 +685,7 @@ struct status_struct status = {
 
 	pthread_t threads;
 	int rc;
-	audio.newtrack = 2;
+	config_setting_lookup_int(thislevel_setting, "track", &audio.newtrack);
 
 	struct musicstart_struct {
 		int newtrack;
@@ -677,7 +710,6 @@ struct status_struct status = {
 	level.pauselevel = 0;
 	timing.pausetime = 0;
 	timing.zerotime = SDL_GetTicks();
-	timing.startbeat = -8;
 	timing.countbeats = 1;
 	pthread_mutex_unlock( &clock_mutex );
 	pthread_mutex_lock( &clock_mutex );
@@ -761,34 +793,51 @@ struct status_struct status = {
 			}
 
 
+			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_h){
+				lanes.currentlane = 0;
+				}
+
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_j){
+				lanes.currentlane = 1;
+				}
+
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_k){
+				lanes.currentlane = 2;
+				}
+
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_l){
+				lanes.currentlane = 3;
+				}
+
+
 			if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_RIGHT){
-				buttonlist[1] = 0;}
+				directionbuttonlist[1] = 0;}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RIGHT){
-				buttonlist[1] = 1;
+				directionbuttonlist[1] = 1;
 				history[histwrite] = 1;
 				player.direction = 1;
 				}
 
 			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_LEFT){
-				buttonlist[3] = 0;}
+				directionbuttonlist[3] = 0;}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_LEFT){
-				buttonlist[3] = 1;
+				directionbuttonlist[3] = 1;
 				history[histwrite] = 3;
 				player.direction = 3;
 				}
 
 			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_DOWN){
-				buttonlist[2] = 0;}
+				directionbuttonlist[2] = 0;}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN){
-				buttonlist[2] = 1;
+				directionbuttonlist[2] = 1;
 				history[histwrite] = 2;
 				player.direction = 2;
 				}
 
 			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_UP){
-				buttonlist[0] = 0;}
+				directionbuttonlist[0] = 0;}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP){
-				buttonlist[0] = 1;
+				directionbuttonlist[0] = 1;
 				history[histwrite] = 0;
 				player.direction = 0;
 				}
@@ -921,8 +970,8 @@ struct status_struct status = {
 		/* Clear screen */
 //		SDL_RenderClear(renderer);
 
-	//Now render to the texture
-	SDL_RenderClear(renderer);
+		//Now render to the texture
+		SDL_RenderClear(renderer);
 		/* Copy textures to renderer	*/
 		for (int i = 0; i < grid.x * 3; i++){
 			for (int j = 0; j < grid.y; j++){
@@ -946,7 +995,6 @@ struct status_struct status = {
 				//}
 			//}
 		//}
-
 
 		for (int lane = 0; lane < lanes.total; lane++) {
 			struct node *ptr2mon = linkptrs_start[lane];
@@ -1049,7 +1097,7 @@ struct status_struct status = {
 		SDL_SetRenderTarget(renderer, texTarget);
 	}
 
-//	SDL_DestroyRenderer(renderer);
+	//	SDL_DestroyRenderer(renderer);
 
 	quitlevel(Spriteimg, Timg, Laserimg, Swordimg, renderer);
 
