@@ -417,7 +417,7 @@ struct status_struct status = {
 
 	struct monster flyinghamster;
 
-	flyinghamster.health = 70;
+	flyinghamster.health = 1;
 	flyinghamster.attack = 10;
 	flyinghamster.defence = 10;
 	memcpy(&flyinghamster.Src, &(int [2]){ 0, 0 }, sizeof flyinghamster.Src);
@@ -466,10 +466,10 @@ struct status_struct status = {
 		else {
 			int count = config_setting_length(singlearray_setting);
 		
-			int lanearray[count];
+			float lanearray[count];
 					/*   ^{entrybeat, montype}	*/
 			for (int index = 0; index < count; index++) {
-				lanearray[index] = config_setting_get_int_elem(singlearray_setting, index);
+				lanearray[index] = config_setting_get_float_elem(singlearray_setting, index);
 			}
 
 			linkptrs_start[lane] = malloc( sizeof(struct node));
@@ -485,7 +485,7 @@ struct status_struct status = {
 				ptr2mon->status = 0;
 				ptr2mon->health = bestiary[ptr2mon->montype]->health;
 				ptr2mon->speed = 1;
-				ptr2mon->entrybeat = (float)lanearray[index];
+				ptr2mon->entrybeat = lanearray[index];
 				ptr2mon->remainder = 0;
 				ptr2mon->monster_rect.w = 32 * ZOOM_MULT;
 				ptr2mon->monster_rect.h = 32 * ZOOM_MULT;
