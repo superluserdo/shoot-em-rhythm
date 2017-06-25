@@ -10,6 +10,21 @@
 #include "clock.h"
 #include "helpers.h"
 
+struct render_node {
+
+	struct render_node *prev;
+	struct render_node *next;
+	SDL_Rect rect_in;
+	SDL_Rect rect_out;
+	SDL_Texture *img;
+	int (*customRenderFunc)(void*);
+	void *customRenderArgs;
+	SDL_Renderer *renderer;
+};
+
+int renderlist(struct render_node *node_ptr);
+
+
 /*	Global Variables	*/
 
 /* Time */
@@ -1701,3 +1716,15 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 //
 //
 
+
+int renderlist(struct render_node *node_ptr) {
+	while (node_ptr != NULL) {
+		if (node_ptr->customRenderFunc == NULL){
+			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, &node_ptr->rect_in, &node_ptr->rect_out);
+		}
+		else {
+			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
+		}
+		node_ptr = node_ptr->next;
+	}
+}
