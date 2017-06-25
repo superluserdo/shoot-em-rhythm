@@ -14,17 +14,27 @@ struct render_node {
 
 	struct render_node *prev;
 	struct render_node *next;
-	SDL_Rect rect_in;
-	SDL_Rect rect_out;
+	SDL_Rect *rect_in;
+	SDL_Rect *rect_out;
 	SDL_Texture *img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
 	SDL_Renderer *renderer;
 };
 
+struct render_node *render_node_head;
+struct render_node *render_node_tail;
+
 int renderlist(struct render_node *node_ptr);
 
+int node_insert_over(struct render_node *node_src, struct render_node *node_dest);
+int node_insert_under(struct render_node *node_src, struct render_node *node_dest);
+struct render_node *create_render_node();
 
+int node_rm(struct render_node *node_ptr);
+int list_rm(struct render_node *node_ptr);
+
+int animate(struct render_node *render_node_head);
 /*	Global Variables	*/
 
 /* Time */
@@ -40,6 +50,97 @@ struct lane_struct lanes = {
 int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv[]) {
 
 	/*	Some Variables	*/
+
+	struct render_node *r_node;
+//		/* Copy textures to renderer	*/ for (int i = 0; i < grid.x * 3; i++){
+//			for (int j = 0; j < grid.y; j++){
+//				SDL_RenderCopy(renderer, Timg, &rcTSrc[i][j], &rcTile[i][j]);
+//			}
+//		}
+//		for (int i = 0; i < grid.x * 3; i++){
+//			for (int j = 0; j < grid.y; j++){
+//				SDL_RenderCopy(renderer, Timg, &rcTSrcmid[i][j], &rcTilemid[i][j]);
+//			}
+//		}
+//
+//		if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
+//			SDL_RenderCopy(renderer, Spriteimg, &rcSrc, &rcSprite);
+//
+//		for (int lane = 0; lane < lanes.total; lane++) {
+//			struct monster_node *ptr2mon = linkptrs_start[lane];
+//			for (int i = 0; i < monsterlanenum[lane]; i++ ) {
+//				if ( ptr2mon->status != -1){
+//					SDL_RenderCopy(renderer, *(*bestiary[ptr2mon->montype]).image, &(ptr2mon->monster_src), &(ptr2mon->monster_rect));
+//				}
+//				ptr2mon = ptr2mon->next;
+//			}
+//		}
+//		for (int lane = 0; lane < lanes.total; lane++) {
+//			for (int screen = 0; screen < 3; screen++) {
+//				for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
+//					if ( (*iteminfoptrs[screen])[lane][i] != -1){
+//						SDL_RenderCopy(renderer, *(*itempokedex[(*itemscreenstrip[level.currentscreen + screen])[lane][i][0]]).image, &rcItemSrc[screen][lane][i], &rcItem[screen][lane][i]);
+//
+//					}
+//				}
+//			}
+//		}
+//		if (laser.on){
+//			for (int i = 0; i < 3; i++) {
+//				SDL_RenderCopy(renderer, Laserimg, &rcLaserSrc[i], &rcLaser[i]);
+//			}
+//		}
+//
+//		if ( player.sword ) {
+//				SDL_RenderCopy(renderer, Swordimg, &rcSwordSrc, &rcSword);
+//
+//		}
+//
+//		if ( player.HP <= 50 ) {
+//			if ( player.HP <= 20 ) {
+//				rcHP1Src.y = 16;
+//			}
+//			else {
+//				rcHP1Src.y = 8;
+//			}
+//		}
+//		else {
+//			rcHP1Src.y = 0;
+//		}
+//
+//		rcHP1.w = 0.5 * player.HP * ZOOM_MULT * 2;
+//		SDL_RenderCopy(renderer, HPimg0, &rcHP0Src, &rcHP0);
+//		SDL_RenderCopy(renderer, HPimg1, &rcHP1Src, &rcHP1);
+//
+//		if ( player.power <= 250 ) {
+//			if ( player.power <= 100 ) {
+//				rcPower1Src.y = 16;
+//			}
+//			else {
+//				rcPower1Src.y = 8;
+//			}
+//		}
+//		else {
+//			rcPower1Src.y = 0;
+//		}
+//
+//		rcPower1.w = 0.1 * player.power * ZOOM_MULT * 2;
+//		SDL_RenderCopy(renderer, Powerimg0, &rcPower0Src, &rcPower0);
+//		SDL_RenderCopy(renderer, Powerimg1, &rcPower1Src, &rcPower1);
+//
+//		int scorearray[SCORE_DIGITS];
+//		int2array(program.score, &scorearray);
+//		for ( int i = 0; i < 5; i++ ) {
+//			rcScoreSrc[i].x = scorearray[i] * 5;
+//			SDL_RenderCopy(renderer, Scoreimg, &rcScoreSrc[i], &rcScore[i]);
+//		}
+//
+//		int beatarray[SCORE_DIGITS];
+//		int2array(timing.currentbeat, &beatarray);
+//		for ( int i = 0; i < 5; i++ ) {
+//			rcBeatSrc[i].x = beatarray[i] * 5;
+//			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
+//		}
 
 
 
@@ -183,10 +284,18 @@ struct status_struct status = {
 	SDL_Rect rcSrc, rcSprite;
 
 	/* set animation frame */
+	printf("HELLO\n");
 	rcSrc.x = 0;
 	rcSrc.y = 0;
 	rcSrc.w = POKESPRITE_SIZEX;
 	rcSrc.h = POKESPRITE_SIZEY;
+
+	r_node = create_render_node();
+	r_node->rect_in = &rcSrc;
+	r_node->rect_out = &rcSprite;
+	r_node->renderer = renderer;
+	r_node->img = Spriteimg;
+	node_insert_over(r_node, NULL);
 
 	/*		Tiles		*/
 
@@ -468,7 +577,7 @@ struct status_struct status = {
 	int count = config_setting_length(arrays_setting); 
 	config_setting_t *singlearray_setting;
 
-	struct node *ptr2mon;
+	struct monster_node *ptr2mon;
 	for (int lane = 0; lane < lanes.total; lane++) {
 		singlearray_setting = config_setting_get_elem(arrays_setting, lane);
 		if (singlearray_setting == NULL) {
@@ -487,7 +596,7 @@ struct status_struct status = {
 				lanearray[index] = config_setting_get_float_elem(singlearray_setting, index);
 			}
 
-			linkptrs_start[lane] = malloc( sizeof(struct node));
+			linkptrs_start[lane] = malloc( sizeof(struct monster_node));
 			if (linkptrs_start[lane] == NULL) {
 				return 1;
 			}
@@ -511,7 +620,7 @@ struct status_struct status = {
 				ptr2mon->monster_src.w = bestiary[ptr2mon->montype]->wh[0];
 				ptr2mon->monster_src.h = bestiary[ptr2mon->montype]->wh[1];
 				if (index < count - 1) {
-					ptr2mon->next = malloc( sizeof(struct node) );
+					ptr2mon->next = malloc( sizeof(struct monster_node) );
 					if (ptr2mon->next == NULL) {
 						return 1;
 					}
@@ -999,8 +1108,8 @@ struct status_struct status = {
 			}
 		}
 
-		if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
-			SDL_RenderCopy(renderer, Spriteimg, &rcSrc, &rcSprite);
+	//	if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
+	//		SDL_RenderCopy(renderer, Spriteimg, &rcSrc, &rcSprite);
 		//for (int lane = 0; lane < lanes.total; lane++) {
 			//for (int screen = 0; screen < 3; screen++) {
 				//for (int i = 0; i < monsterlanenum[screen][lane]; i++ ) {
@@ -1012,7 +1121,7 @@ struct status_struct status = {
 		//}
 
 		for (int lane = 0; lane < lanes.total; lane++) {
-			struct node *ptr2mon = linkptrs_start[lane];
+			struct monster_node *ptr2mon = linkptrs_start[lane];
 			for (int i = 0; i < monsterlanenum[lane]; i++ ) {
 				if ( ptr2mon->status != -1){
 					SDL_RenderCopy(renderer, *(*bestiary[ptr2mon->montype]).image, &(ptr2mon->monster_src), &(ptr2mon->monster_rect));
@@ -1087,6 +1196,10 @@ struct status_struct status = {
 			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
 
+		animate(render_node_head);
+		renderlist(render_node_head);
+		printf("%d\n", render_node_head->rect_out->w);
+		struct render_node *node_ptr = render_node_head;
 		//Detach the texture
 		SDL_SetRenderTarget(renderer, NULL);
 
@@ -1207,8 +1320,8 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 }
 
 
-void movemon(float speedmultmon, struct time_struct timing, struct node *linkptrs_start[TOTAL_LANES], struct node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect rcSprite, SDL_Rect rcSword) {
-	struct node *ptr2mon;
+void movemon(float speedmultmon, struct time_struct timing, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect rcSprite, SDL_Rect rcSword) {
+	struct monster_node *ptr2mon;
 	float transspeed;
 	for (int lane = 0; lane < TOTAL_LANES; lane++) {
 		if (linkptrs_start[lane] != NULL) {
@@ -1222,7 +1335,7 @@ void movemon(float speedmultmon, struct time_struct timing, struct node *linkptr
 				ptr2mon = ptr2mon->next;
 			}
 			while (linkptrs_start[lane]->monster_rect.x + linkptrs_start[lane]->monster_rect.w < 0) {
-				struct node *tmp = linkptrs_start[lane];
+				struct monster_node *tmp = linkptrs_start[lane];
 				linkptrs_start[lane] = linkptrs_start[lane]->next;
 				monsterlanenum[lane]--;
 				free(tmp);
@@ -1429,7 +1542,7 @@ void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rec
 	int laserlength = NATIVE_RES_X * ZOOM_MULT - rcSprite.x - rcSprite.w + rcLaser[2].w;
 
 	int done = 0;
-	struct node *ptr2mon = linkptrs_start[currentlane];
+	struct monster_node *ptr2mon = linkptrs_start[currentlane];
 	for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
 		if ( ptr2mon->monster_rect.x > ( rcSprite.x + rcSprite.w ) && (ptr2mon->status != -1)){
 			if ( ptr2mon->monster_rect.x <= NATIVE_RES_X * ZOOM_MULT ) {
@@ -1459,7 +1572,7 @@ void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rec
 	player->power--;
 }
 
-void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, struct node *linkptrs_start[TOTAL_LANES]) {
+void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]) {
 
 	sword->power = 30000;
 
@@ -1489,7 +1602,7 @@ void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordS
 				sword->down = 1;
 
 				//int done = 0;
-				struct node *ptr2mon = linkptrs_start[currentlane];
+				struct monster_node *ptr2mon = linkptrs_start[currentlane];
 				for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
 					if ( ptr2mon->monster_rect.x > ( rcSprite.x + rcSprite.w ) && (ptr2mon->status != -1)){
 						if ( ptr2mon->monster_rect.x <= rcSword->x + rcSword->w ) {
@@ -1532,10 +1645,11 @@ void quitlevel(SDL_Texture *Spriteimg, SDL_Texture *Timg, SDL_Texture *Laserimg,
 //	SDL_DestroyTexture(texTarget);
 	timing.countbeats = 0;
 	timing.currentbeat = 0;
+	list_rm(render_node_head);
 }
 
 
-void damage(int currentlane, struct node *ptr2mon, int power) {
+void damage(int currentlane, struct monster_node *ptr2mon, int power) {
 
 	ptr2mon->health -= power;
 	if (ptr2mon->health <= 0){
@@ -1546,13 +1660,13 @@ void damage(int currentlane, struct node *ptr2mon, int power) {
 	}
 }
 
-void amihurt(struct status_struct status, struct node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]) {
+void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]) {
 
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
 	//int done = 0;
 
-	struct node *ptr2mon = linkptrs_start[status.level->lanes->currentlane];
+	struct monster_node *ptr2mon = linkptrs_start[status.level->lanes->currentlane];
 
 	for ( int i = 0; i < monsterlanenum[status.level->lanes->currentlane]; i++ ) {
 
@@ -1697,10 +1811,10 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 //
 //
 ///* Function to delete the entire linked list [geeksforgeeks.org]*/
-//void deleteList(struct node** head_ref) {
+//void deleteList(struct monster_node** head_ref) {
 //   /* deref head_ref to get the real head */
-//   struct node* current = *head_ref;
-//   struct node* next;
+//   struct monster_node* current = *head_ref;
+//   struct monster_node* next;
 //
 //   while (current != NULL) 
 //   {
@@ -1720,11 +1834,94 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
-			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, &node_ptr->rect_in, &node_ptr->rect_out);
+			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, node_ptr->rect_out);
 		}
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
 		node_ptr = node_ptr->next;
 	}
+}
+
+int node_insert_over(struct render_node *node_src, struct render_node *node_dest) {
+	if (node_dest == NULL) {
+		render_node_head = node_src;
+		render_node_tail = node_src;
+	}
+	else {
+		node_src->next = node_dest->next;
+		node_src->prev = node_dest;
+		node_dest->next = node_src;	
+	}
+}
+
+
+int node_insert_under(struct render_node *node_src, struct render_node *node_dest) {
+	if (node_dest == NULL) {
+		render_node_head = node_src;
+		render_node_tail = node_src;
+	}
+	else {
+		node_src->next = node_dest;
+		node_src->prev = node_dest->prev;
+		node_dest->prev = node_src;	
+	}
+}
+
+
+int node_rm(struct render_node *node_ptr) {
+	if (node_ptr->prev) {
+		node_ptr->prev->next = node_ptr->next;
+	}
+	else {
+		render_node_head = node_ptr;
+	}
+
+	if (node_ptr->next) {
+		node_ptr->next->prev = node_ptr->prev;
+	}
+	else {
+		render_node_tail = node_ptr;
+	}
+	free(node_ptr);
+}
+
+int list_rm(struct render_node *node_ptr) {
+	if (node_ptr) {
+		
+		struct render_node *node_ptr_back = node_ptr->prev;
+		struct render_node *node_ptr_fwd = node_ptr->next;
+		while (node_ptr_back) {
+			struct render_node *ptr_tmp = node_ptr_back;
+			node_ptr_back = node_ptr_back->prev;
+			free(ptr_tmp);
+		}
+	
+		while (node_ptr_fwd) {
+			struct render_node *ptr_tmp = node_ptr_fwd;
+			node_ptr_fwd = node_ptr_back->next;
+			free(ptr_tmp);
+		}
+		free(node_ptr);
+	}
+}
+
+struct render_node *create_render_node() {
+	struct render_node *new_node = malloc(sizeof(struct render_node));
+	if (new_node == NULL)
+		printf("Error creating new rendering node :(\n");
+	new_node->next = NULL;
+	new_node->prev = NULL;
+	new_node->img = NULL;
+	new_node->customRenderFunc = NULL;
+	new_node->customRenderArgs = NULL;
+	return new_node;
+}
+
+int animate(struct render_node *render_node_head) {
+
+//	if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
+}
+
+void emptyfunc() {
 }

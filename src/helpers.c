@@ -31,10 +31,10 @@ void int2array(int number, int (*array)[SCORE_DIGITS]) {
 
 
 /* Function to delete the entire linked list [geeksforgeeks.org]*/
-void deleteList(struct node** head_ref) {
+void deleteList(struct monster_node** head_ref) {
    /* deref head_ref to get the real head */
-   struct node* current = *head_ref;
-   struct node* next;
+   struct monster_node* current = *head_ref;
+   struct monster_node* next;
 
    while (current != NULL) 
    {
