@@ -20,6 +20,7 @@ struct render_node {
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
 	SDL_Renderer *renderer;
+	struct animate_specific *animation;
 };
 
 struct render_node *render_node_head;
@@ -34,7 +35,36 @@ struct render_node *create_render_node();
 int node_rm(struct render_node *node_ptr);
 int list_rm(struct render_node *node_ptr);
 
-int animate(struct render_node *render_node_head);
+struct frame {
+	SDL_Rect rect;
+	float duration;
+};
+
+struct clip {
+	SDL_Texture *img;
+	int numFrames;
+	struct frame *frames;
+};
+
+struct animate_generic {
+	int numAnimations;
+	struct clip *clips;
+};
+
+struct animate_specific {
+	void (*animate_rules)(void *);
+	struct animate_generic *generic;
+	int clip;
+	int frame;
+	float speed;
+	int loops;
+	int return_clip;
+	struct render_node *render_node;
+	float lastFrameBeat;
+};
+
+//TODO: Layers functionality. Include spawnLayer() function (above or below)
+int advanceFrames(struct render_node *render_node_head);
 /*	Global Variables	*/
 
 /* Time */
@@ -284,18 +314,46 @@ struct status_struct status = {
 	SDL_Rect rcSrc, rcSprite;
 
 	/* set animation frame */
-	printf("HELLO\n");
 	rcSrc.x = 0;
 	rcSrc.y = 0;
 	rcSrc.w = POKESPRITE_SIZEX;
 	rcSrc.h = POKESPRITE_SIZEY;
+
+	struct frame *testframes = (struct frame *)malloc(4 * sizeof(struct frame));
+	for (int i = 0; i < 4; i++) {
+		testframes[i].rect = rcSrc;
+		testframes[i].duration = 0.25;
+		testframes[i].rect.x = testframes[i].rect.w * i;
+	}
+	struct clip testclip = {
+		.img = Spriteimg,
+		.numFrames = 4,
+		.frames = testframes
+	};
+
+	struct animate_generic testgeneric = {
+		.numAnimations = 1,
+		.clips = &testclip
+	};
+
+	struct animate_specific testspecific = {
+		.generic = &testgeneric,
+		.clip = 0,
+		.frame = 0,
+		.speed = 1,
+		.loops = -1,
+		.return_clip = 0,
+		.lastFrameBeat = 0.0
+	};
 
 	r_node = create_render_node();
 	r_node->rect_in = &rcSrc;
 	r_node->rect_out = &rcSprite;
 	r_node->renderer = renderer;
 	r_node->img = Spriteimg;
+	r_node->animation = &testspecific;
 	node_insert_over(r_node, NULL);
+	testspecific.render_node = r_node;
 
 	/*		Tiles		*/
 
@@ -1195,10 +1253,9 @@ struct status_struct status = {
 			rcBeatSrc[i].x = beatarray[i] * 5;
 			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
-
-		animate(render_node_head);
+//		printf("heck %d\n", render_node_head->rect_in->x);
 		renderlist(render_node_head);
-		printf("%d\n", render_node_head->rect_out->w);
+		advanceFrames(render_node_head);
 		struct render_node *node_ptr = render_node_head;
 		//Detach the texture
 		SDL_SetRenderTarget(renderer, NULL);
@@ -1918,9 +1975,34 @@ struct render_node *create_render_node() {
 	return new_node;
 }
 
-int animate(struct render_node *render_node_head) {
+int advanceFrames(struct render_node *render_node_head) {
+	struct render_node *node_ptr = render_node_head;
+	while (node_ptr) {
+		struct animate_specific *animation = node_ptr->animation;
+		struct animate_generic *generic = animation->generic;
+		//printf("frame:  %d", animation->frame);
+		//printf("lastframbeat:  %f", animation->lastFrameBeat);
+		//printf("	time:  %f\n", timing.currentbeat);
+		if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip].frames[animation->frame].duration) {
+			animation->lastFrameBeat += generic->clips[animation->clip].frames[animation->frame].duration;
+			animation->frame++;
+		}
+		if (animation->frame >= generic->clips[animation->clip].numFrames) {
+			if (animation->loops == 0) {
+				animation->clip = animation->return_clip;	
+				animation->frame = 0;
+				animation->loops = -1;
+			}
+			else {
+				animation->frame = 0;
+				if (animation->loops > 0)
+					animation->loops--;
+			}
+		}
+		node_ptr->rect_in = &(generic->clips[animation->clip].frames[animation->frame].rect);
+		node_ptr = node_ptr->next;
+	}		
 
-//	if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
 }
 
 void emptyfunc() {
