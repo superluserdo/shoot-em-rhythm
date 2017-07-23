@@ -9,69 +9,13 @@
 #include "music.h"
 #include "clock.h"
 #include "helpers.h"
+#include "animate.h"
 
-struct render_node {
-
-	struct render_node *prev;
-	struct render_node *next;
-	SDL_Rect *rect_in;
-	SDL_Rect *rect_out;
-	SDL_Texture *img;
-	int (*customRenderFunc)(void*);
-	void *customRenderArgs;
-	SDL_Renderer *renderer;
-	struct animate_specific *animation;
-};
-
-struct render_node *render_node_head;
-struct render_node *render_node_tail;
-
-int renderlist(struct render_node *node_ptr);
-
-int node_insert_over(struct render_node *node_src, struct render_node *node_dest);
-int node_insert_under(struct render_node *node_src, struct render_node *node_dest);
-struct render_node *create_render_node();
-
-int node_rm(struct render_node *node_ptr);
-int list_rm(struct render_node *node_ptr);
-
-struct frame {
-	SDL_Rect rect;
-	float duration;
-};
-
-struct clip {
-	SDL_Texture *img;
-	int numFrames;
-	struct frame *frames;
-};
-
-struct animate_generic {
-	int numAnimations;
-	struct clip *clips;
-};
-
-struct animate_specific {
-	void (*animate_rules)(void *);
-	struct animate_generic *generic;
-	int clip;
-	int frame;
-	float speed;
-	int loops;
-	int return_clip;
-	struct render_node *render_node;
-	float lastFrameBeat;
-};
 
 //TODO: Layers functionality. Include spawnLayer() function (above or below)
-int advanceFrames(struct render_node *render_node_head);
 /*	Global Variables	*/
 
 /* Time */
-
-extern struct program_struct program;
-extern struct time_struct timing;
-extern struct audio_struct audio;
 
 struct lane_struct lanes = {
 	.total = TOTAL_LANES
@@ -352,7 +296,7 @@ struct status_struct status = {
 	r_node->renderer = renderer;
 	r_node->img = Spriteimg;
 	r_node->animation = &testspecific;
-	node_insert_over(r_node, NULL);
+	node_insert_z_over(r_node, 0);
 	testspecific.render_node = r_node;
 
 	/*		Tiles		*/
@@ -1887,123 +1831,6 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 //
 //
 
-
-int renderlist(struct render_node *node_ptr) {
-	while (node_ptr != NULL) {
-		if (node_ptr->customRenderFunc == NULL){
-			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, node_ptr->rect_out);
-		}
-		else {
-			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
-		}
-		node_ptr = node_ptr->next;
-	}
-}
-
-int node_insert_over(struct render_node *node_src, struct render_node *node_dest) {
-	if (node_dest == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
-	}
-	else {
-		node_src->next = node_dest->next;
-		node_src->prev = node_dest;
-		node_dest->next = node_src;	
-	}
-}
-
-
-int node_insert_under(struct render_node *node_src, struct render_node *node_dest) {
-	if (node_dest == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
-	}
-	else {
-		node_src->next = node_dest;
-		node_src->prev = node_dest->prev;
-		node_dest->prev = node_src;	
-	}
-}
-
-
-int node_rm(struct render_node *node_ptr) {
-	if (node_ptr->prev) {
-		node_ptr->prev->next = node_ptr->next;
-	}
-	else {
-		render_node_head = node_ptr;
-	}
-
-	if (node_ptr->next) {
-		node_ptr->next->prev = node_ptr->prev;
-	}
-	else {
-		render_node_tail = node_ptr;
-	}
-	free(node_ptr);
-}
-
-int list_rm(struct render_node *node_ptr) {
-	if (node_ptr) {
-		
-		struct render_node *node_ptr_back = node_ptr->prev;
-		struct render_node *node_ptr_fwd = node_ptr->next;
-		while (node_ptr_back) {
-			struct render_node *ptr_tmp = node_ptr_back;
-			node_ptr_back = node_ptr_back->prev;
-			free(ptr_tmp);
-		}
-	
-		while (node_ptr_fwd) {
-			struct render_node *ptr_tmp = node_ptr_fwd;
-			node_ptr_fwd = node_ptr_back->next;
-			free(ptr_tmp);
-		}
-		free(node_ptr);
-	}
-}
-
-struct render_node *create_render_node() {
-	struct render_node *new_node = malloc(sizeof(struct render_node));
-	if (new_node == NULL)
-		printf("Error creating new rendering node :(\n");
-	new_node->next = NULL;
-	new_node->prev = NULL;
-	new_node->img = NULL;
-	new_node->customRenderFunc = NULL;
-	new_node->customRenderArgs = NULL;
-	return new_node;
-}
-
-int advanceFrames(struct render_node *render_node_head) {
-	struct render_node *node_ptr = render_node_head;
-	while (node_ptr) {
-		struct animate_specific *animation = node_ptr->animation;
-		struct animate_generic *generic = animation->generic;
-		//printf("frame:  %d", animation->frame);
-		//printf("lastframbeat:  %f", animation->lastFrameBeat);
-		//printf("	time:  %f\n", timing.currentbeat);
-		if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip].frames[animation->frame].duration) {
-			animation->lastFrameBeat += generic->clips[animation->clip].frames[animation->frame].duration;
-			animation->frame++;
-		}
-		if (animation->frame >= generic->clips[animation->clip].numFrames) {
-			if (animation->loops == 0) {
-				animation->clip = animation->return_clip;	
-				animation->frame = 0;
-				animation->loops = -1;
-			}
-			else {
-				animation->frame = 0;
-				if (animation->loops > 0)
-					animation->loops--;
-			}
-		}
-		node_ptr->rect_in = &(generic->clips[animation->clip].frames[animation->frame].rect);
-		node_ptr = node_ptr->next;
-	}		
-
-}
 
 void emptyfunc() {
 }

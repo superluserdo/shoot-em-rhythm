@@ -23,6 +23,10 @@
 
 /*	Global Variables	*/
 
+extern struct program_struct program;
+extern struct time_struct timing;
+extern struct audio_struct audio;
+
 extern struct level_struct level;
 extern struct lane_struct lanes;
 extern struct grid_struct grid;
