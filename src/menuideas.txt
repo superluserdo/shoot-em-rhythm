@@ -1,0 +1,15 @@
+Menu ideas
+
+Menu struct:
+	Number of entries (determine dimensions?)
+
+Each item:
+	Pointer to text
+	Dimensions
+	Possible pointer to child menu?
+	Pointer to parent menu?
+	Function pointer of action when activated?
+
+graphics:
+	Cursor = music note
+	when entering child menu, parent slides offscreen to left, child slides in from right. Options box grows/shrinks to fit new menu

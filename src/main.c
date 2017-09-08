@@ -48,9 +48,23 @@ int main() {
 
         // create the window and renderer
         // note that the renderer is accelerated
-	//printf("main says %d\n", width);
-        win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, program.width, program.height, 0);
+	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, program.width, program.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	if (renderer == NULL) {
+		printf("SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
+		
+		/* Print driver info if renderer creation fails */
+		SDL_RendererInfo info;
+		int num = SDL_GetNumRenderDrivers();
+		printf("There are %d usable render drivers\n", num);
+		printf("Driver  SDL_RendererFlags\n");
+		for (int i = 0; i < num; i++) {
+	   	if (SDL_GetRenderDriverInfo(i,&info) == 0)
+	   	printf("%s  %d\n", info.name, info.flags&2);
+		}
+	}
+
+
 
 	int returncode = startscreen(win, renderer);
 

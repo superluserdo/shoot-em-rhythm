@@ -234,6 +234,8 @@ struct status_struct status = {
 
 	/* Declare Textures */
 
+	int imgNum = 13;
+	SDL_Texture *imgList[imgNum];
 	SDL_Texture *Spriteimg = NULL;
 	SDL_Texture *Laserimg = NULL;
 	SDL_Texture *Swordimg = NULL;
@@ -251,53 +253,17 @@ struct status_struct status = {
 	int w, h;
 
 	/*		Sprite		*/
+	
+	render_node_populate(render_node_head, r_node, imgList, renderer, &player);
 
-	Spriteimg = IMG_LoadTexture(renderer, SPRITE_PATH);
+			struct animate_specific *tmp_anim_spec = player.animation;
+	struct animate_generic *tmp_anim_gen = tmp_anim_spec->generic;
+	struct clip *tmp_clip = tmp_anim_gen->clips[tmp_anim_spec->clip];
+	printf("%p\n", player.animation->generic->clips[0]);//->frames[0].duration);
+	printf("%d\n", player.animation->frame);
 
-	SDL_QueryTexture(Spriteimg, NULL, NULL, &w, &h); // get the width and height of the texture
-	SDL_Rect rcSrc, rcSprite;
-
-	/* set animation frame */
-	rcSrc.x = 0;
-	rcSrc.y = 0;
-	rcSrc.w = POKESPRITE_SIZEX;
-	rcSrc.h = POKESPRITE_SIZEY;
-
-	struct frame *testframes = (struct frame *)malloc(4 * sizeof(struct frame));
-	for (int i = 0; i < 4; i++) {
-		testframes[i].rect = rcSrc;
-		testframes[i].duration = 0.25;
-		testframes[i].rect.x = testframes[i].rect.w * i;
-	}
-	struct clip testclip = {
-		.img = Spriteimg,
-		.numFrames = 4,
-		.frames = testframes
-	};
-
-	struct animate_generic testgeneric = {
-		.numAnimations = 1,
-		.clips = &testclip
-	};
-
-	struct animate_specific testspecific = {
-		.generic = &testgeneric,
-		.clip = 0,
-		.frame = 0,
-		.speed = 1,
-		.loops = -1,
-		.return_clip = 0,
-		.lastFrameBeat = 0.0
-	};
-
-	r_node = create_render_node();
-	r_node->rect_in = &rcSrc;
-	r_node->rect_out = &rcSprite;
-	r_node->renderer = renderer;
-	r_node->img = Spriteimg;
-	r_node->animation = &testspecific;
-	node_insert_z_over(r_node, 0);
-	testspecific.render_node = r_node;
+	SDL_Rect rcSrc = tmp_clip->frames[0].rect;
+	SDL_Rect rcSprite;
 
 	/*		Tiles		*/
 

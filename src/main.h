@@ -60,6 +60,7 @@ struct lane_struct {
 
 /* Status of the Player */
 
+
 struct player_struct {
 
 	int HP, power;
@@ -70,6 +71,7 @@ struct player_struct {
 	int sword;
 	int direction;
 	int flydir;
+	struct animate_specific *animation;
 };
 
 /* Whole Program */
