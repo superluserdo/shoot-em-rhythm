@@ -176,9 +176,7 @@ int advanceFrames(struct render_node *render_node_head) {
 		//printf("frame:  %d", animation->frame);
 		//printf("lastframbeat:  %f", animation->lastFrameBeat);
 		//printf("	time:  %f\n", timing.currentbeat);
-	printf("!!! %p\n", node_ptr->animation->generic->clips);//[0]);//->frames[0].duration);
 		if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-	printf("Ya segfaulted, idiot!\n");
 			animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
 			animation->frame++;
 		}
@@ -202,13 +200,13 @@ int advanceFrames(struct render_node *render_node_head) {
 
 /* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
 
-int render_node_populate(struct render_node *render_node_head, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr) {
+int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr) {
 		
 	int w,h;
 	SDL_Texture *Spriteimg = IMG_LoadTexture(renderer, SPRITE_PATH);
 
 	SDL_QueryTexture(Spriteimg, NULL, NULL, &w, &h); // get the width and height of the texture
-	SDL_Rect rcSrc, rcSprite;
+	SDL_Rect rcSrc;
 
 	/* set animation frame */
 	rcSrc.x = 0;
@@ -222,16 +220,23 @@ int render_node_populate(struct render_node *render_node_head, struct render_nod
 		testframes[i].duration = 0.25;
 		testframes[i].rect.x = testframes[i].rect.w * i;
 	}
+
+	int testnumanimations = 1;
+
+	struct clip **testclips = malloc(sizeof(struct clip *)*testnumanimations);
+
 	struct clip *testclip = malloc(sizeof(struct clip));
 
 	testclip->img = Spriteimg;
 	testclip->numFrames = 4;
 	testclip->frames = testframes;
 
+	testclips[0] = testclip;
+
 	struct animate_generic *testgeneric = malloc(sizeof(struct animate_generic));
 	
-	testgeneric->numAnimations = 1;
-	testgeneric->clips = &testclip;
+	testgeneric->numAnimations = testnumanimations;
+	testgeneric->clips = testclips;
 
 
 	struct animate_specific *testspecific = malloc(sizeof(struct animate_specific));
@@ -244,15 +249,22 @@ int render_node_populate(struct render_node *render_node_head, struct render_nod
 		testspecific->loops = -1;
 		testspecific->return_clip = 0;
 		testspecific->lastFrameBeat = 0.0;
+		/* set sprite position */
+		testspecific->rect_out.x = playerptr->pos.x;
+		testspecific->rect_out.y = playerptr->pos.y;
+		testspecific->rect_out.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
+		testspecific->rect_out.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
+
 
 	r_node = create_render_node();
 	r_node->rect_in = &rcSrc;
-	r_node->rect_out = &rcSprite;
+	r_node->rect_out = &testspecific->rect_out;
 	r_node->renderer = renderer;
 	r_node->img = Spriteimg;
 	r_node->animation = testspecific;
+	r_node->customRenderFunc = NULL;
 	playerptr->animation = testspecific;
 	node_insert_z_over(r_node, 0);
 	testspecific->render_node = r_node;
-
+	*render_node_head_ptr = r_node;
 }

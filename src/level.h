@@ -29,7 +29,7 @@ extern struct audio_struct audio;
 
 extern struct level_struct level;
 extern struct lane_struct lanes;
-extern struct grid_struct grid;
+extern struct xy_struct grid;
 extern struct laser_struct laser;
 
 /* Objects */
@@ -100,10 +100,10 @@ extern pthread_mutex_t track_mutex;
 
 /* Movement */
 
-void moveme(int *currentlane, int totallanes, int *direction);
+void moveme(int *currentlane, int totallanes, int *direction, struct player_struct *player);
 
-void movemap(struct level_struct *level_ptr, struct player_struct *player, struct grid_struct grid, SDL_Rect *rcSrc, 
-SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x][grid.y], 
+void movemap(struct level_struct *level_ptr, struct player_struct *player, struct xy_struct grid,
+SDL_Rect rcTile[grid.x][grid.y], 
 SDL_Rect rcTilemid[grid.x][grid.y], 
 SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], 
@@ -112,7 +112,7 @@ int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_S
 int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
 struct monster *(*monsterpokedex)[10], struct item *(*itempokedex)[10]);
 
-void movemon(float speedmultmon, struct time_struct timer, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect rcSprite, SDL_Rect rcSword);
+void movemon(float speedmultmon, struct time_struct timer, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect player_out, SDL_Rect rcSword);
 
 void mode2(int spritepos [2], int *walkdir, SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], int sampletilemap[100][100][2], 
@@ -122,7 +122,7 @@ SDL_Rect rcTilemid[grid.x][grid.y]);
 void refreshtiles(int (*screenstrip[level.maxscreens])[grid.x][grid.y][2], 
 int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3],  
 int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
-int currentscreen, struct grid_struct grid, SDL_Rect rcTile[grid.x][grid.y], 
+int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], 
 SDL_Rect rcTilemid[grid.x][grid.y], 
 SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, 
@@ -131,7 +131,7 @@ struct item *itempokedex[10]);
 
 /* Offence */
 
-void laserfire(struct laser_struct *laser_ptr, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, 
+void laserfire(struct laser_struct *laser_ptr, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, 
 int laneheight[lanes.total], int currentlane, int framecount, 
 int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
 int currentscreen, int hue);
@@ -143,15 +143,15 @@ int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_S
 int currentscreen, int hue);
 */
 
-void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]);
+void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect player_out, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]);
 
 void damage(int currentlane, struct monster_node *ptr2mon, int power);
 
 /* Player Status */
 
-void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]);
+void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect player_out, struct monster *bestiary[10]);
 
-void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, 
+void touchitem(int currentlane, int currentscreen, SDL_Rect player_out, 
 struct item *itempokedex[10], 
 int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][2], 
 int *levelover);

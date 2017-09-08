@@ -222,15 +222,15 @@ struct status_struct status = {
 	}
 
 
-	if (lanes.total%2 == 0)
-		lanes.currentlane = lanes.total/2;
-	else
-		lanes.currentlane = (lanes.total-1)/2;
+	lanes.currentlane = lanes.total/2;
 
 	float remainder[lanes.total];	//Means that sub-frame movement is accounted for
 	for (int lane = 0; lane < lanes.total; lane++)
 		remainder[lane] = 0.0;
 
+	/* set sprite position */
+	player.pos.x = 0.2 * program.width;
+	player.pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 
 	/* Declare Textures */
 
@@ -254,16 +254,13 @@ struct status_struct status = {
 
 	/*		Sprite		*/
 	
-	render_node_populate(render_node_head, r_node, imgList, renderer, &player);
+	render_node_populate(&render_node_head, r_node, imgList, renderer, &player);
 
-			struct animate_specific *tmp_anim_spec = player.animation;
+	struct animate_specific *tmp_anim_spec = player.animation;
 	struct animate_generic *tmp_anim_gen = tmp_anim_spec->generic;
 	struct clip *tmp_clip = tmp_anim_gen->clips[tmp_anim_spec->clip];
-	printf("%p\n", player.animation->generic->clips[0]);//->frames[0].duration);
-	printf("%d\n", player.animation->frame);
 
 	SDL_Rect rcSrc = tmp_clip->frames[0].rect;
-	SDL_Rect rcSprite;
 
 	/*		Tiles		*/
 
@@ -495,7 +492,7 @@ struct status_struct status = {
 	rcSwordSrc.x = 0;
 	rcSwordSrc.y = 0;
 
-	rcSword.x = rcSprite.x + rcSprite.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
+	rcSword.x = player.animation->rect_out.x + player.animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
 	rcSword.y = lanes.laneheight[lanes.currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
 	rcSword.w = rcSwordSrc.w * ZOOM_MULT * 2;
 	rcSword.h = rcSwordSrc.h * ZOOM_MULT * 2;
@@ -1034,30 +1031,24 @@ struct status_struct status = {
 		}
 
 		/* The real business */
-		moveme(&lanes.currentlane, lanes.total, &player.direction);
-
-		/* set sprite position */
-		rcSprite.x = 0.2 * program.width;
-		rcSprite.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
-		rcSprite.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
-		rcSprite.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
+		moveme(&lanes.currentlane, lanes.total, &player.direction, &player);
 
 
-		movemap(&level, &player, grid, &rcSrc, &rcSprite, rcTile, rcTilemid, rcTSrc, rcTSrcmid, screenstrip, monsterscreenstrip, itemscreenstrip, &monsterpokedex, &itempokedex);
+		movemap(&level, &player, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, screenstrip, monsterscreenstrip, itemscreenstrip, &monsterpokedex, &itempokedex);
 
-		movemon(level.speedmultmon, timing, linkptrs_start, linkptrs_end, monsterlanenum, &remainder, rcSprite, rcSword);
+		movemon(level.speedmultmon, timing, linkptrs_start, linkptrs_end, monsterlanenum, &remainder, player.animation->rect_out, rcSword);
 		if (laser.on) {
-			laserfire(&laser, &player, rcLaser, rcLaserSrc, rcSprite, lanes.laneheight, lanes.currentlane, timing.framecount, monsterscreenstrip, level.currentscreen, hue);
+			laserfire(&laser, &player, rcLaser, rcLaserSrc, player.animation->rect_out, lanes.laneheight, lanes.currentlane, timing.framecount, monsterscreenstrip, level.currentscreen, hue);
 		}
 
 		if ( player.sword )
-			swordfunc(&sword, &rcSword, &rcSwordSrc, rcSprite, lanes.laneheight, lanes.currentlane, timing.framecount, linkptrs_start);
+			swordfunc(&sword, &rcSword, &rcSwordSrc, player.animation->rect_out, lanes.laneheight, lanes.currentlane, timing.framecount, linkptrs_start);
 
 		invinciblefunc(&player);
 
-		amihurt(status, linkptrs_start, rcSprite, bestiary);
+		amihurt(status, linkptrs_start, player.animation->rect_out, bestiary);
 
-		touchitem(lanes.currentlane, level.currentscreen, rcSprite, itempokedex, itemscreenstrip, &level.levelover);
+		touchitem(lanes.currentlane, level.currentscreen, player.animation->rect_out, itempokedex, itemscreenstrip, &level.levelover);
 
 		/* Clear screen */
 //		SDL_RenderClear(renderer);
@@ -1163,7 +1154,6 @@ struct status_struct status = {
 			rcBeatSrc[i].x = beatarray[i] * 5;
 			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
-//		printf("heck %d\n", render_node_head->rect_in->x);
 		renderlist(render_node_head);
 		advanceFrames(render_node_head);
 		struct render_node *node_ptr = render_node_head;
@@ -1206,24 +1196,30 @@ struct status_struct status = {
 
 
 
-void moveme(int *currentlane, int totallanes, int *direction) {
+void moveme(int *currentlane, int totallanes, int *direction, struct player_struct *player) {
 
-if (*direction < 4) {
-	if (*direction == 0 || *direction == 3) {
-		if (*currentlane > 0) {
-			(*currentlane)--;
+	if (*direction < 4) {
+		if (*direction == 0 || *direction == 3) {
+			if (*currentlane > 0) {
+				(*currentlane)--;
+			}
 		}
-	}
-	if (*direction == 2 || *direction == 1) {
-		if (*currentlane < lanes.total - 1) {
-			(*currentlane)++;
+		if (*direction == 2 || *direction == 1) {
+			if (*currentlane < lanes.total - 1) {
+				(*currentlane)++;
+			}
 		}
+		*direction = 4;
 	}
-	*direction = 4;
-}
+	/* set sprite position */
+	//player->pos.x = 0.2 * program.width;
+	player->pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	player->animation->rect_out.x = player->pos.x;
+	player->animation->rect_out.y = player->pos.y;
+
 }
 
-void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, struct grid_struct grid, SDL_Rect *rcSrc, SDL_Rect *rcSprite, SDL_Rect rcTile[grid.x * 3][grid.y], SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int (*screenstrip [level.maxscreens]) [grid.x * 3][grid.y][2], int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
+void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, struct xy_struct grid, SDL_Rect rcTile[grid.x * 3][grid.y], SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int (*screenstrip [level.maxscreens]) [grid.x * 3][grid.y][2], int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
 	if (player_ptr->flydir == 0){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
@@ -1287,7 +1283,7 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 }
 
 
-void movemon(float speedmultmon, struct time_struct timing, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect rcSprite, SDL_Rect rcSword) {
+void movemon(float speedmultmon, struct time_struct timing, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect player_out, SDL_Rect rcSword) {
 	struct monster_node *ptr2mon;
 	float transspeed;
 	for (int lane = 0; lane < TOTAL_LANES; lane++) {
@@ -1313,7 +1309,7 @@ void movemon(float speedmultmon, struct time_struct timing, struct monster_node 
 			while (linkptrs_start[lane] != NULL && linkptrs_end[lane] != NULL) {
 				transspeed = timing.bps * linkptrs_start[lane]->speed * ZOOM_MULT * speedmultmon * timing.pxperbeat + ptr2mon->remainder;
 				pthread_mutex_lock( &clock_mutex );
-				float extra = (((float)(program.width - (rcSprite.x + rcSprite.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
+				float extra = (((float)(program.width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
 				Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
 				pthread_mutex_unlock( &clock_mutex );
 				if (Dt >= 0) {
@@ -1383,7 +1379,7 @@ void dropin( char arg[], int map[100][100][2], int posx, int posy){
 //}
 
 
-void refreshtiles(int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct grid_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[lanes.total], struct monster *bestiary[10], struct item *itempokedex[10]) {
+void refreshtiles(int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[lanes.total], struct monster *bestiary[10], struct item *itempokedex[10]) {
 
 	for (int k = 0; k <= 2; k++) {
 	for (int i = 0; i < grid.x; i++){
@@ -1465,7 +1461,7 @@ void refreshtiles(int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], int 
 
 
 
-void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int currentscreen, int hue) {
+void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, int laneheight[lanes.total], int currentlane, int framecount, int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int currentscreen, int hue) {
 	if (laser->turnon) {
 		(laser->count)++;
 
@@ -1506,14 +1502,14 @@ void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rec
 	rcLaserSrc[2].w = LASER_SEPARATOR_X;
 	rcLaserSrc[2].h = LASER_HEIGHT;
 
-	int laserlength = NATIVE_RES_X * ZOOM_MULT - rcSprite.x - rcSprite.w + rcLaser[2].w;
+	int laserlength = NATIVE_RES_X * ZOOM_MULT - player_out.x - player_out.w + rcLaser[2].w;
 
 	int done = 0;
 	struct monster_node *ptr2mon = linkptrs_start[currentlane];
 	for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
-		if ( ptr2mon->monster_rect.x > ( rcSprite.x + rcSprite.w ) && (ptr2mon->status != -1)){
+		if ( ptr2mon->monster_rect.x > ( player_out.x + player_out.w ) && (ptr2mon->status != -1)){
 			if ( ptr2mon->monster_rect.x <= NATIVE_RES_X * ZOOM_MULT ) {
-				laserlength = - rcSprite.x - rcSprite.w + ptr2mon->monster_rect.x;
+				laserlength = - player_out.x - player_out.w + ptr2mon->monster_rect.x;
 				damage(currentlane, ptr2mon, laser->power);
 			}
 			break;
@@ -1539,11 +1535,11 @@ void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rec
 	player->power--;
 }
 
-void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect rcSprite, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]) {
+void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect player_out, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]) {
 
 	sword->power = 30000;
 
-	rcSword->x = rcSprite.x + rcSprite.w - 2 * ZOOM_MULT;
+	rcSword->x = player_out.x + player_out.w - 2 * ZOOM_MULT;
 	rcSword->y = laneheight[currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
 	rcSword->w = rcSwordSrc->w * ZOOM_MULT * 2;
 	rcSword->h = rcSwordSrc->h * ZOOM_MULT * 2;
@@ -1571,7 +1567,7 @@ void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordS
 				//int done = 0;
 				struct monster_node *ptr2mon = linkptrs_start[currentlane];
 				for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
-					if ( ptr2mon->monster_rect.x > ( rcSprite.x + rcSprite.w ) && (ptr2mon->status != -1)){
+					if ( ptr2mon->monster_rect.x > ( player_out.x + player_out.w ) && (ptr2mon->status != -1)){
 						if ( ptr2mon->monster_rect.x <= rcSword->x + rcSword->w ) {
 							damage(currentlane, ptr2mon, sword->power);
 						}
@@ -1627,7 +1623,7 @@ void damage(int currentlane, struct monster_node *ptr2mon, int power) {
 	}
 }
 
-void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect rcSprite, struct monster *bestiary[10]) {
+void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect player_out, struct monster *bestiary[10]) {
 
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
@@ -1637,7 +1633,7 @@ void amihurt(struct status_struct status, struct monster_node *linkptrs_start[la
 
 	for ( int i = 0; i < monsterlanenum[status.level->lanes->currentlane]; i++ ) {
 
-		if ( ( ptr2mon->monster_rect.x > rcSprite.x ) && ( ptr2mon->monster_rect.x < ( rcSprite.x + rcSprite.w ) ) ) {
+		if ( ( ptr2mon->monster_rect.x > player_out.x ) && ( ptr2mon->monster_rect.x < ( player_out.x + player_out.w ) ) ) {
 
 			/* Is the monster dead? */
 			if ( ptr2mon->status != -1) {
@@ -1659,7 +1655,7 @@ void amihurt(struct status_struct status, struct monster_node *linkptrs_start[la
 }
 
 
-void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, struct item *itempokedex[10], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int *levelover) {
+void touchitem(int currentlane, int currentscreen, SDL_Rect player_out, struct item *itempokedex[10], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int *levelover) {
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
 	int done = 0;
@@ -1667,7 +1663,7 @@ void touchitem(int currentlane, int currentscreen, SDL_Rect rcSprite, struct ite
 
 		for ( int i = 0; i < itemlanenum[screen][currentlane]; i++ ) {
 
-			if ( ( rcItem[screen][currentlane][i].x > rcSprite.x ) && ( rcItem[screen][currentlane][i].x < ( rcSprite.x + rcSprite.w ) ) ) {
+			if ( ( rcItem[screen][currentlane][i].x > player_out.x ) && ( rcItem[screen][currentlane][i].x < ( player_out.x + player_out.w ) ) ) {
 
 				/* Is the item "dead"? */
 				if ( (*iteminfoptrs[screen])[currentlane][i] != -1) {

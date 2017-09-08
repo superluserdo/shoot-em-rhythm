@@ -28,6 +28,7 @@ struct animate_specific {
 	int return_clip;
 	struct render_node *render_node;
 	float lastFrameBeat;
+	SDL_Rect rect_out;
 };
 
 //struct transformations {
@@ -78,4 +79,4 @@ struct render_node *create_render_node();
 int node_rm(struct render_node *node_ptr);
 int list_rm(struct render_node *node_ptr);
 
-int render_node_populate(struct render_node *render_node_head, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);
+int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);

@@ -6,7 +6,7 @@
 
 /*		Structs		*/
 
-struct grid_struct {
+struct xy_struct {
 	int x;
 	int y;
 } grid;
@@ -41,7 +41,7 @@ struct level_struct {
 	int levelover;
 	int pauselevel;
 	int currentlevel;
-	struct grid_struct grid;
+	struct xy_struct grid;
 	int maxscreens;
 	int totalnativedist;
 	int partymode;
@@ -71,6 +71,7 @@ struct player_struct {
 	int sword;
 	int direction;
 	int flydir;
+	struct xy_struct pos;
 	struct animate_specific *animation;
 };
 
