@@ -1154,8 +1154,8 @@ struct status_struct status = {
 			rcBeatSrc[i].x = beatarray[i] * 5;
 			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
-		renderlist(render_node_head);
 		advanceFrames(render_node_head);
+		renderlist(render_node_head);
 		struct render_node *node_ptr = render_node_head;
 		//Detach the texture
 		SDL_SetRenderTarget(renderer, NULL);

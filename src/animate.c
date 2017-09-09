@@ -10,6 +10,8 @@
 #include "clock.h"
 #include "helpers.h"
 #include "animate.h"
+#include <math.h>
+void test_oscillate(void *data, void *rect_trans);
 
 /* RENDER */
 
@@ -193,6 +195,13 @@ int advanceFrames(struct render_node *render_node_head) {
 			}
 		}
 		node_ptr->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
+		SDL_Rect rect_trans = animation->rect_out;
+		struct func_node *transform_node = animation->transform_list;
+		while (transform_node) {
+			transform_node->func((void *)&rect_trans, transform_node->data);
+			transform_node = transform_node->next;
+		}
+		*node_ptr->rect_out = rect_trans;
 		node_ptr = node_ptr->next;
 	}		
 
@@ -218,7 +227,7 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	for (int i = 0; i < 4; i++) {
 		testframes[i].rect = rcSrc;
 		testframes[i].duration = 0.25;
-		testframes[i].rect.x = testframes[i].rect.w * i;
+		testframes[i].rect.x = testframes[i].rect.w;// * i;
 	}
 
 	int testnumanimations = 1;
@@ -242,18 +251,26 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	struct animate_specific *testspecific = malloc(sizeof(struct animate_specific));
 	
 	
-		testspecific->generic = testgeneric;
-		testspecific->clip = 0;
-		testspecific->frame = 0;
-		testspecific->speed = 1;
-		testspecific->loops = -1;
-		testspecific->return_clip = 0;
-		testspecific->lastFrameBeat = 0.0;
-		/* set sprite position */
-		testspecific->rect_out.x = playerptr->pos.x;
-		testspecific->rect_out.y = playerptr->pos.y;
-		testspecific->rect_out.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
-		testspecific->rect_out.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
+	testspecific->generic = testgeneric;
+	testspecific->clip = 0;
+	testspecific->frame = 0;
+	testspecific->speed = 1;
+	testspecific->loops = -1;
+	testspecific->return_clip = 0;
+	testspecific->lastFrameBeat = 0.0;
+	/* set sprite position */
+	testspecific->rect_out.x = playerptr->pos.x;
+	testspecific->rect_out.y = playerptr->pos.y;
+	testspecific->rect_out.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
+	testspecific->rect_out.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
+	testspecific->transform_list = malloc(sizeof(struct func_node));
+	
+	struct func_node *testfunc = testspecific->transform_list;
+	float *testfloat = malloc(sizeof(float));
+	*testfloat = 100.0;
+	testfunc->data = (void *)testfloat;
+	testfunc->func = &test_oscillate;
+	testfunc->next = NULL;
 
 
 	r_node = create_render_node();
@@ -267,4 +284,14 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	node_insert_z_over(r_node, 0);
 	testspecific->render_node = r_node;
 	*render_node_head_ptr = r_node;
+}
+
+void test_oscillate(void *rect_trans, void *data) {
+#define PI 3.14159265
+
+	SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	float value = *(float*)data;
+	float dec = timing.currentbeat - (int)timing.currentbeat;
+	rect.y += (int)value*sin(2*PI*dec);
+	*(SDL_Rect *)rect_trans = rect;
 }

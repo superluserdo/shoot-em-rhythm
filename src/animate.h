@@ -28,10 +28,15 @@ struct animate_specific {
 	int return_clip;
 	struct render_node *render_node;
 	float lastFrameBeat;
+	struct func_node *transform_list;
 	SDL_Rect rect_out;
 };
 
-//struct transformations {
+struct func_node {
+	void *data;
+	void (*func)(void *rect_trans, void *data);
+	struct func_node *next;
+};
 	
 
 	/* Funcs */
@@ -53,6 +58,7 @@ struct render_node {
 	void *customRenderArgs;
 	SDL_Renderer *renderer;
 	struct animate_specific *animation;
+	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
 };
 
