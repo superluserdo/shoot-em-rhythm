@@ -58,20 +58,45 @@ void *frametimer(void *unused) {
 			printf("%6f\n", actualfps);
 		}
 
+		if (timing.pause_change) {
+			timing.pause_change = 0;
+			if (timing.pauselevel) {
+				if (!(*timing.pauselevel)) {
+					timing.pausetime_completed += (timing.endpause - timing.startpause);
+					timing.pausetime_ongoing = 0;
+					timing.pausetime = timing.pausetime_completed;
+					*timing.pauselevel = 0;
+				}
+				else {
+					*timing.pauselevel = 1;
+				}
+			}
+			else {
+				printf("Er, timing.pauselevel is still a null pointer. That shouldn't be right.\n");
+			}
+		}
 
 		if (timing.pauselevel) {
 			if (*timing.pauselevel) {
-				if (startpause) {
-					pausetimelast = timing.ticks;
-					startpause = 0;
-				}
-				timing.pausetime += timing.ticks - pausetimelast;
-				pausetimelast = timing.ticks;
+				printf("Pause!\n");
+				timing.pausetime_ongoing = timing.ticks - timing.startpause;
+				timing.pausetime = timing.pausetime_completed + timing.pausetime_ongoing;
 			}
 		}
-		else {
-			startpause = 1;
-		}
+
+//		if (timing.pauselevel) {
+//			if (*timing.pauselevel) {
+//				if (startpause) {
+//					pausetimelast = timing.ticks;
+//					startpause = 0;
+//				}
+//				timing.pausetime += timing.ticks - pausetimelast;
+//				pausetimelast = timing.ticks;
+//			}
+//		}
+//		else {
+//			startpause = 1;
+//		}
 		timing.currentbeat = (float)(ticktime - timing.pausetime)* timing.bps / 1000 + timing.startbeat + 1;
 	        pthread_mutex_unlock( &clock_mutex );
 	pthread_cond_broadcast(&display_cond);

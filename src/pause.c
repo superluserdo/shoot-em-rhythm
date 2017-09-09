@@ -48,7 +48,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 
 	int cursorpos = 0;
 
-	// Init SDL2 ...
+	// Init Font ...
 
 	if ( TTF_Init( ) == -1 ) {
 

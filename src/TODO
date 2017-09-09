@@ -5,7 +5,7 @@
 
 !DONE!	> Turn frame-based translations into time-based (for vastly easier rhythm making)
 	> Possibly keep sprite animations frame-based -- maybe multiples of 30fps? Would mean game can run at 30x fps.	This would mean having some kind of time-based clock and a frame based clock.
-	> Take animations out of level.c code and into some kind of organised function that finds the right animation frame -- maybe for each sprite have an "animation frame #" value, with an array of animation frame numbers that are pointers to the coordinates on the png?
+!DONE!	> Take animations out of level.c code and into some kind of organised function that finds the right animation frame -- maybe for each sprite have an "animation frame #" value, with an array of animation frame numbers that are pointers to the coordinates on the png?
 
 	> Turn big list of all different sprite objects into some kind of unified array.
 
@@ -13,7 +13,7 @@
 
 	> Have a held item that can be used with spacebar
 
-	> Use hjkl keys to jump to any of 4 rows, and asdf to use a particular weapon
+!DONE!	> Use hjkl keys to jump to any of 4 rows, and asdf to use a particular weapon
 
 	> Have a "helpful HUD" mode that displays suggestion notifications for which weapon to use, when to use held item, etc.
 
@@ -23,3 +23,5 @@
 		- Minibosses/bosses
 		- Level completion
 		- Arbitrary events that can come along at particular beats
+
+	> Have some way to sync music and beat to keep them locked together over multiple pauses.

@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall
+output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o
+	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall
 
 main.o: main.c main.h music.h
 	gcc -g3 -c main.c
@@ -24,6 +24,9 @@ helpers.o: helpers.c main.h level.h helpers.h
 
 animate.o: animate.c animate.h
 	gcc -g3 -c animate.c
+
+transform.o: transform.c transform.h
+	gcc -g3 -c transform.c
 
 clean:
 	rm -f *.o

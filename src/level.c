@@ -866,9 +866,13 @@ struct status_struct status = {
 			}
 
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
+				timing.startpause = SDL_GetTicks();
 				level.pauselevel = 1;
+				timing.pause_change = 1;
 				int rc = pausefunc(renderer, texTarget, level.currentlevel);
+				timing.endpause = SDL_GetTicks();
 				level.pauselevel = 0;
+				timing.pause_change = 1;
 				SDL_SetRenderTarget(renderer, NULL);
 
 				if (rc >= 100 && rc < 200) {

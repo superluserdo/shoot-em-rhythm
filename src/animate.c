@@ -10,8 +10,7 @@
 #include "clock.h"
 #include "helpers.h"
 #include "animate.h"
-#include <math.h>
-void test_oscillate(void *data, void *rect_trans);
+#include "transform.h"
 
 /* RENDER */
 
@@ -266,11 +265,24 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	testspecific->transform_list = malloc(sizeof(struct func_node));
 	
 	struct func_node *testfunc = testspecific->transform_list;
-	float *testfloat = malloc(sizeof(float));
-	*testfloat = 100.0;
-	testfunc->data = (void *)testfloat;
-	testfunc->func = &test_oscillate;
-	testfunc->next = NULL;
+
+	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
+	teststruct->rect_bitmask = 1;
+	teststruct->freq_perbeat = 1;
+	teststruct->ampl_pix = 10.0;
+	teststruct->offset = 0.0;
+	testfunc->data = (void *)teststruct;
+	testfunc->func = &tr_sine;
+	testfunc->next = malloc(sizeof(struct func_node));
+
+	struct tr_sine_data *teststruct2 = malloc(sizeof(struct tr_sine_data));
+	teststruct2->rect_bitmask = 2;
+	teststruct2->freq_perbeat = 1;
+	teststruct2->ampl_pix = 10.0;
+	teststruct2->offset = 0.25;
+	testfunc->next->data = (void *)teststruct2;
+	testfunc->next->func = &tr_sine;
+	testfunc->next->next = NULL;
 
 
 	r_node = create_render_node();
@@ -286,12 +298,3 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	*render_node_head_ptr = r_node;
 }
 
-void test_oscillate(void *rect_trans, void *data) {
-#define PI 3.14159265
-
-	SDL_Rect rect = *(SDL_Rect*)rect_trans;
-	float value = *(float*)data;
-	float dec = timing.currentbeat - (int)timing.currentbeat;
-	rect.y += (int)value*sin(2*PI*dec);
-	*(SDL_Rect *)rect_trans = rect;
-}

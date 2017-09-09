@@ -39,7 +39,7 @@ struct status_struct {
 struct level_struct {
 	int gameover;
 	int levelover;
-	int pauselevel;
+	int pauselevel; //level.pauselevel changed by levelfunc()
 	int currentlevel;
 	struct xy_struct grid;
 	int maxscreens;
@@ -96,6 +96,7 @@ struct audio_struct {
 
 struct time_struct {
 
+	int ticks;
 	int countbeats;
 	float bps;
 	float startbeat;
@@ -104,10 +105,14 @@ struct time_struct {
 	int framecount;
 	int fpsanim;
 	int fpsglobal;
-	int ticks;
+	int *pauselevel; //changed inside frametimer(). Points to level.pauselevel
+	int pause_change;
 	int zerotime;
 	int pausetime;
-	int *pauselevel;
+	int pausetime_completed;
+	int pausetime_ongoing;
+	int startpause;
+	int endpause;
 	float intervalanim;
 	float intervalglobal;
 };
