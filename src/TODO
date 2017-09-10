@@ -25,3 +25,5 @@
 		- Arbitrary events that can come along at particular beats
 
 	> Have some way to sync music and beat to keep them locked together over multiple pauses.
+
+	> Fix broken restart and return to startscreen

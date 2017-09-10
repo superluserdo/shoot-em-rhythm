@@ -13,6 +13,7 @@
 #include "transform.h"
 
 /* RENDER */
+SDL_Texture **image_bank;
 
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
@@ -181,7 +182,7 @@ int advanceFrames(struct render_node *render_node_head) {
 			animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
 			animation->frame++;
 		}
-		if (animation->frame >= generic->clips[animation->clip]->numFrames) {
+		if (animation->frame >= generic->clips[animation->clip]->num_frames) {
 			if (animation->loops == 0) {
 				animation->clip = animation->return_clip;	
 				animation->frame = 0;
@@ -236,14 +237,14 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	struct clip *testclip = malloc(sizeof(struct clip));
 
 	testclip->img = Spriteimg;
-	testclip->numFrames = 4;
+	testclip->num_frames = 4;
 	testclip->frames = testframes;
 
 	testclips[0] = testclip;
 
 	struct animate_generic *testgeneric = malloc(sizeof(struct animate_generic));
 	
-	testgeneric->numAnimations = testnumanimations;
+	testgeneric->num_clips = testnumanimations;
 	testgeneric->clips = testclips;
 
 
@@ -258,8 +259,8 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	testspecific->return_clip = 0;
 	testspecific->lastFrameBeat = 0.0;
 	/* set sprite position */
-	testspecific->rect_out.x = playerptr->pos.x;
-	testspecific->rect_out.y = playerptr->pos.y;
+//	testspecific->rect_out.x = playerptr->pos.x;
+//	testspecific->rect_out.y = playerptr->pos.y;
 	testspecific->rect_out.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
 	testspecific->rect_out.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
 	testspecific->transform_list = malloc(sizeof(struct func_node));
@@ -298,3 +299,176 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	*render_node_head_ptr = r_node;
 }
 
+struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank) {
+		
+	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
+	
+	specific->generic = generic_bank[0];
+	struct animate_generic *generic = specific->generic;
+	
+	specific->clip = 0;
+	specific->frame = 0;
+	specific->speed = 1;
+	specific->loops = -1;
+	specific->return_clip = 0;
+	specific->lastFrameBeat = 0.0;
+	/* set sprite position */
+	specific->rect_out.x = specific->pos.x;
+	specific->rect_out.y = specific->pos.y;
+	specific->size_ratio.w = 1.0;
+	specific->size_ratio.h = 1.0;
+	specific->rect_out.w = generic->clips[specific->clip]->frames[specific->frame].rect.w
+							*specific->size_ratio.w*ZOOM_MULT*2;
+	specific->rect_out.h = generic->clips[specific->clip]->frames[specific->frame].rect.h
+							*specific->size_ratio.h*ZOOM_MULT*2;
+	specific->transform_list = NULL;//malloc(sizeof(struct func_node));
+	
+	struct func_node *testfunc = specific->transform_list;
+
+//	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
+//	teststruct->rect_bitmask = 1;
+//	teststruct->freq_perbeat = 1;
+//	teststruct->ampl_pix = 10.0;
+//	teststruct->offset = 0.0;
+//	testfunc->data = (void *)teststruct;
+//	testfunc->func = &tr_sine;
+//	testfunc->next = malloc(sizeof(struct func_node));
+//
+//	struct tr_sine_data *teststruct2 = malloc(sizeof(struct tr_sine_data));
+//	teststruct2->rect_bitmask = 2;
+//	teststruct2->freq_perbeat = 1;
+//	teststruct2->ampl_pix = 10.0;
+//	teststruct2->offset = 0.25;
+//	testfunc->next->data = (void *)teststruct2;
+//	testfunc->next->func = &tr_sine;
+//	testfunc->next->next = NULL;
+
+
+	struct render_node *r_node = create_render_node();
+	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
+	r_node->rect_out = &specific->rect_out;
+	r_node->renderer = renderer;
+	r_node->img = generic->clips[specific->clip]->img;
+	r_node->animation = specific;
+	r_node->customRenderFunc = NULL;
+	node_insert_z_over(r_node, 0);
+	specific->render_node = r_node;
+	*render_node_head_ptr = r_node;
+
+	return specific;
+}
+
+
+int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank) {
+
+	struct animate_generic **generic_bank;
+
+	config_t cfg;
+	config_init(&cfg);
+
+	/* Read the file. If there is an error, report it and exit. */
+	if(! config_read_file(&cfg, "animations.cfg"))
+	{
+		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+		config_error_line(&cfg), config_error_text(&cfg));
+		config_destroy(&cfg);
+		return(EXIT_FAILURE);
+	}
+
+	config_setting_t *generics_setting = config_lookup(&cfg, "generics");
+	if (generics_setting == NULL) {
+		printf("Error looking up setting for 'generics'\n");
+	}
+	int num_generics = config_setting_length(generics_setting); 
+	generic_bank = malloc(num_generics * sizeof(struct animate_generic *));
+
+	struct animate_generic *generic_ptr;
+	config_setting_t *generic_setting;
+	int num_clips;
+	
+	struct clip **clip_ptr_array;
+	config_setting_t *clips_setting;
+
+	struct clip *clip_ptr;
+	config_setting_t *clip_setting;
+	SDL_Texture *img;
+	int img_index;
+	int num_frames;
+
+	struct frame *frame_array;
+	config_setting_t *frames_setting;
+	config_setting_t *frame_setting;
+	config_setting_t *rect_setting;
+
+	for (int i = 0; i < num_generics; i++) {
+		generic_setting = config_setting_get_elem(generics_setting, i);
+		if (generic_setting == NULL) {
+			printf("Error looking up setting for 'generic'\n");
+		}
+		generic_ptr = malloc(sizeof(struct animate_generic));
+
+		generic_bank[i] = generic_ptr;
+
+		clips_setting = config_setting_lookup(generic_setting, "clips");
+		if (clips_setting == NULL) {
+			printf("Error looking up setting for 'clips' %d\n", i);
+		}
+		num_clips = config_setting_length(clips_setting); 
+		generic_ptr->num_clips = num_clips;
+
+		clip_ptr_array = malloc(num_clips * sizeof(struct clip *));
+		generic_ptr->clips = clip_ptr_array;
+
+		for (int j = 0; j < num_clips; j++) {
+			clip_ptr = malloc(sizeof(struct clip));
+			clip_ptr_array[i] = clip_ptr;
+
+			clip_setting = config_setting_get_elem(clips_setting, j);
+			if (clip_setting == NULL) {
+				printf("Error looking up setting for 'clip'\n");
+			}
+			if (config_setting_lookup_int(clip_setting, "img", &img_index) == CONFIG_FALSE) {
+				printf("Error looking up value for 'img'\n");
+			}
+			clip_ptr->img = image_bank[img_index];
+			frames_setting = config_setting_lookup(clip_setting, "frames");
+			if (frames_setting == NULL) {
+				printf("Error looking up setting for 'frames'\n");
+			}
+			num_frames = config_setting_length(frames_setting);
+			clip_ptr->num_frames = num_frames;
+
+			frame_array = malloc(num_frames * sizeof(struct frame));
+			clip_ptr->frames = frame_array;
+
+			for (int k = 0; k < num_frames; k++) {
+				frame_setting = config_setting_get_elem(frames_setting, k);
+				if (frame_setting == NULL) {
+					printf("Error looking up setting for 'frame'\n");
+				}
+				rect_setting = config_setting_lookup(frame_setting, "rect");
+				if (rect_setting == NULL) {
+					printf("Error looking up setting for 'rect'\n");
+				}
+				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);
+				frame_array[k].rect.y = config_setting_get_int_elem(rect_setting, 1);
+				frame_array[k].rect.w = config_setting_get_int_elem(rect_setting, 2);
+				frame_array[k].rect.h = config_setting_get_int_elem(rect_setting, 3);
+				double dub;
+				config_setting_lookup_float(frame_setting, "duration", &dub);
+				frame_array[k].duration = (float)dub;
+			}	
+		}
+	}
+
+	*generic_bank_ptr = generic_bank;
+
+//	config_setting_t *objects_setting = config_lookup(&cfg, "objects");
+//	int objects_count = config_setting_length(objects_setting); 
+//	config_setting_t *object_setting = config_setting_get_elem(all_setting, 0);
+//	config_setting_t *timing_setting = config_setting_lookup(thislevel_setting, "timing");
+//	if (timing_setting == NULL) {
+//		printf("No settings found under 'timing' in the config file\n");
+//		return -1;
+//	}
+}

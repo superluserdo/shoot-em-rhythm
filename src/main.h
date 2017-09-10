@@ -11,6 +11,11 @@ struct xy_struct {
 	int y;
 } grid;
 
+struct size_ratio_struct {
+	float w;
+	float h;
+};
+
 struct laser_struct {
 	int power;
 	int count;
@@ -71,7 +76,6 @@ struct player_struct {
 	int sword;
 	int direction;
 	int flydir;
-	struct xy_struct pos;
 	struct animate_specific *animation;
 };
 

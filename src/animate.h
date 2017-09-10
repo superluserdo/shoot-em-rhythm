@@ -9,12 +9,12 @@ struct frame {
 
 struct clip {
 	SDL_Texture *img;
-	int numFrames;
+	int num_frames;
 	struct frame *frames;
 };
 
 struct animate_generic {
-	int numAnimations;
+	int num_clips;
 	struct clip **clips;
 };
 
@@ -29,6 +29,8 @@ struct animate_specific {
 	struct render_node *render_node;
 	float lastFrameBeat;
 	struct func_node *transform_list;
+	struct xy_struct pos;
+	struct size_ratio_struct size_ratio;
 	SDL_Rect rect_out;
 };
 
@@ -85,4 +87,6 @@ struct render_node *create_render_node();
 int node_rm(struct render_node *node_ptr);
 int list_rm(struct render_node *node_ptr);
 
+int generic_bank_populate(struct animate_generic ***generic_bank, SDL_Texture **image_bank);
 int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);
+struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank);

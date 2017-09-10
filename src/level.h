@@ -100,7 +100,7 @@ extern pthread_mutex_t track_mutex;
 
 /* Movement */
 
-void moveme(int *currentlane, int totallanes, int *direction, struct player_struct *player);
+void moveme(int *currentlane, int totallanes, int *direction, struct animate_specific *anim);
 
 void movemap(struct level_struct *level_ptr, struct player_struct *player, struct xy_struct grid,
 SDL_Rect rcTile[grid.x][grid.y], 

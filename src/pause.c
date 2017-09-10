@@ -119,12 +119,10 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 				return 0;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP) {
-				//if (cursorpos > 0)
-					cursorpos--;
+				cursorpos--;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN) {
-				//if (cursorpos < count-1)
-					cursorpos++;
+				cursorpos++;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
 				if (cursorpos == 0) {
@@ -143,7 +141,6 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		}
 
 		if (cursorpos < 0) {
-				printf("%d\n", cursorpos);
 				cursorpos = count - 1;
 		}
 		

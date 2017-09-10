@@ -78,7 +78,6 @@ void *frametimer(void *unused) {
 
 		if (timing.pauselevel) {
 			if (*timing.pauselevel) {
-				printf("Pause!\n");
 				timing.pausetime_ongoing = timing.ticks - timing.startpause;
 				timing.pausetime = timing.pausetime_completed + timing.pausetime_ongoing;
 			}
