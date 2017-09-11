@@ -25,3 +25,18 @@ void tr_sine(void *rect_trans, void *data) {
 	}
 	*(SDL_Rect *)rect_trans = rect;
 }
+
+void tr_blink(void *rect_trans, void *data) {
+	SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	struct tr_blink_data str = *(struct tr_blink_data *)data;
+	int on = str.frames_on;	
+	int off = str.frames_off;	
+
+	if (timing.framecount%(on + off) >= on) {
+		rect.w = 0;
+		rect.h = 0;
+	}
+	else {
+	}
+	*(SDL_Rect *)rect_trans = rect;
+}

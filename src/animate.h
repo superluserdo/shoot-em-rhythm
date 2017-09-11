@@ -23,6 +23,7 @@ struct animate_specific {
 	struct animate_generic *generic;
 
 	void (*animate_rules)(void *);
+	void *rules_data;
 	int clip;
 	int frame;
 	float speed;
@@ -57,7 +58,7 @@ struct render_node {
 	struct render_node *prev;
 	struct render_node *next;
 	SDL_Rect *rect_in;
-	SDL_Rect *rect_out;
+	SDL_Rect rect_out;//*rect_out;
 	SDL_Texture *img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
@@ -93,8 +94,13 @@ int list_rm(struct render_node *node_ptr);
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank);
 int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);
 struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank);
-struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank);
+struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank, int index);
 int generate_render_node(struct animate_specific *specific, SDL_Renderer *renderer);
-int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer);
+int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer, int index);
 int generate_default_specific_template();
 struct animate_specific *generate_default_specific(int index);
+
+void rules_player(void *playervoid);
+
+int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
+int transform_rm(struct animate_specific *animation, void (*func)());

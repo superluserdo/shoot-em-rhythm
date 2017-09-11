@@ -254,8 +254,8 @@ struct status_struct status = {
 	image_bank[1] = IMG_LoadTexture(renderer, "../art/flyinghamster.png");
 	struct animate_generic **generic_bank;
 	generic_bank_populate(&generic_bank, image_bank); //EXPERIMENTAL
-	graphic_spawn(&player.animation, generic_bank, renderer);
-			printf("ho\n");
+	graphic_spawn(&player.animation, generic_bank, renderer, 0);
+	player.animation->rules_data = (void *)&player;
 
 	/* set sprite position */
 	player.animation->rect_out.x = 0.2 * program.width;
@@ -1695,6 +1695,7 @@ int invinciblefunc(struct player_struct *player) {
 		player->invinciblecounter[player->invincibility]--;
 		if ( player->invinciblecounter[player->invincibility] <= 0 ) {
 			player->invincibility = 0;
+			player->invincibility_toggle = 1;
 		}
 	}
 
@@ -1713,6 +1714,7 @@ void gethurt(struct status_struct status, int attack) {
 		else {
 			status.audio->soundchecklist[4] = 1;
 			status.player->invincibility = 1;
+			status.player->invincibility_toggle = 1;
 			status.player->invinciblecounter[1] = 40;
 		}
 	}

@@ -72,6 +72,7 @@ struct player_struct {
 	int max_HP;
 	int max_PP;
 	int invincibility;
+	int invincibility_toggle;
 	int invinciblecounter[2];
 	int sword;
 	int direction;

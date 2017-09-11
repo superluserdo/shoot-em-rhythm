@@ -19,7 +19,7 @@ struct animate_specific *default_specific_template = NULL;
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
-			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, node_ptr->rect_out);
+			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
 		}
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
@@ -176,9 +176,11 @@ int advanceFrames(struct render_node *render_node_head) {
 	while (node_ptr) {
 		struct animate_specific *animation = node_ptr->animation;
 		struct animate_generic *generic = animation->generic;
-		//printf("frame:  %d", animation->frame);
-		//printf("lastframbeat:  %f", animation->lastFrameBeat);
-		//printf("	time:  %f\n", timing.currentbeat);
+
+		if (animation->animate_rules) {
+			(*animation->animate_rules)(animation->rules_data);
+		}
+
 		if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
 			animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
 			animation->frame++;
@@ -202,7 +204,7 @@ int advanceFrames(struct render_node *render_node_head) {
 			transform_node->func((void *)&rect_trans, transform_node->data);
 			transform_node = transform_node->next;
 		}
-		*node_ptr->rect_out = rect_trans;
+		node_ptr->rect_out = rect_trans;
 		node_ptr = node_ptr->next;
 	}		
 
@@ -287,7 +289,7 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 
 	r_node = create_render_node();
 	r_node->rect_in = &rcSrc;
-	r_node->rect_out = &testspecific->rect_out;
+	r_node->rect_out = testspecific->rect_out;
 	r_node->renderer = renderer;
 	r_node->img = Spriteimg;
 	r_node->animation = testspecific;
@@ -304,6 +306,7 @@ int generate_default_specific_template() {
 
 	default_specific_template->generic = NULL;
 	default_specific_template->animate_rules = NULL;
+	default_specific_template->rules_data = NULL;
 	default_specific_template->clip = 0;
 	default_specific_template->frame = 0;
 	default_specific_template->speed = 1;
@@ -321,7 +324,6 @@ int generate_default_specific_template() {
 struct animate_specific *generate_default_specific(int index) {
 
 	if (!default_specific_template) {
-			printf("hi\n");
 		generate_default_specific_template();
 	}
 
@@ -331,6 +333,7 @@ struct animate_specific *generate_default_specific(int index) {
 
 	if (index == 0) {
 		default_specific->transform_list = malloc(sizeof(struct func_node));
+		default_specific->animate_rules = &rules_player;
 
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
 		teststruct->rect_bitmask = 1;
@@ -344,12 +347,12 @@ struct animate_specific *generate_default_specific(int index) {
 	return default_specific;
 }
 
-struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank) {
+struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank, int index) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
 
-	*specific = *generic_bank[0]->default_specific;
-	specific->generic = generic_bank[0];
+	*specific = *generic_bank[index]->default_specific;
+	specific->generic = generic_bank[index];
 	struct animate_generic *generic = specific->generic;
 	
 	/*	Fetch object-type default values for the specific-animation struct.	*/
@@ -390,7 +393,7 @@ int generate_render_node(struct animate_specific *specific, SDL_Renderer *render
 
 	struct render_node *r_node = create_render_node();
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
-	r_node->rect_out = &specific->rect_out;
+	//r_node->rect_out = &specific->rect_out;
 	r_node->renderer = renderer;
 	r_node->img = generic->clips[specific->clip]->img;
 	r_node->animation = specific;
@@ -400,9 +403,9 @@ int generate_render_node(struct animate_specific *specific, SDL_Renderer *render
 
 }
 
-int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer) {
+int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer, int index) {
 
-	*specific_ptr = generate_specific_anim(generic_bank);
+	*specific_ptr = generate_specific_anim(generic_bank, index);
 	generate_render_node(*specific_ptr, renderer);
 
 }
@@ -521,4 +524,63 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 //		printf("No settings found under 'timing' in the config file\n");
 //		return -1;
 //	}
+}
+
+int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {
+	struct func_node *node = animation->transform_list;
+	int do_add = 1;
+	while (node) {
+		if (node->func == func) {
+			do_add = 0;
+			break;
+		}
+		node = node->next;
+	}
+	if (do_add) {
+		node = malloc(sizeof(struct func_node));
+		node->data = data;
+		node->func = func;
+		node->next = animation->transform_list;
+		animation->transform_list = node;
+	}
+}
+	
+
+int transform_rm(struct animate_specific *animation, void (*func)()) {
+	struct func_node *node = animation->transform_list;
+	struct func_node *prev = NULL;
+	while (node) {
+		
+		if (node->func == func) {
+			if (prev) {
+				prev->next = node->next;
+			}
+			else {
+				animation->transform_list = node->next;
+			}
+			free(node->data);
+			free(node);
+			break;
+		}
+		prev = node;
+		node = node->next;
+	}
+
+}
+
+
+void rules_player(void *playervoid) {
+	struct player_struct *player = (struct player_struct *)playervoid;
+	if (player->invincibility_toggle) {
+		player->invincibility_toggle = 0;
+		if (player->invincibility) {
+			struct tr_blink_data *data = malloc(sizeof(struct tr_blink_data));
+			data->frames_on = 4;
+			data->frames_off = 4;
+			transform_add_check(player->animation, data, &tr_blink);
+		}
+		else {
+			transform_rm(player->animation, &tr_blink);
+		}
+	}
 }
