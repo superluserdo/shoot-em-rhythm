@@ -230,8 +230,6 @@ struct status_struct status = {
 
 	/* Declare Textures */
 
-	int imgNum = 13;
-	SDL_Texture *imgList[imgNum];
 	SDL_Texture *Spriteimg = NULL;
 	SDL_Texture *Laserimg = NULL;
 	SDL_Texture *Swordimg = NULL;
@@ -253,21 +251,15 @@ struct status_struct status = {
 	int num_images = 100; //TODO
 	SDL_Texture *image_bank[num_images];
 	image_bank[0] = IMG_LoadTexture(renderer, SPRITE_PATH);
+	image_bank[1] = IMG_LoadTexture(renderer, "../art/flyinghamster.png");
 	struct animate_generic **generic_bank;
 	generic_bank_populate(&generic_bank, image_bank); //EXPERIMENTAL
-	//render_node_populate(&render_node_head, r_node, imgList, renderer, &player);
-	player.animation = render_node_populate2(&render_node_head, imgList, renderer, generic_bank);
-	//printf("%d\n", render_node_head->rect_out->w);
-
-	struct animate_specific *tmp_anim_spec = player.animation;
-	struct animate_generic *tmp_anim_gen = tmp_anim_spec->generic;
-	struct clip *tmp_clip = tmp_anim_gen->clips[tmp_anim_spec->clip];
-
-	SDL_Rect rcSrc = tmp_clip->frames[0].rect;
+	graphic_spawn(&player.animation, generic_bank, renderer);
+			printf("ho\n");
 
 	/* set sprite position */
-	player.animation->pos.x = 0.2 * program.width;
-	player.animation->pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	player.animation->rect_out.x = 0.2 * program.width;
+	player.animation->rect_out.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 
 	/*		Tiles		*/
 
@@ -519,6 +511,7 @@ struct status_struct status = {
 	memcpy(&flyinghamster.Src, &(int [2]){ 0, 0 }, sizeof flyinghamster.Src);
 	memcpy(&flyinghamster.wh, &(int [2]){ 20,20 }, sizeof flyinghamster.wh);
 	flyinghamster.image = &Mon0img;
+	flyinghamster.generic_bank_index = 1;
 
 	struct monster angrycircle;
 
@@ -1223,9 +1216,7 @@ void moveme(int *currentlane, int totallanes, int *direction, struct animate_spe
 		*direction = 4;
 	}
 	/* set sprite position */
-	anim->pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
-	anim->rect_out.x = anim->pos.x;
-	anim->rect_out.y = anim->pos.y;
+	anim->rect_out.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 
 }
 

@@ -49,6 +49,7 @@ struct monster_node {
 	float remainder;
 	struct SDL_Rect monster_rect;
 	struct SDL_Rect monster_src;
+	struct animate_specific *animation;
 	struct monster_node * next;
 };
 
@@ -59,6 +60,7 @@ struct monster {
 	float defence;
 	int Src[2];
 	int wh[2];
+	int generic_bank_index;
 	SDL_Texture **image;
 	};
 

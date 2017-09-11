@@ -13,7 +13,8 @@
 #include "transform.h"
 
 /* RENDER */
-SDL_Texture **image_bank;
+extern SDL_Texture **image_bank;
+struct animate_specific *default_specific_template = NULL;
 
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
@@ -259,8 +260,6 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	testspecific->return_clip = 0;
 	testspecific->lastFrameBeat = 0.0;
 	/* set sprite position */
-//	testspecific->rect_out.x = playerptr->pos.x;
-//	testspecific->rect_out.y = playerptr->pos.y;
 	testspecific->rect_out.w = POKESPRITE_SIZEX*ZOOM_MULT*2;
 	testspecific->rect_out.h = POKESPRITE_SIZEY*ZOOM_MULT*2;
 	testspecific->transform_list = malloc(sizeof(struct func_node));
@@ -299,32 +298,71 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	*render_node_head_ptr = r_node;
 }
 
-struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank) {
+int generate_default_specific_template() {
+	
+	default_specific_template = malloc(sizeof(struct animate_specific));
+
+	default_specific_template->generic = NULL;
+	default_specific_template->animate_rules = NULL;
+	default_specific_template->clip = 0;
+	default_specific_template->frame = 0;
+	default_specific_template->speed = 1;
+	default_specific_template->loops = -1;
+	default_specific_template->return_clip = 0;
+	default_specific_template->lastFrameBeat = 0.0;
+
+	default_specific_template->size_ratio.w = 1.0;
+	default_specific_template->size_ratio.h = 1.0;
+	default_specific_template->transform_list = NULL;//malloc(sizeof(struct func_node));
+
+	default_specific_template->render_node = NULL;
+}
+
+struct animate_specific *generate_default_specific(int index) {
+
+	if (!default_specific_template) {
+			printf("hi\n");
+		generate_default_specific_template();
+	}
+
+	struct animate_specific *default_specific = malloc(sizeof(struct animate_specific));
+
+	*default_specific = *default_specific_template;
+
+	if (index == 0) {
+		default_specific->transform_list = malloc(sizeof(struct func_node));
+
+		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
+		teststruct->rect_bitmask = 1;
+		teststruct->freq_perbeat = 1;
+		teststruct->ampl_pix = 10.0;
+		teststruct->offset = 0.0;
+		default_specific->transform_list->data = (void *)teststruct;
+		default_specific->transform_list->func = &tr_sine;
+		default_specific->transform_list->next = NULL;
+	}
+	return default_specific;
+}
+
+struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
-	
+
+	*specific = *generic_bank[0]->default_specific;
 	specific->generic = generic_bank[0];
 	struct animate_generic *generic = specific->generic;
 	
-	specific->clip = 0;
-	specific->frame = 0;
-	specific->speed = 1;
-	specific->loops = -1;
-	specific->return_clip = 0;
-	specific->lastFrameBeat = 0.0;
+	/*	Fetch object-type default values for the specific-animation struct.	*/
+
 	/* set sprite position */
-	specific->rect_out.x = specific->pos.x;
-	specific->rect_out.y = specific->pos.y;
-	specific->size_ratio.w = 1.0;
-	specific->size_ratio.h = 1.0;
 	specific->rect_out.w = generic->clips[specific->clip]->frames[specific->frame].rect.w
 							*specific->size_ratio.w*ZOOM_MULT*2;
 	specific->rect_out.h = generic->clips[specific->clip]->frames[specific->frame].rect.h
 							*specific->size_ratio.h*ZOOM_MULT*2;
-	specific->transform_list = NULL;//malloc(sizeof(struct func_node));
+	/*	You will need to set x and y manually after this.	*/
 	
-	struct func_node *testfunc = specific->transform_list;
-
+//	struct func_node *testfunc = specific->transform_list;
+//
 //	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
 //	teststruct->rect_bitmask = 1;
 //	teststruct->freq_perbeat = 1;
@@ -342,7 +380,13 @@ struct animate_specific *render_node_populate2(struct render_node **render_node_
 //	testfunc->next->data = (void *)teststruct2;
 //	testfunc->next->func = &tr_sine;
 //	testfunc->next->next = NULL;
+	return specific;
+}
 
+int generate_render_node(struct animate_specific *specific, SDL_Renderer *renderer) {
+	/* Creates, populates, and inserts a rendering node	*/
+
+	struct animate_generic *generic = specific->generic;
 
 	struct render_node *r_node = create_render_node();
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
@@ -353,11 +397,15 @@ struct animate_specific *render_node_populate2(struct render_node **render_node_
 	r_node->customRenderFunc = NULL;
 	node_insert_z_over(r_node, 0);
 	specific->render_node = r_node;
-	*render_node_head_ptr = r_node;
 
-	return specific;
 }
 
+int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer) {
+
+	*specific_ptr = generate_specific_anim(generic_bank);
+	generate_render_node(*specific_ptr, renderer);
+
+}
 
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank) {
 
@@ -409,6 +457,8 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 		generic_bank[i] = generic_ptr;
 
+		generic_ptr->default_specific = generate_default_specific(i);
+
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
 			printf("Error looking up setting for 'clips' %d\n", i);
@@ -421,7 +471,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 		for (int j = 0; j < num_clips; j++) {
 			clip_ptr = malloc(sizeof(struct clip));
-			clip_ptr_array[i] = clip_ptr;
+			clip_ptr_array[j] = clip_ptr;
 
 			clip_setting = config_setting_get_elem(clips_setting, j);
 			if (clip_setting == NULL) {
