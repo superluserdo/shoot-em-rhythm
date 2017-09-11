@@ -27,3 +27,5 @@
 	> Have some way to sync music and beat to keep them locked together over multiple pauses.
 
 	> Fix broken restart and return to startscreen
+
+	> Fix segfault on setting total lane number too high in level.cfg (not sure how high is too high)

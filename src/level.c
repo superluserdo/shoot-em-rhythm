@@ -249,9 +249,17 @@ struct status_struct status = {
 	/*		Sprite		*/
 	
 	int num_images = 100; //TODO
+
+	//enum {
+	//	sprite, flyinghamster, HP1, HP2
+	//} img_enum;
+
 	SDL_Texture *image_bank[num_images];
-	image_bank[0] = IMG_LoadTexture(renderer, SPRITE_PATH);
-	image_bank[1] = IMG_LoadTexture(renderer, "../art/flyinghamster.png");
+	/*	Initialise the image bank - a fixed array of (as of now hardcoded) pointers to SDL_Textures
+	 *	that is used to populate the "img" pointers in the clip sections of each generic struct
+	 */
+	image_bank_populate(image_bank, renderer);
+
 	struct animate_generic **generic_bank;
 	generic_bank_populate(&generic_bank, image_bank); //EXPERIMENTAL
 	graphic_spawn(&player.animation, generic_bank, renderer, 0);
@@ -293,7 +301,14 @@ struct status_struct status = {
 
 	/*	HP	*/
 
-	HPimg0 = IMG_LoadTexture(renderer, "../art/hp.png");
+	struct animate_specific *HP0animation;
+	graphic_spawn(&HP0animation, generic_bank, renderer, 2);
+	HP0animation->rect_out.x = 10 * ZOOM_MULT * 2;
+	HP0animation->rect_out.y = 10 * ZOOM_MULT * 2;
+	HP0animation->rect_out.w = HP0animation->rect_out.w * ZOOM_MULT * 2;
+	HP0animation->rect_out.h = HP0animation->rect_out.h * ZOOM_MULT * 2;
+
+	HPimg0 = NULL;//IMG_LoadTexture(renderer, "../art/hp.png");
 	SDL_QueryTexture(HPimg0, NULL, NULL, &w, &h); // get the width and height of the texture
 
 	HPimg1 = IMG_LoadTexture(renderer, "../art/colourstrip.png");
@@ -786,7 +801,6 @@ struct status_struct status = {
 	};
 	rc = pthread_create(&threads, NULL, musicstart, (void*)&musicstart_struct);
 	if (rc) {
-		printf("ya dun goofed. return code is %d\n.", rc);
 		exit(-1);
 	}
 

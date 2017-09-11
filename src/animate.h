@@ -91,6 +91,7 @@ struct render_node *create_render_node();
 int node_rm(struct render_node *node_ptr);
 int list_rm(struct render_node *node_ptr);
 
+int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer);
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank);
 int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);
 struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank);

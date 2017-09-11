@@ -79,6 +79,9 @@ int node_insert_z_under(struct render_node *node_src, float z) {
 				if (node == render_node_head) {
 					render_node_head = node_src;
 				}
+				if (node == render_node_tail) {
+					render_node_tail = node_src;
+				}
 				break;
 			}		
 			if (node == render_node_tail) {
@@ -86,7 +89,9 @@ int node_insert_z_under(struct render_node *node_src, float z) {
 				node_src->next = NULL;
 				render_node_tail->next = node_src;
 				render_node_tail = node_src;
+				break;
 			}
+			node = node->next;
 		}
 	}
 }
@@ -100,12 +105,16 @@ int node_insert_z_over(struct render_node *node_src, float z) {
 	else {
 		struct render_node *node = render_node_head;
 		while (node) {
-			if ( node_src->z < node->z) {
+			printf("%p\n", node);
+			if ( node_src->z > node->z) {
 				node_src->next = node;
 				node_src->prev = node->prev;
 				node->prev = node_src;	
 				if (node == render_node_head) {
 					render_node_head = node_src;
+				}
+				if (node == render_node_tail) {
+					render_node_tail = node_src;
 				}
 				break;
 			}		
@@ -114,7 +123,9 @@ int node_insert_z_over(struct render_node *node_src, float z) {
 				node_src->next = NULL;
 				render_node_tail->next = node_src;
 				render_node_tail = node_src;
+				break;
 			}
+			node = node->next;
 		}
 	}
 }
@@ -149,7 +160,7 @@ int list_rm(struct render_node *node_ptr) {
 	
 		while (node_ptr_fwd) {
 			struct render_node *ptr_tmp = node_ptr_fwd;
-			node_ptr_fwd = node_ptr_back->next;
+			node_ptr_fwd = node_ptr_fwd->next;
 			free(ptr_tmp);
 		}
 		free(node_ptr);
@@ -332,17 +343,28 @@ struct animate_specific *generate_default_specific(int index) {
 	*default_specific = *default_specific_template;
 
 	if (index == 0) {
-		default_specific->transform_list = malloc(sizeof(struct func_node));
 		default_specific->animate_rules = &rules_player;
 
+		struct func_node *tr_node = malloc(sizeof(struct func_node));
+		default_specific->transform_list = tr_node;
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
 		teststruct->rect_bitmask = 1;
 		teststruct->freq_perbeat = 1;
 		teststruct->ampl_pix = 10.0;
 		teststruct->offset = 0.0;
-		default_specific->transform_list->data = (void *)teststruct;
-		default_specific->transform_list->func = &tr_sine;
-		default_specific->transform_list->next = NULL;
+		tr_node->data = (void *)teststruct;
+		tr_node->func = &tr_sine;
+		tr_node->next = malloc(sizeof(struct func_node));
+
+		tr_node = tr_node->next;
+		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
+		teststruct2->freq_perbeat = 1;
+		teststruct2->ampl = 2;
+		teststruct2->peak_offset = 0.0;
+		teststruct2->bump_width = 0.25;
+		tr_node->data = (void *)teststruct2;
+		tr_node->func = &tr_bump;
+		tr_node->next = NULL;
 	}
 	return default_specific;
 }
@@ -409,6 +431,43 @@ int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic
 	generate_render_node(*specific_ptr, renderer);
 
 }
+
+int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
+
+	const char *cfg_path = "imgs.cfg";
+	config_t cfg;
+	config_init(&cfg);
+
+	/* Read the file. If there is an error, report it and exit. */
+	if(! config_read_file(&cfg, cfg_path))
+	{
+		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+		config_error_line(&cfg), config_error_text(&cfg));
+		config_destroy(&cfg);
+		return(EXIT_FAILURE);
+	}
+
+
+	config_setting_t *image_list_setting = config_lookup(&cfg, "image_list");
+	if (image_list_setting == NULL) {
+		printf("Error looking up setting for 'image_list'\n");
+	}
+	int num_images = config_setting_length(image_list_setting); 
+	for (int i = 0; i < num_images; i++) {
+		const char *path = config_setting_get_string_elem(image_list_setting, i);
+		if (path) {
+			image_bank[i] = IMG_LoadTexture(renderer, path);
+		}
+		else {
+			printf("Could not find valid image file path in entry %d of file %s\n", i, cfg_path);
+			return -1;
+		}
+		if (image_bank[i] == NULL) {
+			printf("Error loading image file: %s\n", path);
+			return -1;
+		}
+	}
+}	
 
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank) {
 
@@ -515,6 +574,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 	}
 
 	*generic_bank_ptr = generic_bank;
+	config_destroy(&cfg);
 
 //	config_setting_t *objects_setting = config_lookup(&cfg, "objects");
 //	int objects_count = config_setting_length(objects_setting); 
