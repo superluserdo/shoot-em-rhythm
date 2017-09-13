@@ -90,6 +90,20 @@ struct item {
 	//void (*functionptr)(int int1, int int2);
 	};
 
+struct ui_bar {
+	int *amount;
+	int *max;
+	union {
+		struct {
+			struct xy_struct pos;
+			struct size_ratio_struct size_ratio;
+			struct animate_specific *animation;
+		};
+		struct std std;
+	};
+};
+
+
 /* Threading */
 
 extern pthread_mutex_t display_mutex;

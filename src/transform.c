@@ -11,14 +11,20 @@
 void tr_resize(void *rect_trans, void *data) {
 	struct tr_resize_data str = *(struct tr_resize_data *)data;
 	SDL_Rect rect = *(SDL_Rect*)rect_trans;
-	struct xy_struct centre = {
+	struct xy_struct local_centre = {
 		.x = rect.x + rect.w/2,
 		.y = rect.y + rect.h/2
 	};
 	rect.w *= str.w;
 	rect.h *= str.h;
-	rect.x  = centre.x - rect.w/2;
-	rect.y  = centre.y - rect.h/2;
+	if (str.centre) {
+		local_centre.x += (local_centre.x - str.centre->x) * (str.w - 1);
+		local_centre.y += (local_centre.y - str.centre->y) * (str.h - 1);
+	//	rect.x = str.centre->x + (local_centre.x - str.centre->x)*(str.w) - rect.w/2;
+	//	rect.y = str.centre->y + (local_centre.y - str.centre->y)*(str.h) - rect.h/2;
+	}
+		rect.x  = local_centre.x - rect.w/2;
+		rect.y  = local_centre.y - rect.h/2;
 	*(SDL_Rect *)rect_trans = rect;
 }
 void tr_bump(void *rect_trans, void *data) {
@@ -36,14 +42,15 @@ void tr_bump(void *rect_trans, void *data) {
 	if ((dec >= peak_start && dec <= peak_end) || (dec >= peak_start + 1) || (dec <= peak_end - 1)) {
 		float diff = str.peak_offset - dec;
 		if (diff < 0) {
-			diff ++;
+			diff *= -1;//++;
 		}
-		if (diff > str.bump_width) {
+		if (diff > str.bump_width / 2) {
 			diff = 1 - diff;
 		}
 		struct tr_resize_data resize_data = {
 			.w = 1 + (str.ampl -1) * (1 - 2*diff/str.bump_width),
-			.h = resize_data.w
+			.h = resize_data.w,
+			.centre = str.centre
 		};
 		tr_resize(rect_trans, (void *)&resize_data);
 	}

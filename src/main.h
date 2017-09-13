@@ -65,6 +65,11 @@ struct lane_struct {
 
 /* Status of the Player */
 
+struct std {
+	struct xy_struct pos;
+	struct size_ratio_struct size_ratio;
+	struct animate_specific *animation;
+};
 
 struct player_struct {
 
@@ -77,7 +82,14 @@ struct player_struct {
 	int sword;
 	int direction;
 	int flydir;
-	struct animate_specific *animation;
+	union {
+		struct {
+			struct xy_struct pos;
+			struct size_ratio_struct size_ratio;
+			struct animate_specific *animation;
+		};
+		struct std std;
+	};
 };
 
 /* Whole Program */

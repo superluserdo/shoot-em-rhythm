@@ -13,6 +13,7 @@
 #include "transform.h"
 
 /* RENDER */
+extern struct status_struct status;
 extern SDL_Texture **image_bank;
 struct animate_specific *default_specific_template = NULL;
 
@@ -105,7 +106,6 @@ int node_insert_z_over(struct render_node *node_src, float z) {
 	else {
 		struct render_node *node = render_node_head;
 		while (node) {
-			printf("%p\n", node);
 			if ( node_src->z > node->z) {
 				node_src->next = node;
 				node_src->prev = node->prev;
@@ -188,13 +188,26 @@ int advanceFrames(struct render_node *render_node_head) {
 		struct animate_specific *animation = node_ptr->animation;
 		struct animate_generic *generic = animation->generic;
 
-		if (animation->animate_rules) {
-			(*animation->animate_rules)(animation->rules_data);
+		/* set sprite position from parent object again in case of manual changes during program:	*/
+		animation->rect_out.x = animation->parent->pos.x + animation->native_offset.x * ZOOM_MULT * 2;
+		animation->rect_out.y = animation->parent->pos.y + animation->native_offset.y * ZOOM_MULT * 2;
+	
+		animation->rect_out.w = generic->clips[animation->clip]->frames[animation->frame].rect.w
+								*animation->parent->size_ratio.w*ZOOM_MULT*2;
+		animation->rect_out.h = generic->clips[animation->clip]->frames[animation->frame].rect.h
+								*animation->parent->size_ratio.h*ZOOM_MULT*2;
+
+		struct rule_node *rule_node = animation->rules_list;
+		while (rule_node) {
+			(rule_node->rule)(rule_node->data);
+			rule_node = rule_node->next;
 		}
 
-		if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-			animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
-			animation->frame++;
+		if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
+			if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
+				animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
+				animation->frame++;
+			}
 		}
 		if (animation->frame >= generic->clips[animation->clip]->num_frames) {
 			if (animation->loops == 0) {
@@ -316,17 +329,17 @@ int generate_default_specific_template() {
 	default_specific_template = malloc(sizeof(struct animate_specific));
 
 	default_specific_template->generic = NULL;
-	default_specific_template->animate_rules = NULL;
-	default_specific_template->rules_data = NULL;
+	default_specific_template->rules_list = NULL;
 	default_specific_template->clip = 0;
 	default_specific_template->frame = 0;
 	default_specific_template->speed = 1;
 	default_specific_template->loops = -1;
 	default_specific_template->return_clip = 0;
 	default_specific_template->lastFrameBeat = 0.0;
+	default_specific_template->native_offset.x = 0;
+	default_specific_template->native_offset.y = 0;
 
-	default_specific_template->size_ratio.w = 1.0;
-	default_specific_template->size_ratio.h = 1.0;
+	default_specific_template->parent = NULL;
 	default_specific_template->transform_list = NULL;//malloc(sizeof(struct func_node));
 
 	default_specific_template->render_node = NULL;
@@ -342,8 +355,14 @@ struct animate_specific *generate_default_specific(int index) {
 
 	*default_specific = *default_specific_template;
 
+	/*	Trying out some transformation defaults here temporarily.
+	 *	Will get it into some kind of loadable animation_default config file eventually.
+	 */
 	if (index == 0) {
-		default_specific->animate_rules = &rules_player;
+		default_specific->rules_list = malloc(sizeof(struct rule_node));
+		default_specific->rules_list->rule = &rules_player;
+		default_specific->rules_list->data = NULL;
+		default_specific->rules_list->next = NULL;
 
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 		default_specific->transform_list = tr_node;
@@ -354,22 +373,55 @@ struct animate_specific *generate_default_specific(int index) {
 		teststruct->offset = 0.0;
 		tr_node->data = (void *)teststruct;
 		tr_node->func = &tr_sine;
-		tr_node->next = malloc(sizeof(struct func_node));
+		tr_node->next = NULL;
+	}
+	if (index == 2 || index == 3) {
+		default_specific->rules_list = malloc(sizeof(struct rule_node));
+		default_specific->rules_list->rule = &rules_ui;
+		default_specific->rules_list->data = NULL;
+		default_specific->rules_list->next = NULL;
 
-		tr_node = tr_node->next;
+		struct func_node *tr_node = malloc(sizeof(struct func_node));
+
 		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
 		teststruct2->freq_perbeat = 1;
 		teststruct2->ampl = 2;
 		teststruct2->peak_offset = 0.0;
 		teststruct2->bump_width = 0.25;
+		teststruct2->centre = NULL;
 		tr_node->data = (void *)teststruct2;
 		tr_node->func = &tr_bump;
 		tr_node->next = NULL;
+		default_specific->transform_list = tr_node;
+		default_specific->rules_list->data = (void *)teststruct2;
+	}
+	if (index == 4) {
+		default_specific->rules_list = malloc(sizeof(struct rule_node));
+		default_specific->rules_list->rule = &rules_ui_hp;
+		default_specific->rules_list->data = default_specific;
+		default_specific->rules_list->next = malloc(sizeof(struct rule_node));
+		default_specific->rules_list->next->rule = &rules_ui;
+		default_specific->rules_list->next->data = NULL;
+		default_specific->rules_list->next->next = NULL;
+
+		struct func_node *tr_node = malloc(sizeof(struct func_node));
+
+		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
+		teststruct2->freq_perbeat = 1;
+		teststruct2->ampl = 2;
+		teststruct2->peak_offset = 0.0;
+		teststruct2->bump_width = 0.25;
+		teststruct2->centre = NULL;
+		tr_node->data = (void *)teststruct2;
+		tr_node->func = &tr_bump;
+		tr_node->next = NULL;
+		default_specific->transform_list = tr_node;
+		default_specific->rules_list->next->data = (void *)teststruct2;
 	}
 	return default_specific;
 }
 
-struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank, int index) {
+struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic **generic_bank, int index) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
 
@@ -380,10 +432,14 @@ struct animate_specific *generate_specific_anim(struct animate_generic **generic
 	/*	Fetch object-type default values for the specific-animation struct.	*/
 
 	/* set sprite position */
+	specific->parent= std;
+	specific->rect_out.x = specific->parent->pos.x;
+	specific->rect_out.y = specific->parent->pos.y;
+
 	specific->rect_out.w = generic->clips[specific->clip]->frames[specific->frame].rect.w
-							*specific->size_ratio.w*ZOOM_MULT*2;
+							*specific->parent->size_ratio.w*ZOOM_MULT*2;
 	specific->rect_out.h = generic->clips[specific->clip]->frames[specific->frame].rect.h
-							*specific->size_ratio.h*ZOOM_MULT*2;
+							*specific->parent->size_ratio.h*ZOOM_MULT*2;
 	/*	You will need to set x and y manually after this.	*/
 	
 //	struct func_node *testfunc = specific->transform_list;
@@ -425,10 +481,14 @@ int generate_render_node(struct animate_specific *specific, SDL_Renderer *render
 
 }
 
-int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer, int index) {
+int graphic_spawn(struct std *std, struct animate_generic **generic_bank, SDL_Renderer *renderer, int *index_array, int num_index) {
 
-	*specific_ptr = generate_specific_anim(generic_bank, index);
-	generate_render_node(*specific_ptr, renderer);
+	struct animate_specific *anim = std->animation;
+	for (int i = 0; i < num_index; i++) {
+		anim = generate_specific_anim(std, generic_bank, index_array[i]);
+		generate_render_node(anim, renderer);
+		anim = anim->next;
+	}
 
 }
 
@@ -642,5 +702,28 @@ void rules_player(void *playervoid) {
 		else {
 			transform_rm(player->animation, &tr_blink);
 		}
+	}
+}
+void rules_ui(void *data) {
+	struct tr_bump_data *str = (struct tr_bump_data *)data;
+	if (program.score > 1000)
+		str->ampl = 1.2;
+	else
+		str->ampl = 1 + program.score/5000.0;
+}
+void rules_ui_hp(void *animvoid) {
+	struct animate_specific *animation = (void *)animvoid;
+	float HP_ratio = (float) status.player->HP / status.player->max_HP;
+	animation->rect_out.w = 50 * ZOOM_MULT * 2 * HP_ratio * animation->parent->size_ratio.w;
+	if ( HP_ratio <= 0.5 ) {
+		if ( HP_ratio <= 0.2 ) {
+			animation->frame = 2;
+		}
+		else {
+			animation->frame = 1;
+		}
+	}
+	else {
+		animation->frame = 1;
 	}
 }

@@ -1,6 +1,7 @@
 struct tr_resize_data {
 	float w;
 	float h;
+	struct xy_struct *centre;
 };
 void tr_resize(void *rect_trans, void *data);
 
@@ -9,6 +10,7 @@ struct tr_bump_data {
 	float ampl;
 	float peak_offset;
 	float bump_width;
+	struct xy_struct *centre;
 };
 void tr_bump(void *rect_trans, void *data);
 

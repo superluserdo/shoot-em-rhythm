@@ -22,21 +22,29 @@ struct animate_generic {
 struct animate_specific {
 	struct animate_generic *generic;
 
-	void (*animate_rules)(void *);
-	void *rules_data;
+	struct rule_node *rules_list;
 	int clip;
 	int frame;
 	float speed;
 	int loops;
 	int return_clip;
 	float lastFrameBeat;
-	struct size_ratio_struct size_ratio;
+	struct xy_struct native_offset;
+	struct std *parent;
+	struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
+	struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
+	struct animate_specific *list_head;
 	struct func_node *transform_list;
 
 	struct render_node *render_node;
-	SDL_Rect rect_out;	/*	Adjust position x and y here.
-						 *	Change w and h via size_ratio rather than directly here (they would be overwritten).
-						 */
+	SDL_Rect rect_out;
+	struct animate_specific *next;
+};
+
+struct rule_node {
+	void (*rule)(void *);
+	void *data;
+	struct rule_node *next;
 };
 
 struct func_node {
@@ -95,13 +103,18 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer);
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank);
 int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr);
 struct animate_specific *render_node_populate2(struct render_node **render_node_head_ptr, SDL_Texture **imgList, SDL_Renderer *renderer, struct animate_generic **generic_bank);
-struct animate_specific *generate_specific_anim(struct animate_generic **generic_bank, int index);
+
+struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic **generic_bank, int index);
 int generate_render_node(struct animate_specific *specific, SDL_Renderer *renderer);
-int graphic_spawn(struct animate_specific **specific_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer, int index);
+int graphic_spawn(struct std *std, struct animate_generic **generic_bank, SDL_Renderer *renderer, int *index_array, int num_index);
+		
 int generate_default_specific_template();
 struct animate_specific *generate_default_specific(int index);
 
 void rules_player(void *playervoid);
+void rules_ui(void *data);
+void rules_ui_hp(void *data);
+void rules_ui_power(void *data);
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
 int transform_rm(struct animate_specific *animation, void (*func)());
