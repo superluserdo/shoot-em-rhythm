@@ -98,10 +98,10 @@ int node_insert_z_under(struct render_node *node_src, float z) {
 }
 
 int node_insert_z_over(struct render_node *node_src, float z) {
+	node_src->z = z;
 	if (render_node_head == NULL) {
 		render_node_head = node_src;
 		render_node_tail = node_src;
-		node_src->z = z;
 	}
 	else {
 		struct render_node *node = render_node_head;
@@ -397,7 +397,7 @@ struct animate_specific *generate_default_specific(int index) {
 	}
 	if (index == 4) {
 		default_specific->rules_list = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->rule = &rules_ui_hp;
+		default_specific->rules_list->rule = &rules_ui_bar;
 		default_specific->rules_list->data = default_specific;
 		default_specific->rules_list->next = malloc(sizeof(struct rule_node));
 		default_specific->rules_list->next->rule = &rules_ui;
@@ -429,10 +429,44 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	specific->generic = generic_bank[index];
 	struct animate_generic *generic = specific->generic;
 	
+	struct rule_node *rule_tmp;
+	struct rule_node **rule_ptr = &specific->rules_list;
+
+	struct func_node *tr_tmp;
+	struct func_node **tr_ptr = &specific->transform_list;
+
+	while (*rule_ptr) {
+		rule_tmp = malloc(sizeof(struct rule_node));
+		*rule_tmp = **rule_ptr;
+		//*rule_tmp = *specific->rules_list;
+		if (rule_tmp->data) {
+			if (rule_tmp->data == generic_bank[index]->default_specific) {
+				rule_tmp->data = (void *)specific;
+			}
+//			else {
+//				void *data_tmp = malloc(sizeof(rule_tmp->data));
+//				rule_tmp->data = data_tmp;
+//			}
+		}
+		*rule_ptr = rule_tmp;
+		//specific->rules_list = rule_tmp;
+		rule_ptr = &(*rule_ptr)->next;
+	}
+	while (*tr_ptr) {
+		tr_tmp = malloc(sizeof(struct rule_node));
+		*tr_tmp = **tr_ptr;
+		if (tr_tmp->data) {
+			if (tr_tmp->data == generic_bank[index]->default_specific) {
+				tr_tmp->data = (void *)specific;
+			}
+		}
+		*tr_ptr = tr_tmp;
+		tr_ptr = &(*tr_ptr)->next;
+	}
 	/*	Fetch object-type default values for the specific-animation struct.	*/
 
 	/* set sprite position */
-	specific->parent= std;
+	specific->parent = std;
 	specific->rect_out.x = specific->parent->pos.x;
 	specific->rect_out.y = specific->parent->pos.y;
 
@@ -483,11 +517,13 @@ int generate_render_node(struct animate_specific *specific, SDL_Renderer *render
 
 int graphic_spawn(struct std *std, struct animate_generic **generic_bank, SDL_Renderer *renderer, int *index_array, int num_index) {
 
-	struct animate_specific *anim = std->animation;
+	struct animate_specific **a_ptr = &std->animation;
+	struct animate_specific *anim = *a_ptr;
 	for (int i = 0; i < num_index; i++) {
 		anim = generate_specific_anim(std, generic_bank, index_array[i]);
+		*a_ptr = anim;
 		generate_render_node(anim, renderer);
-		anim = anim->next;
+		a_ptr = (&(*a_ptr)->next);
 	}
 
 }
@@ -711,9 +747,10 @@ void rules_ui(void *data) {
 	else
 		str->ampl = 1 + program.score/5000.0;
 }
-void rules_ui_hp(void *animvoid) {
+void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (void *)animvoid;
-	float HP_ratio = (float) status.player->HP / status.player->max_HP;
+	struct ui_bar *bar = animation->parent->self_ui_bar;
+	float HP_ratio = (float) *bar->amount / *bar->max;
 	animation->rect_out.w = 50 * ZOOM_MULT * 2 * HP_ratio * animation->parent->size_ratio.w;
 	if ( HP_ratio <= 0.5 ) {
 		if ( HP_ratio <= 0.2 ) {
@@ -724,6 +761,6 @@ void rules_ui_hp(void *animvoid) {
 		}
 	}
 	else {
-		animation->frame = 1;
+		animation->frame = 0;
 	}
 }

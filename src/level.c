@@ -268,7 +268,7 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	player.pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 	player.size_ratio.w = 1.0;
 	player.size_ratio.h = 1.0;
-	graphic_spawn(&player.std, generic_bank, renderer, (int[]){3}, 1);
+	graphic_spawn(&player.std, generic_bank, renderer, (int[]){0}, 1);
 	player.animation->rules_list->data = (void *)&player;
 
 	/*		Tiles		*/
@@ -303,15 +303,15 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 
 	/*	HP	*/
 
-	struct animate_specific *HP0animation;
-	struct xy_struct HP0pos = {
-		.x = 10 * ZOOM_MULT * 2,
-		.y = 10 * ZOOM_MULT * 2
-	};
-	struct size_ratio_struct HP0ratio = {
-		.w = 1.0,
-		.h = 1.0
-	};
+//	struct animate_specific *HP0animation;
+//	struct xy_struct HP0pos = {
+//		.x = 10 * ZOOM_MULT * 2,
+//		.y = 10 * ZOOM_MULT * 2
+//	};
+//	struct size_ratio_struct HP0ratio = {
+//		.w = 1.0,
+//		.h = 1.0
+//	};
 //	graphic_spawn(&HP0animation, HP0pos, HP0ratio, generic_bank, renderer, 2);
 	struct ui_bar hp;
 	hp.amount = &player.HP;
@@ -320,24 +320,36 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	hp.pos.y = 10 * ZOOM_MULT * 2;
 	hp.size_ratio.w = 1.0;
 	hp.size_ratio.h = 1.0;
+	hp.self = &hp;
 	graphic_spawn(&hp.std, generic_bank, renderer, (int[]){2,4}, 2);
 
-	struct animate_specific *HP1animation;
-	struct xy_struct HP1pos = {
-		.x = 29 * ZOOM_MULT * 2 + HP0animation->parent_pos->x,
-		.y = 6 * ZOOM_MULT * 2 + HP0animation->parent_pos->x
-	};
-	struct size_ratio_struct HP1ratio = {
-		.w = 1.01,
-		.h = 1.01
-	};
-	HP0animation->next = HP1animation;
-//	graphic_spawn(&HP1animation, HP1pos, HP1ratio, generic_bank, renderer, 4);
-	HP1animation->rules_list->data = HP1animation;
-	struct tr_bump_data *tmp_data = (struct tr_bump_data *)HP1animation->rules_list->next->data;
+	hp.animation->next->native_offset.x = 29;
+	hp.animation->next->native_offset.y = 6;
+	
+	hp.animation->next->rules_list->data = hp.animation->next;
+	struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
+	*tmp_data = *(struct tr_bump_data *)hp.animation->next->rules_list->next->data;
 	tmp_data->centre = malloc(sizeof(struct xy_struct));
-	tmp_data->centre->x = HP0animation->rect_out.x + HP0animation->rect_out.w/2;
-	tmp_data->centre->y = HP0animation->rect_out.y + HP0animation->rect_out.h/2;
+	tmp_data->centre->x = hp.animation->rect_out.x + hp.animation->rect_out.w/2;
+	tmp_data->centre->y = hp.animation->rect_out.y + hp.animation->rect_out.h/2;
+	hp.animation->next->rules_list->next->data = tmp_data;
+	hp.animation->next->transform_list->data = tmp_data;
+//	struct animate_specific *HP1animation;
+//	struct xy_struct HP1pos = {
+//		.x = 29 * ZOOM_MULT * 2 + HP0animation->parent_pos->x,
+//		.y = 6 * ZOOM_MULT * 2 + HP0animation->parent_pos->x
+//	};
+//	struct size_ratio_struct HP1ratio = {
+//		.w = 1.01,
+//		.h = 1.01
+//	};
+//	HP0animation->next = HP1animation;
+//	graphic_spawn(&HP1animation, HP1pos, HP1ratio, generic_bank, renderer, 4);
+//	HP1animation->rules_list->data = HP1animation;
+//	struct tr_bump_data *tmp_data = (struct tr_bump_data *)HP1animation->rules_list->next->data;
+//	tmp_data->centre = malloc(sizeof(struct xy_struct));
+//	tmp_data->centre->x = HP0animation->rect_out.x + HP0animation->rect_out.w/2;
+//	tmp_data->centre->y = HP0animation->rect_out.y + HP0animation->rect_out.h/2;
 	//HP0animation->rect_out.w = HP0animation->rect_out.w * ZOOM_MULT * 2;
 	//HP0animation->rect_out.h = HP0animation->rect_out.h * ZOOM_MULT * 2;
 
@@ -382,15 +394,47 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 
 	/*	Power	*/
 
-	struct animate_specific *Power0animation;
+	struct ui_bar power;
+
+	power.amount = &player.power;
+	power.max = &player.max_PP;
+	power.pos.x = 10 * ZOOM_MULT * 2;
+	power.pos.y = 10 * ZOOM_MULT * 2;
+	power.size_ratio.w = 1.0;
+	power.size_ratio.h = 1.0;
+	power.self = &power;
+	graphic_spawn(&power.std, generic_bank, renderer, (int[]){3,4}, 2);
+	power.pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - power.animation->rect_out.w; 
+	printf("%d\n", power.animation->rect_out.w);
+
+	power.animation->next->native_offset.x = 48;
+	power.animation->next->native_offset.y = 6;
+	
+	power.animation->next->rules_list->data = power.animation->next;
+	tmp_data = malloc(sizeof(struct tr_bump_data));
+	*tmp_data = *(struct tr_bump_data *)power.animation->next->rules_list->next->data;
+	tmp_data->centre = malloc(sizeof(struct xy_struct));
+	tmp_data->centre->x = power.pos.x + power.animation->rect_out.w/2;
+	tmp_data->centre->y = power.pos.y + power.animation->rect_out.h/2;
+	power.animation->next->rules_list->next->data = tmp_data;
+	power.animation->next->transform_list->data = tmp_data;
+//	power.animation->next->native_offset.x = 48;
+//	power.animation->next->native_offset.y = 6;
+//	
+//	power.animation->next->rules_list->data = power.animation->next;
+//	struct tr_bump_data *tmp_data2 = (struct tr_bump_data *)power.animation->next->rules_list->next->data;
+//	tmp_data2->centre = malloc(sizeof(struct xy_struct));
+//	tmp_data2->centre->x = power.animation->rect_out.x + power.animation->rect_out.w/2;
+//	tmp_data2->centre->y = power.animation->rect_out.y + power.animation->rect_out.h/2;
+//	struct animate_specific *Power0animation;
 	struct xy_struct Power0pos;
 	struct size_ratio_struct Power0ratio = {
 		.w = 1.0,
 		.h = 1.0
 	};
 	//graphic_spawn(&Power0animation, Power0pos, Power0ratio, generic_bank, renderer, 3);
-	Power0pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - Power0animation->rect_out.w;
-	Power0pos.y = 10 * ZOOM_MULT * 2;
+//	Power0pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - Power0animation->rect_out.w;
+//	Power0pos.y = 10 * ZOOM_MULT * 2;
 
 	Powerimg0 = NULL;//IMG_LoadTexture(renderer, "../art/power.png");
 	SDL_QueryTexture(Powerimg0, NULL, NULL, &w, &h); // get the width and height of the texture
@@ -1273,7 +1317,7 @@ void moveme(int *currentlane, int totallanes, int *direction, struct animate_spe
 		*direction = 4;
 	}
 	/* set sprite position */
-	anim->parent_pos->y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	anim->parent->pos.y = lanes.laneheight[lanes.currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 
 }
 

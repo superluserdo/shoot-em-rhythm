@@ -31,9 +31,9 @@ struct animate_specific {
 	float lastFrameBeat;
 	struct xy_struct native_offset;
 	struct std *parent;
-	struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
-	struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
-	struct animate_specific *list_head;
+	//struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
+	//struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
+	//struct animate_specific *list_head;
 	struct func_node *transform_list;
 
 	struct render_node *render_node;
@@ -113,8 +113,7 @@ struct animate_specific *generate_default_specific(int index);
 
 void rules_player(void *playervoid);
 void rules_ui(void *data);
-void rules_ui_hp(void *data);
-void rules_ui_power(void *data);
+void rules_ui_bar(void *data);
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
 int transform_rm(struct animate_specific *animation, void (*func)());

@@ -69,6 +69,10 @@ struct std {
 	struct xy_struct pos;
 	struct size_ratio_struct size_ratio;
 	struct animate_specific *animation;
+	union {
+		struct player_struct *self_player;
+		struct ui_bar *self_ui_bar;
+	};
 };
 
 struct player_struct {

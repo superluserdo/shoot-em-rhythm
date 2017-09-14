@@ -98,6 +98,7 @@ struct ui_bar {
 			struct xy_struct pos;
 			struct size_ratio_struct size_ratio;
 			struct animate_specific *animation;
+			struct ui_bar *self;
 		};
 		struct std std;
 	};
