@@ -438,18 +438,12 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	while (*rule_ptr) {
 		rule_tmp = malloc(sizeof(struct rule_node));
 		*rule_tmp = **rule_ptr;
-		//*rule_tmp = *specific->rules_list;
 		if (rule_tmp->data) {
 			if (rule_tmp->data == generic_bank[index]->default_specific) {
 				rule_tmp->data = (void *)specific;
 			}
-//			else {
-//				void *data_tmp = malloc(sizeof(rule_tmp->data));
-//				rule_tmp->data = data_tmp;
-//			}
 		}
 		*rule_ptr = rule_tmp;
-		//specific->rules_list = rule_tmp;
 		rule_ptr = &(*rule_ptr)->next;
 	}
 	while (*tr_ptr) {
@@ -476,25 +470,6 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 							*specific->parent->size_ratio.h*ZOOM_MULT*2;
 	/*	You will need to set x and y manually after this.	*/
 	
-//	struct func_node *testfunc = specific->transform_list;
-//
-//	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-//	teststruct->rect_bitmask = 1;
-//	teststruct->freq_perbeat = 1;
-//	teststruct->ampl_pix = 10.0;
-//	teststruct->offset = 0.0;
-//	testfunc->data = (void *)teststruct;
-//	testfunc->func = &tr_sine;
-//	testfunc->next = malloc(sizeof(struct func_node));
-//
-//	struct tr_sine_data *teststruct2 = malloc(sizeof(struct tr_sine_data));
-//	teststruct2->rect_bitmask = 2;
-//	teststruct2->freq_perbeat = 1;
-//	teststruct2->ampl_pix = 10.0;
-//	teststruct2->offset = 0.25;
-//	testfunc->next->data = (void *)teststruct2;
-//	testfunc->next->func = &tr_sine;
-//	testfunc->next->next = NULL;
 	return specific;
 }
 
@@ -505,7 +480,6 @@ int generate_render_node(struct animate_specific *specific, SDL_Renderer *render
 
 	struct render_node *r_node = create_render_node();
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
-	//r_node->rect_out = &specific->rect_out;
 	r_node->renderer = renderer;
 	r_node->img = generic->clips[specific->clip]->img;
 	r_node->animation = specific;
@@ -671,15 +645,6 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 	*generic_bank_ptr = generic_bank;
 	config_destroy(&cfg);
-
-//	config_setting_t *objects_setting = config_lookup(&cfg, "objects");
-//	int objects_count = config_setting_length(objects_setting); 
-//	config_setting_t *object_setting = config_setting_get_elem(all_setting, 0);
-//	config_setting_t *timing_setting = config_setting_lookup(thislevel_setting, "timing");
-//	if (timing_setting == NULL) {
-//		printf("No settings found under 'timing' in the config file\n");
-//		return -1;
-//	}
 }
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {

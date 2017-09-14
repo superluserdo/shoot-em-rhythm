@@ -28,95 +28,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	/*	Some Variables	*/
 
 	struct render_node *r_node;
-//		/* Copy textures to renderer	*/ for (int i = 0; i < grid.x * 3; i++){
-//			for (int j = 0; j < grid.y; j++){
-//				SDL_RenderCopy(renderer, Timg, &rcTSrc[i][j], &rcTile[i][j]);
-//			}
-//		}
-//		for (int i = 0; i < grid.x * 3; i++){
-//			for (int j = 0; j < grid.y; j++){
-//				SDL_RenderCopy(renderer, Timg, &rcTSrcmid[i][j], &rcTilemid[i][j]);
-//			}
-//		}
-//
-//		if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
-//			SDL_RenderCopy(renderer, Spriteimg, &rcSrc, &rcSprite);
-//
-//		for (int lane = 0; lane < lanes.total; lane++) {
-//			struct monster_node *ptr2mon = linkptrs_start[lane];
-//			for (int i = 0; i < monsterlanenum[lane]; i++ ) {
-//				if ( ptr2mon->status != -1){
-//					SDL_RenderCopy(renderer, *(*bestiary[ptr2mon->montype]).image, &(ptr2mon->monster_src), &(ptr2mon->monster_rect));
-//				}
-//				ptr2mon = ptr2mon->next;
-//			}
-//		}
-//		for (int lane = 0; lane < lanes.total; lane++) {
-//			for (int screen = 0; screen < 3; screen++) {
-//				for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
-//					if ( (*iteminfoptrs[screen])[lane][i] != -1){
-//						SDL_RenderCopy(renderer, *(*itempokedex[(*itemscreenstrip[level.currentscreen + screen])[lane][i][0]]).image, &rcItemSrc[screen][lane][i], &rcItem[screen][lane][i]);
-//
-//					}
-//				}
-//			}
-//		}
-//		if (laser.on){
-//			for (int i = 0; i < 3; i++) {
-//				SDL_RenderCopy(renderer, Laserimg, &rcLaserSrc[i], &rcLaser[i]);
-//			}
-//		}
-//
-//		if ( player.sword ) {
-//				SDL_RenderCopy(renderer, Swordimg, &rcSwordSrc, &rcSword);
-//
-//		}
-//
-//		if ( player.HP <= 50 ) {
-//			if ( player.HP <= 20 ) {
-//				rcHP1Src.y = 16;
-//			}
-//			else {
-//				rcHP1Src.y = 8;
-//			}
-//		}
-//		else {
-//			rcHP1Src.y = 0;
-//		}
-//
-//		rcHP1.w = 0.5 * player.HP * ZOOM_MULT * 2;
-//		SDL_RenderCopy(renderer, HPimg0, &rcHP0Src, &rcHP0);
-//		SDL_RenderCopy(renderer, HPimg1, &rcHP1Src, &rcHP1);
-//
-//		if ( player.power <= 250 ) {
-//			if ( player.power <= 100 ) {
-//				rcPower1Src.y = 16;
-//			}
-//			else {
-//				rcPower1Src.y = 8;
-//			}
-//		}
-//		else {
-//			rcPower1Src.y = 0;
-//		}
-//
-//		rcPower1.w = 0.1 * player.power * ZOOM_MULT * 2;
-//		SDL_RenderCopy(renderer, Powerimg0, &rcPower0Src, &rcPower0);
-//		SDL_RenderCopy(renderer, Powerimg1, &rcPower1Src, &rcPower1);
-//
-//		int scorearray[SCORE_DIGITS];
-//		int2array(program.score, &scorearray);
-//		for ( int i = 0; i < 5; i++ ) {
-//			rcScoreSrc[i].x = scorearray[i] * 5;
-//			SDL_RenderCopy(renderer, Scoreimg, &rcScoreSrc[i], &rcScore[i]);
-//		}
-//
-//		int beatarray[SCORE_DIGITS];
-//		int2array(timing.currentbeat, &beatarray);
-//		for ( int i = 0; i < 5; i++ ) {
-//			rcBeatSrc[i].x = beatarray[i] * 5;
-//			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
-//		}
 
 
 
@@ -234,10 +145,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	SDL_Texture *Laserimg = NULL;
 	SDL_Texture *Swordimg = NULL;
 	SDL_Texture *Timg = NULL;
-	SDL_Texture *HPimg0 = NULL;
-	SDL_Texture *HPimg1 = NULL;
-	SDL_Texture *Powerimg0 = NULL;
-	SDL_Texture *Powerimg1 = NULL;
 	SDL_Texture *Mon0img = NULL;
 	SDL_Texture *Mon1img = NULL;
 	SDL_Texture *Scoreimg = NULL;
@@ -303,16 +210,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 
 	/*	HP	*/
 
-//	struct animate_specific *HP0animation;
-//	struct xy_struct HP0pos = {
-//		.x = 10 * ZOOM_MULT * 2,
-//		.y = 10 * ZOOM_MULT * 2
-//	};
-//	struct size_ratio_struct HP0ratio = {
-//		.w = 1.0,
-//		.h = 1.0
-//	};
-//	graphic_spawn(&HP0animation, HP0pos, HP0ratio, generic_bank, renderer, 2);
 	struct ui_bar hp;
 	hp.amount = &player.HP;
 	hp.max = &player.max_HP;
@@ -334,52 +231,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	tmp_data->centre->y = hp.animation->rect_out.y + hp.animation->rect_out.h/2;
 	hp.animation->next->rules_list->next->data = tmp_data;
 	hp.animation->next->transform_list->data = tmp_data;
-//	struct animate_specific *HP1animation;
-//	struct xy_struct HP1pos = {
-//		.x = 29 * ZOOM_MULT * 2 + HP0animation->parent_pos->x,
-//		.y = 6 * ZOOM_MULT * 2 + HP0animation->parent_pos->x
-//	};
-//	struct size_ratio_struct HP1ratio = {
-//		.w = 1.01,
-//		.h = 1.01
-//	};
-//	HP0animation->next = HP1animation;
-//	graphic_spawn(&HP1animation, HP1pos, HP1ratio, generic_bank, renderer, 4);
-//	HP1animation->rules_list->data = HP1animation;
-//	struct tr_bump_data *tmp_data = (struct tr_bump_data *)HP1animation->rules_list->next->data;
-//	tmp_data->centre = malloc(sizeof(struct xy_struct));
-//	tmp_data->centre->x = HP0animation->rect_out.x + HP0animation->rect_out.w/2;
-//	tmp_data->centre->y = HP0animation->rect_out.y + HP0animation->rect_out.h/2;
-	//HP0animation->rect_out.w = HP0animation->rect_out.w * ZOOM_MULT * 2;
-	//HP0animation->rect_out.h = HP0animation->rect_out.h * ZOOM_MULT * 2;
-
-	HPimg0 = NULL;//IMG_LoadTexture(renderer, "../art/hp.png");
-	SDL_QueryTexture(HPimg0, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	HPimg1 = NULL;//IMG_LoadTexture(renderer, "../art/colourstrip.png");
-	SDL_QueryTexture(HPimg1, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	SDL_Rect rcHP0, rcHP0Src, rcHP1, rcHP1Src;
-
-	rcHP0Src.x = 0;
-	rcHP0Src.y = 0;
-	rcHP0Src.w = 100;
-	rcHP0Src.h = 20;
-
-	rcHP0.x = 10 * ZOOM_MULT * 2;
-	rcHP0.y = 10 * ZOOM_MULT * 2;
-	rcHP0.w = rcHP0Src.w * ZOOM_MULT * 2;
-	rcHP0.h = rcHP0Src.h * ZOOM_MULT * 2;
-
-	rcHP1Src.x = 0;
-	rcHP1Src.y = 0;
-	rcHP1Src.w = 1;
-	rcHP1Src.h = 8;
-
-	rcHP1.x = 29 * ZOOM_MULT * 2 + rcHP0.x;
-	rcHP1.y = 6 * ZOOM_MULT * 2 + rcHP0.y;
-	rcHP1.w = 50 * ZOOM_MULT * 2;
-	rcHP1.h = rcHP1Src.h * ZOOM_MULT * 2;
 
 
 	config_setting_t *player_setting = config_setting_lookup(thislevel_setting, "player");
@@ -418,51 +269,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	tmp_data->centre->y = power.pos.y + power.animation->rect_out.h/2;
 	power.animation->next->rules_list->next->data = tmp_data;
 	power.animation->next->transform_list->data = tmp_data;
-//	power.animation->next->native_offset.x = 48;
-//	power.animation->next->native_offset.y = 6;
-//	
-//	power.animation->next->rules_list->data = power.animation->next;
-//	struct tr_bump_data *tmp_data2 = (struct tr_bump_data *)power.animation->next->rules_list->next->data;
-//	tmp_data2->centre = malloc(sizeof(struct xy_struct));
-//	tmp_data2->centre->x = power.animation->rect_out.x + power.animation->rect_out.w/2;
-//	tmp_data2->centre->y = power.animation->rect_out.y + power.animation->rect_out.h/2;
-//	struct animate_specific *Power0animation;
-	struct xy_struct Power0pos;
-	struct size_ratio_struct Power0ratio = {
-		.w = 1.0,
-		.h = 1.0
-	};
-	//graphic_spawn(&Power0animation, Power0pos, Power0ratio, generic_bank, renderer, 3);
-//	Power0pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - Power0animation->rect_out.w;
-//	Power0pos.y = 10 * ZOOM_MULT * 2;
-
-	Powerimg0 = NULL;//IMG_LoadTexture(renderer, "../art/power.png");
-	SDL_QueryTexture(Powerimg0, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	Powerimg1 = IMG_LoadTexture(renderer, "../art/colourstrip.png");
-	SDL_QueryTexture(Powerimg1, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	SDL_Rect rcPower0, rcPower0Src, rcPower1, rcPower1Src;
-
-	rcPower0Src.x = 0;
-	rcPower0Src.y = 0;
-	rcPower0Src.w = 100;
-	rcPower0Src.h = 20;
-
-	rcPower0.x = (NATIVE_RES_X - rcPower0Src.w * 2 - 20) * ZOOM_MULT ;
-	rcPower0.y = 10 * ZOOM_MULT * 2;
-	rcPower0.w = rcPower0Src.w * ZOOM_MULT * 2;
-	rcPower0.h = rcPower0Src.h * ZOOM_MULT * 2;
-
-	rcPower1Src.x = 0;
-	rcPower1Src.y = 0;
-	rcPower1Src.w = 1;
-	rcPower1Src.h = 8;
-
-	rcPower1.x = 48 * ZOOM_MULT * 2 + rcPower0.x;
-	rcPower1.y = 6 * ZOOM_MULT * 2 + rcPower0.y;
-	rcPower1.w = 50 * ZOOM_MULT * 2;
-	rcPower1.h = rcPower1Src.h * ZOOM_MULT * 2;
 
 	config_setting_lookup_int(player_setting, "max_PP", &player.max_PP);
 	player.power = player.max_PP;
@@ -792,7 +598,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 	samplemonstermap2[2][0][0] = 1;
 	samplemonstermap2[2][0][1] = 0.5 * NATIVE_RES_X;
 	samplemonstermap2[2][0][2] = (*monsterpokedex[samplemonstermap2[2][0][0]]).health;
-//	samplemonstermap2[2][0][2] = 100;
 
 	int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3];
 
@@ -1156,9 +961,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 		touchitem(lanes.currentlane, level.currentscreen, player.animation->rect_out, itempokedex, itemscreenstrip, &level.levelover);
 
 		/* Clear screen */
-//		SDL_RenderClear(renderer);
-
-		//Now render to the texture
 		SDL_RenderClear(renderer);
 		/* Copy textures to renderer	*/
 		for (int i = 0; i < grid.x * 3; i++){
@@ -1171,18 +973,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 				SDL_RenderCopy(renderer, Timg, &rcTSrcmid[i][j], &rcTilemid[i][j]);
 			}
 		}
-
-	//	if ( !(player.invincibility == 1 && ( player.invinciblecounter[1]%8 <= 3 ) ) )
-	//		SDL_RenderCopy(renderer, Spriteimg, &rcSrc, &rcSprite);
-		//for (int lane = 0; lane < lanes.total; lane++) {
-			//for (int screen = 0; screen < 3; screen++) {
-				//for (int i = 0; i < monsterlanenum[screen][lane]; i++ ) {
-					//if ( (*moninfoptrs[screen])[lane][i][2] != -1){
-						//SDL_RenderCopy(renderer, *(*monsterpokedex[(*monsterscreenstrip[currentscreen + screen])[lane][i][0]]).image, &rcMonsterSrc[screen][lane][i], &rcMonster[screen][lane][i]);
-					//}
-				//}
-			//}
-		//}
 
 		for (int lane = 0; lane < lanes.total; lane++) {
 			struct monster_node *ptr2mon = linkptrs_start[lane];
@@ -1213,38 +1003,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 				SDL_RenderCopy(renderer, Swordimg, &rcSwordSrc, &rcSword);
 
 		}
-
-		if ( player.HP <= 50 ) {
-			if ( player.HP <= 20 ) {
-				rcHP1Src.y = 16;
-			}
-			else {
-				rcHP1Src.y = 8;
-			}
-		}
-		else {
-			rcHP1Src.y = 0;
-		}
-
-		rcHP1.w = 0.5 * player.HP * ZOOM_MULT * 2;
-		SDL_RenderCopy(renderer, HPimg0, &rcHP0Src, &rcHP0);
-		SDL_RenderCopy(renderer, HPimg1, &rcHP1Src, &rcHP1);
-
-		if ( player.power <= 250 ) {
-			if ( player.power <= 100 ) {
-				rcPower1Src.y = 16;
-			}
-			else {
-				rcPower1Src.y = 8;
-			}
-		}
-		else {
-			rcPower1Src.y = 0;
-		}
-
-		rcPower1.w = 0.1 * player.power * ZOOM_MULT * 2;
-		SDL_RenderCopy(renderer, Powerimg0, &rcPower0Src, &rcPower0);
-		SDL_RenderCopy(renderer, Powerimg1, &rcPower1Src, &rcPower1);
 
 		int scorearray[SCORE_DIGITS];
 		int2array(program.score, &scorearray);
@@ -1286,8 +1044,6 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 
 		SDL_SetRenderTarget(renderer, texTarget);
 	}
-
-	//	SDL_DestroyRenderer(renderer);
 
 	quitlevel(Spriteimg, Timg, Laserimg, Swordimg, renderer);
 
@@ -1538,30 +1294,7 @@ void refreshtiles(int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], int 
 		itemlanenum[screen][lane] = itemcounterperscreen;
 	}
 	}
-
-
-
-
-
-//	for (int k = 0; k <= 2; k++) {
-//	for (int i = 0; i < grid.x; i++){
-//		for (int j = 0; j < grid.y; j++){
-//	
-//			rcTilemid[i + grid.x * k][j].x = (i + grid.x * k) * ZOOM_MULT * TILE_SIZE + frameoffset;
-//			rcTilemid[i + grid.x * k][j].y = (j) * ZOOM_MULT * TILE_SIZE;
-//			rcTilemid[i + grid.x * k][j].w = TILE_SIZE*ZOOM_MULT;
-//			rcTilemid[i + grid.x * k][j].h = TILE_SIZE*ZOOM_MULT;
-//			rcTSrcmid[i + grid.x * k][j].x = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][1];
-//			rcTSrcmid[i + grid.x * k][j].y = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][0];
-//			rcTSrcmid[i + grid.x * k][j].w = TILE_SIZE;
-//			rcTSrcmid[i + grid.x * k][j].h = TILE_SIZE;
-//		}
-//	}
-//	}
-
 }
-
-
 
 void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, int laneheight[lanes.total], int currentlane, int framecount, int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int currentscreen, int hue) {
 	if (laser->turnon) {
@@ -1770,9 +1503,7 @@ void touchitem(int currentlane, int currentscreen, SDL_Rect player_out, struct i
 				/* Is the item "dead"? */
 				if ( (*iteminfoptrs[screen])[currentlane][i] != -1) {
 
-	//				int order = (*iteminfoptrs[screen])[currentlane][i][0];
 					int order = i;
-	//				int itemtype = sampleitemmap[currentlane][order][0];
 					int itemtype = (*itemscreenstrip[currentscreen + screen])[currentlane][i][0];
 					struct item thisitem = *itempokedex[itemtype];
 					void (*functionptr)(int *int1, int int2, void *otherdata) = thisitem.functionptr;
@@ -1852,51 +1583,6 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr) {
 
 		*max_PPptr += PPuppts;
 }
-
-
-//void int2array(int number, int (*array)[SCORE_DIGITS]) {
-//        int digits = 1;
-//        int numchecker = number;
-//        while (numchecker /= 10)
-//                digits++;
-//
-//        for (int i = 0; i < SCORE_DIGITS; i++ )
-//                (*array)[i] = 0;
-//
-//        int diff = SCORE_DIGITS - digits;
-//        for (int i = 0; i < SCORE_DIGITS; i++) {
-//                if ( i < diff ) {
-//                        (*array)[i] = 0;
-//                }
-//                else {
-//                        (*array)[SCORE_DIGITS - (i - diff) - 1] = number%10;
-//                        number /= 10;
-//                }
-//        }
-//
-//}
-//
-//
-///* Function to delete the entire linked list [geeksforgeeks.org]*/
-//void deleteList(struct monster_node** head_ref) {
-//   /* deref head_ref to get the real head */
-//   struct monster_node* current = *head_ref;
-//   struct monster_node* next;
-//
-//   while (current != NULL) 
-//   {
-//       next = current->next;
-//       free(current);
-//       current = next;
-//   }
-//
-//   /* deref head_ref to affect the real head back
-//      in the caller. */
-//   *head_ref = NULL;
-//}
-//
-//
-
 
 void emptyfunc() {
 }

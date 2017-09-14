@@ -67,7 +67,6 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	SDL_Texture *texttextures[count];
 
 	for (int index = 0; index < count; index++) {
-//		printf("%p\n", options[index]);
 		const char *element = config_setting_get_string_elem(optionssetting, index);
 		options[index].text = element;
 		options[index].length = strlen(element);
@@ -82,12 +81,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		}
 
 		texttextures[index] = SDL_CreateTextureFromSurface(renderer, textsurfaces[index]);
-
-//	printf("%s\n", options[index].text);
-//	printf("%d\n", options[index].length);
-//	printf("size is %d\n", sizeof(options[index]));
 	}
-//	printf("size is %d\n", sizeof(options));
 
 	struct option cursor;
 	cursor.text = ">";
@@ -103,7 +97,6 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	}
 	SDL_Texture *cursortex = SDL_CreateTextureFromSurface(renderer, cursorsurf);
 
-//	SDL_Texture *textbox = IMG_LoadTexture(renderer, "../art/textbox.png");
 	SDL_Rect textbox_rect;
 	textbox_rect.x = cursor.option_rect.x - 30;
 	textbox_rect.y = options[0].option_rect.y - 30;
@@ -167,7 +160,6 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		cursor.option_rect.y = options[cursorpos].option_rect.y;
 
 		SDL_RenderCopy(renderer, levelcapture, NULL, NULL);
-//		SDL_RenderCopy(renderer, textbox, NULL, &textbox_rect);
 		for (int index = 0; index < count; index++) {
 			SDL_RenderCopy(renderer, texttextures[index], NULL, &options[index].option_rect);
 		}

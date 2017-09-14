@@ -45,9 +45,6 @@ int main() {
                 exit(-1);
         }
 
-
-        // create the window and renderer
-        // note that the renderer is accelerated
 	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, program.width, program.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {

@@ -82,20 +82,6 @@ void *frametimer(void *unused) {
 				timing.pausetime = timing.pausetime_completed + timing.pausetime_ongoing;
 			}
 		}
-
-//		if (timing.pauselevel) {
-//			if (*timing.pauselevel) {
-//				if (startpause) {
-//					pausetimelast = timing.ticks;
-//					startpause = 0;
-//				}
-//				timing.pausetime += timing.ticks - pausetimelast;
-//				pausetimelast = timing.ticks;
-//			}
-//		}
-//		else {
-//			startpause = 1;
-//		}
 		timing.currentbeat = (float)(ticktime - timing.pausetime)* timing.bps / 1000 + timing.startbeat + 1;
 	        pthread_mutex_unlock( &clock_mutex );
 	pthread_cond_broadcast(&display_cond);

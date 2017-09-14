@@ -30,7 +30,6 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 		.pause = &dummypause
 	};
 	int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&musicstart_struct);
-//int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&audio.newtrack);
 	if (rc) {
 	printf("ya dun goofed. return code is %d\n.", rc);
 	exit(-1);

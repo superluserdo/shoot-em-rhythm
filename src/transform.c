@@ -20,8 +20,6 @@ void tr_resize(void *rect_trans, void *data) {
 	if (str.centre) {
 		local_centre.x += (local_centre.x - str.centre->x) * (str.w - 1);
 		local_centre.y += (local_centre.y - str.centre->y) * (str.h - 1);
-	//	rect.x = str.centre->x + (local_centre.x - str.centre->x)*(str.w) - rect.w/2;
-	//	rect.y = str.centre->y + (local_centre.y - str.centre->y)*(str.h) - rect.h/2;
 	}
 		rect.x  = local_centre.x - rect.w/2;
 		rect.y  = local_centre.y - rect.h/2;

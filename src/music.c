@@ -75,7 +75,6 @@ void soundstop(void) {
 void* musicstart(void* argvoid) {
 	pthread_t pthread_self(void);
 	int x = pthread_self();
-	//printf("THREAD ... %d\n", x);
 	struct musicstart_struct {
 		int newtrack;
 		int *pause;
@@ -95,7 +94,6 @@ void* musicstart(void* argvoid) {
 
 	ending = 1;
 
-//	endingcount = END_COUNT_MAX - startingcount;
 	pthread_mutex_lock( &track_mutex );
 	audio.track = arguments->newtrack;
 	pthread_mutex_unlock( &track_mutex );
@@ -115,12 +113,6 @@ void* musicstart(void* argvoid) {
 			.pause = arguments->pause
 		};
 		playmusic((void*)&playmusic_struct);
-
-//		int rc = pthread_create(&soundthread, NULL, playmusic, (void*)&playmusic_struct);
-//		if (rc) {
-//			printf("ya dun goofed. return code is %d\n.", rc);
-//			exit(-1);
-//		}
 	}
 }
 void *playsound(void* soundpath){
@@ -162,7 +154,6 @@ void *playsound(void* soundpath){
 	        case AUDIO_U16MSB: format_str="U16MSB"; break;
 	        case AUDIO_S16MSB: format_str="S16MSB"; break;
 	    }
-//	    printf("opened=%d times  frequency=%dHz  format=%s  channels=%d\n", numtimesopened, frequency, format_str, channels);
 	}
 	
 	
@@ -303,7 +294,6 @@ void my_audio_callback(void *userdata, Uint8 *stream, int len) {
 	SDL_memcpy (stream, audio_pos, len);
 	// simply copy from one buffer into the other
 	SDL_MixAudio(stream, audio_pos, len, vol);// mix from one buffer into another
-//	printf("volume %d\n", vol);
 
 	//volume was SDL_MIX_MAXVOLUME
 	audio_pos += len;
@@ -412,8 +402,6 @@ void (music_Finished)() {
 		    // well, there's no music, but most games don't break without music...
 		}
 		
-		// skip one minute into the song, from the start
-		// this assumes you are playing an MP3
 		if(Mix_SetMusicPosition(loop_pos)==-1) {
 		    printf("Mix_SetMusicPosition: %s\n", Mix_GetError());
 		}
