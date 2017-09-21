@@ -103,6 +103,20 @@ struct ui_bar {
 		struct std std;
 	};
 };
+struct ui_counter {
+	int *value;
+	int digits;
+	int *array;
+	union {
+		struct {
+			struct xy_struct pos;
+			struct size_ratio_struct size_ratio;
+			struct animate_specific *animation;
+			struct ui_counter *self;
+		};
+		struct std std;
+	};
+};
 
 
 /* Threading */
@@ -193,3 +207,5 @@ void dropin( char arg[], int map[100][100][2], int posx, int posy);
 
 void quitlevel(SDL_Texture *img, SDL_Texture *Timg, SDL_Texture *Laserimg, 
 SDL_Texture *Swordimg, SDL_Renderer *renderer);
+
+void emptyfunc();

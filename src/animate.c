@@ -367,7 +367,7 @@ struct animate_specific *generate_default_specific(int index) {
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 		default_specific->transform_list = tr_node;
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-		teststruct->rect_bitmask = 1;
+		teststruct->rect_bitmask = 2;
 		teststruct->freq_perbeat = 1;
 		teststruct->ampl_pix = 10.0;
 		teststruct->offset = 0.0;
@@ -417,6 +417,26 @@ struct animate_specific *generate_default_specific(int index) {
 		tr_node->next = NULL;
 		default_specific->transform_list = tr_node;
 		default_specific->rules_list->next->data = (void *)teststruct2;
+	}
+	if (index == 5) {
+		default_specific->rules_list = malloc(sizeof(struct rule_node));
+		default_specific->rules_list->rule = &rules_ui;
+		default_specific->rules_list->data = NULL;
+		default_specific->rules_list->next = NULL;
+
+		struct func_node *tr_node = malloc(sizeof(struct func_node));
+
+		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
+		teststruct2->freq_perbeat = 1;
+		teststruct2->ampl = 2;
+		teststruct2->peak_offset = 0.0;
+		teststruct2->bump_width = 0.25;
+		teststruct2->centre = NULL;
+		tr_node->data = (void *)teststruct2;
+		tr_node->func = &tr_bump;
+		tr_node->next = NULL;
+		default_specific->transform_list = tr_node;
+		default_specific->rules_list->data = (void *)teststruct2;
 	}
 	return default_specific;
 }
@@ -707,13 +727,13 @@ void rules_player(void *playervoid) {
 }
 void rules_ui(void *data) {
 	struct tr_bump_data *str = (struct tr_bump_data *)data;
-	if (program.score > 1000)
+	if (program.score > 300)
 		str->ampl = 1.2;
 	else
-		str->ampl = 1 + program.score/5000.0;
+		str->ampl = 1 + program.score/1000.0;
 }
 void rules_ui_bar(void *animvoid) {
-	struct animate_specific *animation = (void *)animvoid;
+	struct animate_specific *animation = (struct animate_specific *)animvoid;
 	struct ui_bar *bar = animation->parent->self_ui_bar;
 	float HP_ratio = (float) *bar->amount / *bar->max;
 	animation->rect_out.w = 50 * ZOOM_MULT * 2 * HP_ratio * animation->parent->size_ratio.w;
@@ -727,5 +747,19 @@ void rules_ui_bar(void *animvoid) {
 	}
 	else {
 		animation->frame = 0;
+	}
+}
+void rules_ui_counter(void *animvoid) {
+	struct animate_specific *animation = (struct animate_specific *)animvoid;
+	struct ui_counter *counter = animation->parent->self_ui_counter;
+	int2array(*counter->value, counter->array, counter->digits);
+	for (int i = 0; i < counter->digits; i++) {
+		if (animation) {
+			animation->clip = counter->array[i];
+			animation = animation->next;
+		}
+		else {
+			break;
+		}
 	}
 }

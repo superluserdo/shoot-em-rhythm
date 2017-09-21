@@ -114,6 +114,7 @@ struct animate_specific *generate_default_specific(int index);
 void rules_player(void *playervoid);
 void rules_ui(void *data);
 void rules_ui_bar(void *data);
+void rules_ui_counter(void *animvoid);
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
 int transform_rm(struct animate_specific *animation, void (*func)());

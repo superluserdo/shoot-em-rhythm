@@ -83,6 +83,7 @@ void *frametimer(void *unused) {
 			}
 		}
 		timing.currentbeat = (float)(ticktime - timing.pausetime)* timing.bps / 1000 + timing.startbeat + 1;
+		timing.currentbeat_int = (int) timing.currentbeat;
 	        pthread_mutex_unlock( &clock_mutex );
 	pthread_cond_broadcast(&display_cond);
 		timing.framecount++;

@@ -5,34 +5,29 @@
 #include "level.h"
 #include "helpers.h"
 
-
-
-void int2array(int number, int (*array)[SCORE_DIGITS]) {
+void int2array(int number, int *array, int array_digits) {
         int digits = 1;
         int numchecker = number;
         while (numchecker /= 10)
                 digits++;
 
-        for (int i = 0; i < SCORE_DIGITS; i++ )
-                (*array)[i] = 0;
+        for (int i = 0; i < array_digits; i++ )
+                array[i] = 0;
 
-        int diff = SCORE_DIGITS - digits;
-        for (int i = 0; i < SCORE_DIGITS; i++) {
+        int diff = array_digits - digits;
+        for (int i = 0; i < array_digits; i++) {
                 if ( i < diff ) {
-                        (*array)[i] = 0;
+                        array[i] = 0;
                 }
                 else {
-                        (*array)[SCORE_DIGITS - (i - diff) - 1] = number%10;
+                        array[array_digits - (i - diff) - 1] = number%10;
                         number /= 10;
                 }
         }
 
 }
 
-
-/* Function to delete the entire linked list [geeksforgeeks.org]*/
 void deleteList(struct monster_node** head_ref) {
-   /* deref head_ref to get the real head */
    struct monster_node* current = *head_ref;
    struct monster_node* next;
 
@@ -42,9 +37,6 @@ void deleteList(struct monster_node** head_ref) {
        free(current);
        current = next;
    }
-
-   /* deref head_ref to affect the real head back
-      in the caller. */
    *head_ref = NULL;
 }
 

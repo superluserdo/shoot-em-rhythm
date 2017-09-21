@@ -81,9 +81,10 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartt2Src.w = 356;
 	rcStartt2Src.h = 27;
 
-	int counter;
+
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, program.width, program.height);
+
 	while (1) {
-		counter++;
 		SDL_Event e;
 		while ( SDL_PollEvent(&e) ) {
 			
@@ -100,10 +101,14 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 				return 1;
 			}
 		}
+		SDL_SetRenderTarget(renderer, texTarget);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, startimgbg, &rcStartbgSrc,  &rcStartbg);
 		SDL_RenderCopy(renderer, startimgtext1, &rcStartt1Src,  &rcStartt1);
 		SDL_RenderCopy(renderer, startimgtext2, &rcStartt2Src,  &rcStartt2);
+		SDL_SetRenderTarget(renderer, NULL);
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, texTarget, NULL,  NULL);
 		pthread_cond_wait(&display_cond, &display_mutex);
 		SDL_RenderPresent(renderer);
 		pthread_mutex_unlock(&display_mutex);

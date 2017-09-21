@@ -295,7 +295,81 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 
 	program.score = 0;
 
+	struct ui_counter score = {
+
+		.value = &program.score,
+		.digits = 5,
+		.array = (int[5]){0},
+		.pos.x = 48 * ZOOM_MULT * 2,
+		.pos.y = 6 * ZOOM_MULT * 2,
+		.size_ratio.w = 1.0,
+		.size_ratio.h = 1.0,
+		.self = &score
+	};
+	graphic_spawn(&score.std, generic_bank, renderer, (int[]){5,5,5,5,5}, 5);
+	printf("%d\n", power.animation->rect_out.w);
+
+	score.animation->rules_list->next = malloc(sizeof(struct rule_node));
+	tmp_data = malloc(sizeof(struct tr_bump_data));
+	//*tmp_data = *(struct tr_bump_data *)score.animation->rules_list->next->data;
+	tmp_data->freq_perbeat = 1;
+	tmp_data->ampl = 2;
+	tmp_data->peak_offset = 0.0;
+	tmp_data->bump_width = 0.25;
+	tmp_data->centre = malloc(sizeof(struct xy_struct));
+	tmp_data->centre->x = score.pos.x + score.animation->rect_out.w * score.digits/2;
+	tmp_data->centre->y = score.pos.y + score.animation->rect_out.h/2;
+
+	struct animate_specific *anim = score.animation;
+	anim->rules_list->data = anim;
+	for (int i = 0; i < score.digits; i++) {
+	anim->native_offset.x = anim->generic->clips[anim->clip]->frames[anim->frame].rect.w * i;
+	anim->native_offset.y = 0;
+	anim->rules_list->data = tmp_data;
+	anim->transform_list->data = tmp_data;
+	anim = anim->next;
+	}
+	score.animation->rules_list->next->rule = rules_ui_counter;
+	score.animation->rules_list->next->data = score.animation;
+
 	/*	Beat Counter	*/
+
+	struct ui_counter beat = {
+
+		.value = &timing.currentbeat_int,
+		.digits = 5,
+		.array = (int[5]){0},
+		.pos.x = 100 * ZOOM_MULT * 2,
+		.pos.y = 6 * ZOOM_MULT * 2,
+		.size_ratio.w = 2.0,
+		.size_ratio.h = 2.0,
+		.self = &beat
+	};
+	graphic_spawn(&beat.std, generic_bank, renderer, (int[]){5,5,5,5,5}, 5);
+	printf("%d\n", power.animation->rect_out.w);
+
+	beat.animation->rules_list->next = malloc(sizeof(struct rule_node));
+	tmp_data = malloc(sizeof(struct tr_bump_data));
+	//*tmp_data = *(struct tr_bump_data *)beat.animation->rules_list->next->data;
+	tmp_data->freq_perbeat = 1;
+	tmp_data->ampl = 2;
+	tmp_data->peak_offset = 0.0;
+	tmp_data->bump_width = 0.25;
+	tmp_data->centre = malloc(sizeof(struct xy_struct));
+	tmp_data->centre->x = beat.pos.x + beat.animation->rect_out.w * beat.digits/2;
+	tmp_data->centre->y = beat.pos.y + beat.animation->rect_out.h/2;
+
+	anim = beat.animation;
+	anim->rules_list->data = anim;
+	for (int i = 0; i < beat.digits; i++) {
+	anim->native_offset.x = anim->generic->clips[anim->clip]->frames[anim->frame].rect.w * beat.size_ratio.w * i;
+	anim->native_offset.y = 0;
+	anim->rules_list->data = tmp_data;
+	anim->transform_list->data = tmp_data;
+	anim = anim->next;
+	}
+	beat.animation->rules_list->next->rule = rules_ui_counter;
+	beat.animation->rules_list->next->data = beat.animation;
 
 	Beatimg = IMG_LoadTexture(renderer, "../art/numbers.png");
 	SDL_QueryTexture(Scoreimg, NULL, NULL, &w, &h); // get the width and height of the texture
@@ -791,6 +865,9 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 				}
 			}
 
+			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_m) {
+				audio.music_mute ^= 1;
+			}
 
 			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_h){
 				lanes.currentlane = 0;
@@ -1005,17 +1082,17 @@ int levelfunc (SDL_Window *win, SDL_Renderer *renderer) {//(int argc, char *argv
 		}
 
 		int scorearray[SCORE_DIGITS];
-		int2array(program.score, &scorearray);
+		int2array(program.score, scorearray, SCORE_DIGITS);
 		for ( int i = 0; i < 5; i++ ) {
 			rcScoreSrc[i].x = scorearray[i] * 5;
-			SDL_RenderCopy(renderer, Scoreimg, &rcScoreSrc[i], &rcScore[i]);
+//			SDL_RenderCopy(renderer, Scoreimg, &rcScoreSrc[i], &rcScore[i]);
 		}
 
 		int beatarray[SCORE_DIGITS];
-		int2array(timing.currentbeat, &beatarray);
+		int2array(timing.currentbeat, beatarray, SCORE_DIGITS);
 		for ( int i = 0; i < 5; i++ ) {
 			rcBeatSrc[i].x = beatarray[i] * 5;
-			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
+//			SDL_RenderCopy(renderer, Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
 		advanceFrames(render_node_head);
 		renderlist(render_node_head);
@@ -1093,9 +1170,7 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 			if (level_ptr->currentscreen >= level_ptr->maxscreens - 3){
 				level_ptr->levelover = 1;
 			}
-			//else {
 				refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, level_ptr->currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, frameoffset, level_ptr->lanes->laneheight, *bestiary, *itempokedex);
-			//}
 		}
 
 		if ( !(level_ptr->levelover) ) {
@@ -1108,9 +1183,6 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 			}
 			for ( int screen = 0; screen < 3; screen++ ) {
 				for (int lane = 0; lane < lanes.total; lane++ ) {
-					//for (int i = 0; i < monsterlanenum[screen][lane]; i++ ) {
-					//		rcMonster[screen][lane][i].x -= 4 * ZOOM_MULT * level_ptr->speedmult;
-					//}
 					for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
 							rcItem[screen][lane][i].x -= 4 * ZOOM_MULT * level_ptr->speedmult;
 					}
@@ -1240,19 +1312,19 @@ void dropin( char arg[], int map[100][100][2], int posx, int posy){
 void refreshtiles(int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[lanes.total], struct monster *bestiary[10], struct item *itempokedex[10]) {
 
 	for (int k = 0; k <= 2; k++) {
-	for (int i = 0; i < grid.x; i++){
-		for (int j = 0; j < grid.y; j++){
+		for (int i = 0; i < grid.x; i++){
+			for (int j = 0; j < grid.y; j++){
 
-			rcTile[i + grid.x * k][j].x = (i + grid.x * k) * ZOOM_MULT * TILE_SIZE + frameoffset;
-			rcTile[i + grid.x * k][j].y = (j) * ZOOM_MULT * TILE_SIZE;
-			rcTile[i + grid.x * k][j].w = TILE_SIZE*ZOOM_MULT * 2;
-			rcTile[i + grid.x * k][j].h = TILE_SIZE*ZOOM_MULT * 2;
-			rcTSrc[i + grid.x * k][j].x = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][1]/2;
-			rcTSrc[i + grid.x * k][j].y = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][0]/2;
-			rcTSrc[i + grid.x * k][j].w = TILE_SIZE;
-			rcTSrc[i + grid.x * k][j].h = TILE_SIZE;
+				rcTile[i + grid.x * k][j].x = (i + grid.x * k) * ZOOM_MULT * TILE_SIZE + frameoffset;
+				rcTile[i + grid.x * k][j].y = (j) * ZOOM_MULT * TILE_SIZE;
+				rcTile[i + grid.x * k][j].w = TILE_SIZE*ZOOM_MULT * 2;
+				rcTile[i + grid.x * k][j].h = TILE_SIZE*ZOOM_MULT * 2;
+				rcTSrc[i + grid.x * k][j].x = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][1]/2;
+				rcTSrc[i + grid.x * k][j].y = TILE_SIZE*(*screenstrip[currentscreen + k])[i][j][0]/2;
+				rcTSrc[i + grid.x * k][j].w = TILE_SIZE;
+				rcTSrc[i + grid.x * k][j].h = TILE_SIZE;
+			}
 		}
-	}
 	}
 
 	//}
@@ -1306,7 +1378,6 @@ void laserfire(struct laser_struct *laser, struct player_struct *player, SDL_Rec
 	}
 
 	else if (laser->turnoff) {
-//		if ( laser->turnon )
 			(laser->count)--;
 
 		if (laser->count <= 0) {
@@ -1399,7 +1470,6 @@ void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordS
 			if ( sword->count >= 2 ) {
 				sword->down = 1;
 
-				//int done = 0;
 				struct monster_node *ptr2mon = linkptrs_start[currentlane];
 				for ( int i = 0; i < monsterlanenum[currentlane]; i++ ) {
 					if ( ptr2mon->monster_rect.x > ( player_out.x + player_out.w ) && (ptr2mon->status != -1)){
@@ -1407,14 +1477,11 @@ void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordS
 							damage(currentlane, ptr2mon, sword->power);
 						}
 						else {
-							//done = 1;
 							break;
 						}
 					}
 					ptr2mon = ptr2mon->next;
 				}
-				//if ( done )
-				//	break;
 
 			}
 		}
@@ -1462,8 +1529,6 @@ void amihurt(struct status_struct status, struct monster_node *linkptrs_start[la
 
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
-	//int done = 0;
-
 	struct monster_node *ptr2mon = linkptrs_start[status.level->lanes->currentlane];
 
 	for ( int i = 0; i < monsterlanenum[status.level->lanes->currentlane]; i++ ) {
@@ -1473,19 +1538,13 @@ void amihurt(struct status_struct status, struct monster_node *linkptrs_start[la
 			/* Is the monster dead? */
 			if ( ptr2mon->status != -1) {
 
-	//			int order = (*moninfoptrs[screen])[currentlane][i][0];
-	//			int order = i;
-	//			int monstertype = samplemonstermap[currentlane][order][0];
 				int monstertype = ptr2mon->montype;
 				gethurt(status, (*bestiary[monstertype]).attack);
 			}
-			//done = 1;
 			break;
 		}
 		ptr2mon = ptr2mon->next;
 	}
-	//if ( done )
-	//	break;
 
 }
 

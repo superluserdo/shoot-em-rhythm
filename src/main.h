@@ -72,6 +72,7 @@ struct std {
 	union {
 		struct player_struct *self_player;
 		struct ui_bar *self_ui_bar;
+		struct ui_counter *self_ui_counter;
 	};
 };
 
@@ -111,6 +112,9 @@ struct audio_struct {
 	int newtrack;
 	int noise;
 	int soundchecklist[MAX_SOUNDS_LIST];
+	int music_mute;
+	float music_volume;
+
 };
 
 /* Timing */
@@ -122,6 +126,7 @@ struct time_struct {
 	float bps;
 	float startbeat;
 	float currentbeat;
+	int currentbeat_int;
 	float pxperbeat;
 	int framecount;
 	int fpsanim;

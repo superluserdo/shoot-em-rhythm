@@ -19,24 +19,16 @@ struct audio_struct audio = {
 		
 	.track = 0,
 	.newtrack = 0,
-	.noise = 0
+	.noise = 0,
+	.music_mute = 0,
+	.music_volume = 1.0
 };
 
-struct playmusic_struct {
-	char *soundpath;
-	int *pause;
-};
-
-void *playmusic(void* argvoid);
 int offset_time = 87; //time in 100ths of a second
 
-void music_Finished();
 Mix_Music *music;
 float loop_pos = 1.0;
 
-// prototype for our audio callback
-// see the implementation for more information
-void my_audio_callback(void *userdata, Uint8 *stream, int len);
 
 // variable declarations
 static Uint8 *audio_pos; // global pointer to the audio buffer to be played
@@ -339,35 +331,32 @@ void *playmusic(void* argvoid){
 	if (fade <= 0) {
 		if(Mix_FadeInMusicPos(music, 1, 0, 0)==-1) {
 		    printf("Mix_FadeInMusic: %s\n", Mix_GetError());
-		    // well, there's no music, but most games don't break without music...
 		}
 	}
 	else {
 		if(Mix_FadeInMusicPos(music, 1, 1000, 0)==-1) {
 		    printf("Mix_FadeInMusic: %s\n", Mix_GetError());
-		    // well, there's no music, but most games don't break without music...
 		}
 	}
 
-	// play music forever, fading in over 2 seconds
-	// Mix_Music *music; // I assume this has been loaded already
+	int muted = 0;
 
 	while(1) {
 
-	        if (ending) {
+		if (ending) {
 			if (fade <= 0) {
 				Mix_HaltMusic();
 			}
 			else {
-
-	                // fade out music to finish 3 seconds from now
+		
+		            // fade out music to finish 3 seconds from now
 		                while(Mix_FadeOutMusic(1000) && Mix_PlayingMusic()) {
 					// wait for any fades to complete
 					SDL_Delay(100);
 		                }
 			}
-		        break;
-	        }
+		    break;
+		}
 		else if (*arguments->pause) {
 			Mix_PauseMusic();
 			while (1) {
@@ -382,7 +371,16 @@ void *playmusic(void* argvoid){
 				SDL_Delay(10);
 			}
 		}
-	SDL_Delay(100);
+		else if (audio.music_mute != muted) {
+			muted = audio.music_mute;
+			if (audio.music_mute) {
+				Mix_VolumeMusic(0);
+			}
+			else {
+				Mix_VolumeMusic(audio.music_volume * 128);
+			}
+		}
+		SDL_Delay(100);
 	}
 	audio.noise = 0;
 	pthread_cond_signal( &cond_end);

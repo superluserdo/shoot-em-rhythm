@@ -8,6 +8,8 @@
 #include "main.h"
 //#include "level.h"
 
+extern struct program_struct program;
+
 extern pthread_mutex_t display_mutex;
 extern pthread_mutex_t clock_mutex;
 extern pthread_cond_t display_cond;
@@ -61,7 +63,6 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	fg.g = 100;
 	fg.b = 100;
 
-	SDL_SetRenderTarget(renderer, NULL);
 
 	SDL_Surface *textsurfaces[count];
 	SDL_Texture *texttextures[count];
@@ -102,7 +103,12 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	textbox_rect.y = options[0].option_rect.y - 30;
 	textbox_rect.w = 800;
 	textbox_rect.h = 400;
+
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, program.width, program.height);
+
 	while (1) {
+
+		SDL_SetRenderTarget(renderer, texTarget);
 		/* Handle Events */
 
 		SDL_Event e;
@@ -164,6 +170,10 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 			SDL_RenderCopy(renderer, texttextures[index], NULL, &options[index].option_rect);
 		}
 		SDL_RenderCopy(renderer, cursortex, NULL, &cursor.option_rect);
+
+		SDL_SetRenderTarget(renderer, NULL);
+		SDL_RenderCopy(renderer, texTarget, NULL, NULL);
+
 		pthread_cond_wait(&display_cond, &display_mutex);
 		SDL_RenderPresent(renderer);
 		pthread_mutex_unlock(&display_mutex);
