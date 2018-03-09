@@ -44,6 +44,10 @@ struct time_struct get_timing() {
 
 void *frametimer(void *timing_void) {
 
+	extern pthread_mutex_t quit_mutex;
+	extern int quitgame;
+	int quitnow;
+
 	struct time_struct *timing = (struct time_struct *)timing_void;
 
 	timing->zerotime = SDL_GetTicks();
@@ -103,8 +107,15 @@ void *frametimer(void *timing_void) {
 		}
 		timing->currentbeat = (float)(ticktime - timing->pausetime)* timing->bps / 1000 + timing->startbeat + 1;
 		timing->currentbeat_int = (int) timing->currentbeat;
-	        pthread_mutex_unlock( &clock_mutex );
-	pthread_cond_broadcast(&display_cond);
+		pthread_mutex_unlock( &clock_mutex );
+		pthread_cond_broadcast(&display_cond);
 		timing->framecount++;
+
+		pthread_mutex_lock(&quit_mutex);
+		quitnow = quitgame;
+		pthread_mutex_unlock(&quit_mutex);
+		if (quitnow) {
+			return 0;
+		}
 	}
 }

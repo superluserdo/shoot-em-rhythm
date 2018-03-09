@@ -16,6 +16,8 @@ int soundchecklist[MAX_SOUNDS_LIST] = {0};
 
 SDL_Renderer *renderer;
 SDL_Window *win;
+pthread_mutex_t quit_mutex;
+int quitgame = 0;
 
 int main() {
 
@@ -118,5 +120,9 @@ int main() {
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
 	printf("%d\n", timing.framecount);
+	pthread_mutex_lock(&quit_mutex);
+	quitgame = 1;
+	pthread_mutex_unlock(&quit_mutex);
+	pthread_join(framethread, NULL);
 	return 0;
 }
