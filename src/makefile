@@ -16,16 +16,16 @@ startscreen.o: startscreen.c structdef.h music.h
 level.o: level.c structdef.h main.h level.h helpers.h music.h clock.h animate.h
 	gcc -g3 -c level.c
 
-pause.o: pause.c structdef.c
+pause.o: pause.c structdef.h
 	gcc -g3 -c pause.c
 
-helpers.o: helpers.c structdef.c main.h level.h helpers.h
+helpers.o: helpers.c structdef.h main.h level.h helpers.h
 	gcc -g3 -c helpers.c
 
-animate.o: animate.c structdef.c animate.h
+animate.o: animate.c structdef.h animate.h
 	gcc -g3 -c animate.c
 
-transform.o: transform.c structdef.c transform.h
+transform.o: transform.c structdef.h transform.h
 	gcc -g3 -c transform.c
 
 rdtsc.o: rdtsc.c
