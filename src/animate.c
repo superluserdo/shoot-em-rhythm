@@ -36,6 +36,7 @@ int renderlist(struct render_node *node_ptr) {
 		}
 		node_ptr = node_ptr->next;
 	}
+	return 0;
 }
 
 int node_insert_over(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
@@ -55,6 +56,7 @@ int node_insert_over(struct graphics_struct *graphics, struct render_node *node_
 	if (node_dest == render_node_tail) {
 		render_node_tail = node_src;
 	}
+	return 0;
 }
 
 int node_insert_under(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
@@ -74,6 +76,7 @@ int node_insert_under(struct graphics_struct *graphics, struct render_node *node
 	if (node_dest == render_node_head) {
 		render_node_head = node_src;
 	}
+	return 0;
 }
 
 int node_insert_z_under(struct graphics_struct *graphics, struct render_node *node_src, float z) {
@@ -109,6 +112,7 @@ int node_insert_z_under(struct graphics_struct *graphics, struct render_node *no
 			node = node->next;
 		}
 	}
+	return 0;
 }
 
 int node_insert_z_over(struct graphics_struct *graphics, struct render_node *node_src, float z) {
@@ -144,6 +148,7 @@ int node_insert_z_over(struct graphics_struct *graphics, struct render_node *nod
 			node = node->next;
 		}
 	}
+	return 0;
 }
 
 int node_rm(struct graphics_struct *graphics, struct render_node *node_ptr) {
@@ -163,6 +168,7 @@ int node_rm(struct graphics_struct *graphics, struct render_node *node_ptr) {
 		render_node_tail = node_ptr;
 	}
 	free(node_ptr);
+	return 0;
 }
 
 int list_rm(struct render_node *node_ptr) {
@@ -183,6 +189,7 @@ int list_rm(struct render_node *node_ptr) {
 		}
 		free(node_ptr);
 	}
+	return 0;
 }
 
 struct render_node *create_render_node() {
@@ -265,6 +272,7 @@ int advanceFrames(struct render_node *render_node_head, float currentbeat) {
 		node_ptr_count++;
 	}		
 
+	return 0;
 }
 
 /* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
@@ -356,6 +364,7 @@ int render_node_populate(struct graphics_struct *graphics, struct render_node *r
 	node_insert_z_over(graphics, r_node, 0);
 	testspecific->render_node = r_node;
 	graphics->render_node_head = r_node;
+	return 0;
 }
 
 int generate_default_specific_template() {
@@ -377,6 +386,7 @@ int generate_default_specific_template() {
 	default_specific_template->transform_list = NULL;//malloc(sizeof(struct func_node));
 
 	default_specific_template->render_node = NULL;
+	return 0;
 }
 
 struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graphic_category, struct status_struct *status) {
@@ -522,6 +532,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	node_insert_z_over(graphics, r_node, 0);
 	specific->render_node = r_node;
 
+	return 0;
 }
 
 int graphic_spawn(struct std *std, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
@@ -535,6 +546,7 @@ int graphic_spawn(struct std *std, struct animate_generic **generic_bank, struct
 		a_ptr = (&(*a_ptr)->next);
 	}
 
+	return 0;
 }
 
 int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
@@ -573,6 +585,7 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 			return -1;
 		}
 	}
+	return 0;
 }	
 
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank, struct status_struct *status) {
@@ -687,6 +700,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 	*generic_bank_ptr = generic_bank;
 	config_destroy(&cfg);
+	return 0;
 }
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {
@@ -706,6 +720,7 @@ int transform_add_check(struct animate_specific *animation, void *data, void (*f
 		node->next = animation->transform_list;
 		animation->transform_list = node;
 	}
+	return 0;
 }
 	
 
@@ -729,6 +744,7 @@ int transform_rm(struct animate_specific *animation, void (*func)()) {
 		node = node->next;
 	}
 
+	return 0;
 }
 
 

@@ -61,13 +61,13 @@ extern pthread_mutex_t track_mutex;
 
 void moveme(struct lane_struct *lanes, int *direction, struct animate_specific *anim);
 
-void movemap(struct level_struct *level_ptr, struct player_struct *player, struct xy_struct grid,
-SDL_Rect rcTile[level->grid.x][level->grid.y], 
-SDL_Rect rcTilemid[level->grid.x][level->grid.y], 
-SDL_Rect rcTSrc[level->grid.x][level->grid.y], 
-SDL_Rect rcTSrcmid[level->grid.x][level->grid.y], 
+void movemap(struct level_struct *level, struct player_struct *player, struct xy_struct grid,
+SDL_Rect rcTile[grid.x][grid.y], 
+SDL_Rect rcTilemid[grid.x][grid.y], 
+SDL_Rect rcTSrc[grid.x][grid.y], 
+SDL_Rect rcTSrcmid[grid.x][grid.y], 
 int totallanes,
-int (*screenstrip[level->maxscreens]) [level->grid.x][level->grid.y][2], 
+int (*screenstrip[level->maxscreens]) [grid.x][grid.y][2], 
 int (*itemscreenstrip[level->maxscreens])[level->lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
 struct monster *(*monsterpokedex)[10], struct item *(*itempokedex)[10]);
 

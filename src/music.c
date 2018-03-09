@@ -110,6 +110,7 @@ void* musicstart(void* argvoid) {
 		};
 		playmusic((void*)&playmusic_struct);
 	}
+	return NULL;
 }
 void *playsound(void* soundpath){
 
@@ -416,6 +417,7 @@ void *playmusic(void* argvoid){
 
 	Mix_Quit();
 
+	return NULL;
 }
 
 void (music_Finished)() {

@@ -64,6 +64,7 @@ int level_init (struct status_struct status) {
 	player->direction = 4;
 	player->flydir = 1;
 	player->self = player;
+	printf("%d\n", player->sword);
 
 	/* 	Initialisation	*/
 
@@ -136,9 +137,10 @@ int level_init (struct status_struct status) {
 
 	lanes->currentlane = lanes->total/2;
 
-	double (*remainder)[lanes->total] = &level->remainder;	//Means that sub-frame movement is accounted for
+	double *remainder = calloc(lanes->total, sizeof(double));//Means that sub-frame movement is accounted for
+	level->remainder = remainder;
 	for (int lane = 0; lane < lanes->total; lane++)
-		(*remainder)[lane] = 0.0;
+		remainder[lane] = 0.0;
 
 	/* Declare Textures */
 	struct rects_struct *rects = malloc(sizeof(struct rects_struct));
@@ -1199,37 +1201,37 @@ void moveme(struct lane_struct *lanes, int *direction, struct animate_specific *
 
 }
 
-void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, struct xy_struct grid, SDL_Rect rcTile[grid.x * 3][grid.y], SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int totallanes, int (*screenstrip [level->maxscreens]) [grid.x * 3][grid.y][2], int (*itemscreenstrip[level->maxscreens])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
+void movemap(struct level_struct *level, struct player_struct *player_ptr, struct xy_struct grid, SDL_Rect rcTile[grid.x * 3][grid.y], SDL_Rect rcTilemid[grid.x * 3][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int totallanes, int (*screenstrip [level->maxscreens]) [grid.x * 3][grid.y][2], int (*itemscreenstrip[level->maxscreens])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], struct monster *(*bestiary)[10], struct item *(*itempokedex)[10]){
 	if (player_ptr->flydir == 0){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].y += 4 * ZOOM_MULT * level_ptr->speedmult;
-				rcTilemid[i][j].y += 4 * ZOOM_MULT * level_ptr->speedmult;
+				rcTile[i][j].y += 4 * ZOOM_MULT * level->speedmult;
+				rcTilemid[i][j].y += 4 * ZOOM_MULT * level->speedmult;
 			}
 		}
 	}
 	if (player_ptr->flydir == 1 ){
 		if (rcTile[grid.x][0].x <= 0 ) {
 			int frameoffset = rcTile[grid.x][0].x;
-			(level_ptr->currentscreen)++;
-			if (level_ptr->currentscreen >= level_ptr->maxscreens - 3){
-				level_ptr->levelover = 1;
+			(level->currentscreen)++;
+			if (level->currentscreen >= level->maxscreens - 3){
+				level->levelover = 1;
 			}
-			refreshtiles(totallanes, screenstrip, itemscreenstrip, level_ptr->currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, frameoffset, level_ptr->lanes.laneheight, *bestiary, *itempokedex);
+			refreshtiles(totallanes, screenstrip, itemscreenstrip, level->currentscreen, grid, rcTile, rcTilemid, rcTSrc, rcTSrcmid, frameoffset, level->lanes.laneheight, *bestiary, *itempokedex);
 		}
 
-		if ( !(level_ptr->levelover) ) {
+		if ( !(level->levelover) ) {
 			for (int i = 0; i < grid.x * 3; i++){
 				for(int j = 0; j < grid.y; j++){
-					rcTile[i][j].x -= 4 * ZOOM_MULT * level_ptr->speedmult;
-					rcTilemid[i][j].x -= 4 * ZOOM_MULT * level_ptr->speedmult;
-					level_ptr->totalnativedist += 4 * level_ptr->speedmult;
+					rcTile[i][j].x -= 4 * ZOOM_MULT * level->speedmult;
+					rcTilemid[i][j].x -= 4 * ZOOM_MULT * level->speedmult;
+					level->totalnativedist += 4 * level->speedmult;
 				}
 			}
 			for ( int screen = 0; screen < 3; screen++ ) {
-				for (int lane = 0; lane < level_ptr->lanes.total; lane++ ) {
+				for (int lane = 0; lane < level->lanes.total; lane++ ) {
 					for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
-						rcItem[screen][lane][i].x -= 4 * ZOOM_MULT * level_ptr->speedmult;
+						rcItem[screen][lane][i].x -= 4 * ZOOM_MULT * level->speedmult;
 					}
 				}
 			}
@@ -1239,8 +1241,8 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 	if (player_ptr->flydir == 2){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].y -= 4 * ZOOM_MULT * level_ptr->speedmult;
-				rcTilemid[i][j].y -= 4 * ZOOM_MULT * level_ptr->speedmult;
+				rcTile[i][j].y -= 4 * ZOOM_MULT * level->speedmult;
+				rcTilemid[i][j].y -= 4 * ZOOM_MULT * level->speedmult;
 			}
 		}
 	}
@@ -1248,8 +1250,8 @@ void movemap(struct level_struct *level_ptr, struct player_struct *player_ptr, s
 	if (player_ptr->flydir == 3){
 		for (int i = 0; i < grid.x * 3; i++){
 			for(int j = 0; j < grid.y; j++){
-				rcTile[i][j].x += 4 * ZOOM_MULT * level_ptr->speedmult;
-				rcTilemid[i][j].x += 4 * ZOOM_MULT * level_ptr->speedmult;
+				rcTile[i][j].x += 4 * ZOOM_MULT * level->speedmult;
+				rcTilemid[i][j].x += 4 * ZOOM_MULT * level->speedmult;
 			}
 		}
 	}
@@ -1302,60 +1304,8 @@ void movemon(int totallanes, float speedmultmon, struct time_struct timing, stru
 
 }
 
-void dropin( char arg[], int map[100][100][2], int posx, int posy){
 
-	if (arg == "house"){
-		for (int i = 0; i < 5; i++){
-			for (int j = 0; j < 5; j++){
-
-				map[i + posx][j + posy][0] = j + 4;
-				map[i + posx][j + posy][1] = i;
-			}
-		}
-	}
-
-	if (arg == "treenobg"){
-		for (int i = 0; i < 2; i++){
-			for (int j = 0; j < 3; j++){
-
-				map[i + posx][j + posy][0] = j + 1;
-				map[i + posx][j + posy][1] = i + 4;
-			}
-		}
-	}
-	if (arg == "treebg"){
-		for (int i = 0; i < 2; i++){
-			for (int j = 0; j < 2; j++){
-
-				map[i + posx][j + posy][0] = j + 1;
-				map[i + posx][j + posy][1] = i + 6;
-			}
-		}
-	}
-
-	if (arg == "sand"){
-		map[posx][posy][0] = 1;
-		map[posx][posy][1] = 2;
-	}
-}
-
-//void multidrop(){
-//
-//	for (int k = 0; k <= 28; k += 7){
-//		dropin( "house", sampletilemapmid, 45, (45 + k));
-//		dropin( "house", sampletilemapmid, 51, (45 + k));
-//		dropin( "house", sampletilemapmid, 57, (45 + k));
-//		dropin( "house", sampletilemapmid, 63, (45 + k));
-//		for (int i = 0; i < 23; i++){
-//			dropin( "sand", sampletilemapmid, (45 + i), (50 + k));
-//		}
-//	}
-//	dropin( "house", sampletilemapmid, 20, 20);
-//
-//}
-
-
-void refreshtiles(int totallanes, int (*screenstrip[]) [grid.x][grid.y][2], int (*itemscreenstrip[level->maxscreens])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[totallanes], struct monster *bestiary[10], struct item *itempokedex[10]) {
+void refreshtiles(int totallanes, int (*screenstrip[]) [grid.x][grid.y][2], int (*itemscreenstrip[])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[totallanes], struct monster *bestiary[10], struct item *itempokedex[10]) {
 
 	for (int k = 0; k <= 2; k++) {
 		for (int i = 0; i < grid.x; i++){
@@ -1602,7 +1552,7 @@ void amihurt(int totallanes, struct status_struct status, struct monster_node *l
 }
 
 
-void touchitem(struct lane_struct *lanes, int currentlane, int currentscreen, SDL_Rect player_out, struct item *itempokedex[10], int (*itemscreenstrip[level->maxscreens])[lanes->total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int *levelover, int *soundchecklist) {
+void touchitem(struct lane_struct *lanes, int currentlane, int currentscreen, SDL_Rect player_out, struct item *itempokedex[10], int (*itemscreenstrip[])[lanes->total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int *levelover, int *soundchecklist) {
 	/* Check screen 0, current lane for monster sprites encroaching on the player sprite */
 
 	int done = 0;

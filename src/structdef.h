@@ -72,7 +72,7 @@ struct level_struct {
 	struct monster *bestiary[10];
 	struct item *itempokedex[10];
 	int (**itemscreenstrip)[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
-	double remainder[];
+	double *remainder;
 };
 
 struct level_effects_struct {

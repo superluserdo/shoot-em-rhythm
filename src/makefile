@@ -1,5 +1,5 @@
 output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o rdtsc.o
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall -fno-stack-protector
+	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c main.c
