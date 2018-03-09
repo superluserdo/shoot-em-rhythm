@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
+#include "structdef.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
@@ -12,15 +13,23 @@
 #include "animate.h"
 #include "transform.h"
 
+/* For debugging */
+
+int node_ptr_count = 0;
+int rule_node_count = 0;
+int transform_node_count = 0;
+
 /* RENDER */
-extern struct status_struct status;
 extern SDL_Texture **image_bank;
 struct animate_specific *default_specific_template = NULL;
 
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
-			SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
+			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
+			if (rc != 0) {
+				printf("%s\n", SDL_GetError());
+			}
 		}
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
@@ -29,7 +38,9 @@ int renderlist(struct render_node *node_ptr) {
 	}
 }
 
-int node_insert_over(struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_over(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+	struct render_node *render_node_head = graphics->render_node_head;
+	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
 		render_node_head = node_src;
 		render_node_tail = node_src;
@@ -46,8 +57,9 @@ int node_insert_over(struct render_node *node_src, struct render_node *node_dest
 	}
 }
 
-
-int node_insert_under(struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_under(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+	struct render_node *render_node_head = graphics->render_node_head;
+	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
 		render_node_head = node_src;
 		render_node_tail = node_src;
@@ -64,7 +76,9 @@ int node_insert_under(struct render_node *node_src, struct render_node *node_des
 	}
 }
 
-int node_insert_z_under(struct render_node *node_src, float z) {
+int node_insert_z_under(struct graphics_struct *graphics, struct render_node *node_src, float z) {
+	struct render_node *render_node_head = graphics->render_node_head;
+	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (render_node_head == NULL) {
 		render_node_head = node_src;
 		render_node_tail = node_src;
@@ -97,11 +111,13 @@ int node_insert_z_under(struct render_node *node_src, float z) {
 	}
 }
 
-int node_insert_z_over(struct render_node *node_src, float z) {
+int node_insert_z_over(struct graphics_struct *graphics, struct render_node *node_src, float z) {
+	struct render_node *render_node_head = graphics->render_node_head;
+	struct render_node *render_node_tail = graphics->render_node_tail;
 	node_src->z = z;
 	if (render_node_head == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
+		graphics->render_node_head = node_src;
+		graphics->render_node_tail = node_src;
 	}
 	else {
 		struct render_node *node = render_node_head;
@@ -111,18 +127,18 @@ int node_insert_z_over(struct render_node *node_src, float z) {
 				node_src->prev = node->prev;
 				node->prev = node_src;	
 				if (node == render_node_head) {
-					render_node_head = node_src;
+					graphics->render_node_head = node_src;
 				}
 				if (node == render_node_tail) {
-					render_node_tail = node_src;
+					graphics->render_node_tail = node_src;
 				}
 				break;
 			}		
 			if (node == render_node_tail) {
 				node_src->prev = render_node_tail;
 				node_src->next = NULL;
-				render_node_tail->next = node_src;
-				render_node_tail = node_src;
+				graphics->render_node_tail->next = node_src;
+				graphics->render_node_tail = node_src;
 				break;
 			}
 			node = node->next;
@@ -130,7 +146,9 @@ int node_insert_z_over(struct render_node *node_src, float z) {
 	}
 }
 
-int node_rm(struct render_node *node_ptr) {
+int node_rm(struct graphics_struct *graphics, struct render_node *node_ptr) {
+	struct render_node *render_node_head = graphics->render_node_head;
+	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_ptr->prev) {
 		node_ptr->prev->next = node_ptr->next;
 	}
@@ -171,20 +189,32 @@ struct render_node *create_render_node() {
 	struct render_node *new_node = malloc(sizeof(struct render_node));
 	if (new_node == NULL)
 		printf("Error creating new rendering node :(\n");
-	new_node->next = NULL;
 	new_node->prev = NULL;
+	new_node->next = NULL;
+	new_node->rect_in = NULL;
+	new_node->rect_out.x = 0;
+	new_node->rect_out.y = 0;
+	new_node->rect_out.w = 0;
+	new_node->rect_out.h = 0;
 	new_node->img = NULL;
 	new_node->customRenderFunc = NULL;
 	new_node->customRenderArgs = NULL;
+	new_node->renderer = NULL;
+	new_node->animation = NULL;
+	new_node->transform_list = NULL;
+	new_node->z = 0;
 	return new_node;
 }
 
 /* ANIMATE */
 
 
-int advanceFrames(struct render_node *render_node_head) {
+int advanceFrames(struct render_node *render_node_head, float currentbeat) {
 	struct render_node *node_ptr = render_node_head;
+	node_ptr_count = 0;
 	while (node_ptr) {
+		rule_node_count = 0;
+		transform_node_count = 0;
 		struct animate_specific *animation = node_ptr->animation;
 		struct animate_generic *generic = animation->generic;
 
@@ -201,10 +231,11 @@ int advanceFrames(struct render_node *render_node_head) {
 		while (rule_node) {
 			(rule_node->rule)(rule_node->data);
 			rule_node = rule_node->next;
+			rule_node_count++;
 		}
 
 		if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
-			if (timing.currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
+			if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
 				animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
 				animation->frame++;
 			}
@@ -227,17 +258,20 @@ int advanceFrames(struct render_node *render_node_head) {
 		while (transform_node) {
 			transform_node->func((void *)&rect_trans, transform_node->data);
 			transform_node = transform_node->next;
+			transform_node_count++;
 		}
 		node_ptr->rect_out = rect_trans;
 		node_ptr = node_ptr->next;
+		node_ptr_count++;
 	}		
 
 }
 
 /* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
 
-int render_node_populate(struct render_node **render_node_head_ptr, struct render_node *r_node, SDL_Texture **imgList, SDL_Renderer *renderer, struct player_struct *playerptr) {
+int render_node_populate(struct graphics_struct *graphics, struct render_node *r_node, struct player_struct *playerptr) {
 		
+	SDL_Renderer *renderer = graphics->renderer;
 	int w,h;
 	SDL_Texture *Spriteimg = IMG_LoadTexture(renderer, SPRITE_PATH);
 
@@ -319,9 +353,9 @@ int render_node_populate(struct render_node **render_node_head_ptr, struct rende
 	r_node->animation = testspecific;
 	r_node->customRenderFunc = NULL;
 	playerptr->animation = testspecific;
-	node_insert_z_over(r_node, 0);
+	node_insert_z_over(graphics, r_node, 0);
 	testspecific->render_node = r_node;
-	*render_node_head_ptr = r_node;
+	graphics->render_node_head = r_node;
 }
 
 int generate_default_specific_template() {
@@ -345,28 +379,29 @@ int generate_default_specific_template() {
 	default_specific_template->render_node = NULL;
 }
 
-struct animate_specific *generate_default_specific(int index) {
+struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graphic_category, struct status_struct *status) {
 
 	if (!default_specific_template) {
 		generate_default_specific_template();
 	}
 
-	struct animate_specific *default_specific = malloc(sizeof(struct animate_specific));
+	struct animate_specific *default_specific_anim = malloc(sizeof(struct animate_specific));
 
-	*default_specific = *default_specific_template;
+	*default_specific_anim = *default_specific_template;
 
 	/*	Trying out some transformation defaults here temporarily.
 	 *	Will get it into some kind of loadable animation_default config file eventually.
 	 */
-	if (index == 0) {
-		default_specific->rules_list = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->rule = &rules_player;
-		default_specific->rules_list->data = NULL;
-		default_specific->rules_list->next = NULL;
+	if (graphic_category == PLAYER) {
+		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
+		default_specific_anim->rules_list->rule = &rules_player;
+		default_specific_anim->rules_list->data = NULL;
+		default_specific_anim->rules_list->next = NULL;
 
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
-		default_specific->transform_list = tr_node;
+		default_specific_anim->transform_list = tr_node;
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
+		teststruct->status = status;
 		teststruct->rect_bitmask = 2;
 		teststruct->freq_perbeat = 1;
 		teststruct->ampl_pix = 10.0;
@@ -374,16 +409,16 @@ struct animate_specific *generate_default_specific(int index) {
 		tr_node->data = (void *)teststruct;
 		tr_node->func = &tr_sine;
 		tr_node->next = NULL;
-	}
-	if (index == 2 || index == 3) {
-		default_specific->rules_list = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->rule = &rules_ui;
-		default_specific->rules_list->data = NULL;
-		default_specific->rules_list->next = NULL;
+	}else if (graphic_category == UI) {
+		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
+		default_specific_anim->rules_list->rule = &rules_ui;
+		default_specific_anim->rules_list->data = NULL;
+		default_specific_anim->rules_list->next = NULL;
 
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 
 		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
+		teststruct2->status = status;
 		teststruct2->freq_perbeat = 1;
 		teststruct2->ampl = 2;
 		teststruct2->peak_offset = 0.0;
@@ -392,21 +427,21 @@ struct animate_specific *generate_default_specific(int index) {
 		tr_node->data = (void *)teststruct2;
 		tr_node->func = &tr_bump;
 		tr_node->next = NULL;
-		default_specific->transform_list = tr_node;
-		default_specific->rules_list->data = (void *)teststruct2;
-	}
-	if (index == 4) {
-		default_specific->rules_list = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->rule = &rules_ui_bar;
-		default_specific->rules_list->data = default_specific;
-		default_specific->rules_list->next = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->next->rule = &rules_ui;
-		default_specific->rules_list->next->data = NULL;
-		default_specific->rules_list->next->next = NULL;
+		default_specific_anim->transform_list = tr_node;
+		default_specific_anim->rules_list->data = (void *)teststruct2;
+	}else if (graphic_category == UI_BAR) {
+		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
+		default_specific_anim->rules_list->rule = &rules_ui_bar;
+		default_specific_anim->rules_list->data = default_specific_anim;
+		default_specific_anim->rules_list->next = malloc(sizeof(struct rule_node));
+		default_specific_anim->rules_list->next->rule = &rules_ui;
+		default_specific_anim->rules_list->next->data = NULL;
+		default_specific_anim->rules_list->next->next = NULL;
 
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 
 		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
+		teststruct2->status = status;
 		teststruct2->freq_perbeat = 1;
 		teststruct2->ampl = 2;
 		teststruct2->peak_offset = 0.0;
@@ -415,30 +450,10 @@ struct animate_specific *generate_default_specific(int index) {
 		tr_node->data = (void *)teststruct2;
 		tr_node->func = &tr_bump;
 		tr_node->next = NULL;
-		default_specific->transform_list = tr_node;
-		default_specific->rules_list->next->data = (void *)teststruct2;
+		default_specific_anim->transform_list = tr_node;
+		default_specific_anim->rules_list->next->data = (void *)teststruct2;
 	}
-	if (index == 5) {
-		default_specific->rules_list = malloc(sizeof(struct rule_node));
-		default_specific->rules_list->rule = &rules_ui;
-		default_specific->rules_list->data = NULL;
-		default_specific->rules_list->next = NULL;
-
-		struct func_node *tr_node = malloc(sizeof(struct func_node));
-
-		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
-		teststruct2->freq_perbeat = 1;
-		teststruct2->ampl = 2;
-		teststruct2->peak_offset = 0.0;
-		teststruct2->bump_width = 0.25;
-		teststruct2->centre = NULL;
-		tr_node->data = (void *)teststruct2;
-		tr_node->func = &tr_bump;
-		tr_node->next = NULL;
-		default_specific->transform_list = tr_node;
-		default_specific->rules_list->data = (void *)teststruct2;
-	}
-	return default_specific;
+	return default_specific_anim;
 }
 
 struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic **generic_bank, int index) {
@@ -493,30 +508,30 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	return specific;
 }
 
-int generate_render_node(struct animate_specific *specific, SDL_Renderer *renderer) {
+int generate_render_node(struct animate_specific *specific, struct graphics_struct *graphics) {
 	/* Creates, populates, and inserts a rendering node	*/
 
 	struct animate_generic *generic = specific->generic;
 
 	struct render_node *r_node = create_render_node();
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
-	r_node->renderer = renderer;
+	r_node->renderer = graphics->renderer;
 	r_node->img = generic->clips[specific->clip]->img;
 	r_node->animation = specific;
 	r_node->customRenderFunc = NULL;
-	node_insert_z_over(r_node, 0);
+	node_insert_z_over(graphics, r_node, 0);
 	specific->render_node = r_node;
 
 }
 
-int graphic_spawn(struct std *std, struct animate_generic **generic_bank, SDL_Renderer *renderer, int *index_array, int num_index) {
+int graphic_spawn(struct std *std, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
 
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;
 	for (int i = 0; i < num_index; i++) {
 		anim = generate_specific_anim(std, generic_bank, index_array[i]);
 		*a_ptr = anim;
-		generate_render_node(anim, renderer);
+		generate_render_node(anim, graphics);
 		a_ptr = (&(*a_ptr)->next);
 	}
 
@@ -543,6 +558,7 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 		printf("Error looking up setting for 'image_list'\n");
 	}
 	int num_images = config_setting_length(image_list_setting); 
+	printf("num_images: %d\n", num_images);
 	for (int i = 0; i < num_images; i++) {
 		const char *path = config_setting_get_string_elem(image_list_setting, i);
 		if (path) {
@@ -559,7 +575,7 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 	}
 }	
 
-int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank) {
+int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank, struct status_struct *status) {
 
 	struct animate_generic **generic_bank;
 
@@ -609,7 +625,13 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 		generic_bank[i] = generic_ptr;
 
-		generic_ptr->default_specific = generate_default_specific(i);
+		int graphic_cat_int;
+		if (config_setting_lookup_int(generic_setting, "graphic_category", &graphic_cat_int) == CONFIG_FALSE) {
+			printf("Error looking up value for 'graphic_category'\n");
+		}
+		enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
+
+		generic_ptr->default_specific = generate_default_specific_anim(graphic_cat, status);
 
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
@@ -710,14 +732,16 @@ int transform_rm(struct animate_specific *animation, void (*func)()) {
 }
 
 
-void rules_player(void *playervoid) {
-	struct player_struct *player = (struct player_struct *)playervoid;
+void rules_player(void *status_void) {
+	struct status_struct *status = (struct status_struct *)status_void;
+	struct player_struct *player = status->player;
 	if (player->invincibility_toggle) {
 		player->invincibility_toggle = 0;
 		if (player->invincibility) {
 			struct tr_blink_data *data = malloc(sizeof(struct tr_blink_data));
 			data->frames_on = 4;
 			data->frames_off = 4;
+			data->status = status;
 			transform_add_check(player->animation, data, &tr_blink);
 		}
 		else {
@@ -727,10 +751,10 @@ void rules_player(void *playervoid) {
 }
 void rules_ui(void *data) {
 	struct tr_bump_data *str = (struct tr_bump_data *)data;
-	if (program.score > 300)
+	if (str->status->level->score > 300)
 		str->ampl = 1.2;
 	else
-		str->ampl = 1 + program.score/1000.0;
+		str->ampl = 1 + str->status->level->score/1000.0;
 }
 void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;

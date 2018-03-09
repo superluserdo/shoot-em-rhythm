@@ -2,155 +2,18 @@
 //#define NATIVE_RES_X 640
 #define NATIVE_RES_X 640
 #define NATIVE_RES_Y 360
-#define MAX_SOUNDS_LIST 10
-
-/*		Structs		*/
-
-struct xy_struct {
-	int x;
-	int y;
-} grid;
-
-struct size_ratio_struct {
-	float w;
-	float h;
-};
-
-struct laser_struct {
-	int power;
-	int count;
-	int on;
-	int turnon;
-	int turnoff;
-};
-
-struct sword_struct {
-	int power;
-	int count;
-	int down;
-	int swing;
-};
-/* Status Struct */
-
-struct status_struct {
-	struct level_struct *level;
-	struct player_struct *player;
-	struct audio_struct *audio;
-	struct time_struct *timing;
-};
-
-/* Status of the Level */
-
-struct level_struct {
-	int gameover;
-	int levelover;
-	int pauselevel; //level.pauselevel changed by levelfunc()
-	int currentlevel;
-	struct xy_struct grid;
-	int maxscreens;
-	int totalnativedist;
-	int partymode;
-	float speedmult;
-	float speedmultmon;
-	int currentscreen;
-	struct lane_struct *lanes;
-};
-
-struct lane_struct {
-	int total;
-	int currentlane;
-	int lanewidth;
-	int *laneheight;
-};
-
-/* Status of the Player */
-
-struct std {
-	struct xy_struct pos;
-	struct size_ratio_struct size_ratio;
-	struct animate_specific *animation;
-	union {
-		struct player_struct *self_player;
-		struct ui_bar *self_ui_bar;
-		struct ui_counter *self_ui_counter;
-	};
-};
-
-struct player_struct {
-
-	int HP, power;
-	int max_HP;
-	int max_PP;
-	int invincibility;
-	int invincibility_toggle;
-	int invinciblecounter[2];
-	int sword;
-	int direction;
-	int flydir;
-	union {
-		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
-		};
-		struct std std;
-	};
-};
-
-/* Whole Program */
-
-struct program_struct {
-	int width, height;
-	int score;
-};
-
-/* Audio */
-
-struct audio_struct {
-
-	int track;
-	int newtrack;
-	int noise;
-	int soundchecklist[MAX_SOUNDS_LIST];
-	int music_mute;
-	float music_volume;
-
-};
-
-/* Timing */
-
-struct time_struct {
-
-	int ticks;
-	int countbeats;
-	float bps;
-	float startbeat;
-	float currentbeat;
-	int currentbeat_int;
-	float pxperbeat;
-	int framecount;
-	int fpsanim;
-	int fpsglobal;
-	int *pauselevel; //changed inside frametimer(). Points to level.pauselevel
-	int pause_change;
-	int zerotime;
-	int pausetime;
-	int pausetime_completed;
-	int pausetime_ongoing;
-	int startpause;
-	int endpause;
-	float intervalanim;
-	float intervalglobal;
-};
 
 void *frametimer(void *);
-int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel);
+struct time_struct get_timing();
+int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status);
 
-int levelfunc(SDL_Window *win, SDL_Renderer *renderer);
-int startscreen(SDL_Window *win, SDL_Renderer *renderer);
+int level_init(struct status_struct status);
+int level_loop(struct status_struct status);
+int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *status);
 
 void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture *startimgtext2, SDL_Renderer *renderer);
 
+uint64_t rdtsc();
 /* Return Code definitions
 	0:	Return normally
 	1-100:	Return normally and again x many times

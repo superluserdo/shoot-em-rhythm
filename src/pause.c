@@ -5,16 +5,15 @@
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
 #include <SDL2/SDL_ttf.h>
+#include "structdef.h"
 #include "main.h"
 //#include "level.h"
-
-extern struct program_struct program;
 
 extern pthread_mutex_t display_mutex;
 extern pthread_mutex_t clock_mutex;
 extern pthread_cond_t display_cond;
 
-int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel) {
+int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status) {
 
 	int resume = 0;
 	int restart = 0;
@@ -104,7 +103,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	textbox_rect.w = 800;
 	textbox_rect.h = 400;
 
-	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, program.width, program.height);
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->graphics->width, status->graphics->height);
 
 	while (1) {
 
@@ -115,7 +114,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		while ( SDL_PollEvent(&e) ) {
 
 			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-				return 0;
+				return R_SUCCESS;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP) {
 				cursorpos--;
@@ -146,21 +145,21 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		cursorpos %= count;
 		
 		if (resume) {
-			return 0;
+			return R_SUCCESS;
 		}
 		else if (restart) {
-			return 200 + currentlevel;
+			return R_RESTART_LEVEL;
 		}
 		else if (quittostart) {
-	TTF_CloseFont(dejavu);
-	SDL_RenderClear(renderer);
-	for (int i = 0; i < count; i++) {
-		SDL_DestroyTexture(texttextures[i]);
-	}
-			return 101;
+			TTF_CloseFont(dejavu);
+			SDL_RenderClear(renderer);
+			for (int i = 0; i < count; i++) {
+				SDL_DestroyTexture(texttextures[i]);
+			}
+			return R_STARTSCREEN;
 		}
 		else if (quittodesktop) {
-			return 102;
+			return R_QUIT_TO_DESKTOP;
 		}
 
 		cursor.option_rect.y = options[cursorpos].option_rect.y;

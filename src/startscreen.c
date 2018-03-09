@@ -3,6 +3,7 @@
 #include <semaphore.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "structdef.h"
 #include "main.h"
 #include "music.h"
 #define START_PATH0 "../art/startimgbg.png"
@@ -10,13 +11,14 @@
 #define START_PATH2 "../art/startimgtext2.png"
 
 extern pthread_mutex_t track_mutex;
+extern pthread_mutex_t songstatus_mutex;
+extern volatile int music_ended;
 extern pthread_mutex_t display_mutex;
 extern pthread_cond_t display_cond;
 extern pthread_cond_t cond_end;
 extern struct audio_struct audio;
-extern struct program_struct program;
 
-int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
+int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *status) {
 
 	pthread_t soundthread;
 	audio.newtrack = 1;
@@ -29,11 +31,12 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 		.newtrack = audio.newtrack,
 		.pause = &dummypause
 	};
-	int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&musicstart_struct);
-	if (rc) {
-	printf("ya dun goofed. return code is %d\n.", rc);
-	exit(-1);
-	}
+	//TODO:	Fix audio segfaults!
+	//int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&musicstart_struct);
+	//if (rc) {
+	//printf("ya dun goofed. return code is %d\n.", rc);
+	//exit(-1);
+	//}
 
 
         pthread_mutex_lock( &track_mutex );
@@ -62,7 +65,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartbgSrc.h = 360;
 
 	SDL_Rect rcStartt1, rcStartt1Src;
-	rcStartt1.x = 0.1 * program.width;
+	rcStartt1.x = 0.1 * status->graphics->width;
 	rcStartt1.y = 0;
 	rcStartt1.w = 444 * ZOOM_MULT;
 	rcStartt1.h = 58 * ZOOM_MULT;
@@ -72,8 +75,8 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartt1Src.h = 58;
 
 	SDL_Rect rcStartt2, rcStartt2Src;
-	rcStartt2.x = 0.3 * program.width;
-	rcStartt2.y = 0.6 * program.height;
+	rcStartt2.x = 0.3 * status->graphics->width;
+	rcStartt2.y = 0.6 * status->graphics->height;
 	rcStartt2.w = 356 * ZOOM_MULT;
 	rcStartt2.h = 27 * ZOOM_MULT;
 	rcStartt2Src.x = 0;
@@ -82,7 +85,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 	rcStartt2Src.h = 27;
 
 
-	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, program.width, program.height);
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->graphics->width, status->graphics->height);
 
 	while (1) {
 		SDL_Event e;
@@ -90,15 +93,15 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 			
 			if (e.type == SDL_QUIT) {
 				quitstart(startimgbg, startimgtext1, startimgtext2, renderer);
-				return 1;
+				return R_QUIT_TO_DESKTOP;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
 				quitstart(startimgbg, startimgtext1, startimgtext2, renderer);
-				return 0;
+				return R_SUCCESS;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
 				quitstart(startimgbg, startimgtext1, startimgtext2, renderer);
-				return 1;
+				return R_QUIT_TO_DESKTOP;
 			}
 		}
 		SDL_SetRenderTarget(renderer, texTarget);
@@ -109,20 +112,24 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer) {
 		SDL_SetRenderTarget(renderer, NULL);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texTarget, NULL,  NULL);
+		pthread_mutex_lock(&display_mutex);
 		pthread_cond_wait(&display_cond, &display_mutex);
 		SDL_RenderPresent(renderer);
 		pthread_mutex_unlock(&display_mutex);
 	}
 
-return 0;
+return R_SUCCESS;
 }
 
 void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture *startimgtext2, SDL_Renderer *renderer) {
 	SDL_RenderClear(renderer);
-	musicstop();
+	//musicstop();
 
-	pthread_cond_wait( &cond_end, &track_mutex);
-	pthread_mutex_unlock( &track_mutex );
+	//pthread_mutex_lock(&songstatus_mutex);
+	//while (!music_ended) {
+	//	pthread_cond_wait( &cond_end, &songstatus_mutex);
+	//}
+	pthread_mutex_unlock(&songstatus_mutex);
 	SDL_DestroyTexture(startimgbg);
 	SDL_DestroyTexture(startimgtext1);
 	SDL_DestroyTexture(startimgtext2);

@@ -23,14 +23,7 @@
 
 /*	Global Variables	*/
 
-extern struct program_struct program;
-extern struct time_struct timing;
-extern struct audio_struct audio;
-
-extern struct level_struct level;
-extern struct lane_struct lanes;
-extern struct xy_struct grid;
-extern struct laser_struct laser;
+extern struct level_struct *level;
 
 /* Objects */
 
@@ -39,30 +32,6 @@ extern struct laser_struct laser;
 int monsterlanenum[TOTAL_LANES];
 SDL_Rect rcMonster[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
 SDL_Rect rcMonsterSrc[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
-
-struct monster_node {
-	char montype;
-	char status;
-	int health;
-	float speed;
-	float entrybeat;
-	float remainder;
-	struct SDL_Rect monster_rect;
-	struct SDL_Rect monster_src;
-	struct animate_specific *animation;
-	struct monster_node * next;
-};
-
-
-struct monster {
-	int health;
-	int attack;
-	float defence;
-	int Src[2];
-	int wh[2];
-	int generic_bank_index;
-	SDL_Texture **image;
-	};
 
 struct monster_node *linkptrs_start[TOTAL_LANES];
 struct monster_node *linkptrs_end[TOTAL_LANES];
@@ -78,47 +47,6 @@ SDL_Rect rcItemSrc[3][TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN];
 
 int (*iteminfoptrs[3])[TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
 
-struct item {
-	int itemnumber;
-	int *int1;
-	int int2;
-	void *otherdata;
-	void *functionptr;
-	int Src[2];
-	int wh[2];
-	SDL_Texture **image;
-	//void (*functionptr)(int int1, int int2);
-	};
-
-struct ui_bar {
-	int *amount;
-	int *max;
-	union {
-		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
-			struct ui_bar *self;
-		};
-		struct std std;
-	};
-};
-struct ui_counter {
-	int *value;
-	int digits;
-	int *array;
-	union {
-		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
-			struct ui_counter *self;
-		};
-		struct std std;
-	};
-};
-
-
 /* Threading */
 
 extern pthread_mutex_t display_mutex;
@@ -131,61 +59,60 @@ extern pthread_mutex_t track_mutex;
 
 /* Movement */
 
-void moveme(int *currentlane, int totallanes, int *direction, struct animate_specific *anim);
+void moveme(struct lane_struct *lanes, int *direction, struct animate_specific *anim);
 
 void movemap(struct level_struct *level_ptr, struct player_struct *player, struct xy_struct grid,
-SDL_Rect rcTile[grid.x][grid.y], 
-SDL_Rect rcTilemid[grid.x][grid.y], 
-SDL_Rect rcTSrc[grid.x][grid.y], 
-SDL_Rect rcTSrcmid[grid.x][grid.y], 
-int (*screenstrip[level.maxscreens]) [grid.x][grid.y][2], 
-int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
-int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
+SDL_Rect rcTile[level->grid.x][level->grid.y], 
+SDL_Rect rcTilemid[level->grid.x][level->grid.y], 
+SDL_Rect rcTSrc[level->grid.x][level->grid.y], 
+SDL_Rect rcTSrcmid[level->grid.x][level->grid.y], 
+int totallanes,
+int (*screenstrip[level->maxscreens]) [level->grid.x][level->grid.y][2], 
+int (*itemscreenstrip[level->maxscreens])[level->lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
 struct monster *(*monsterpokedex)[10], struct item *(*itempokedex)[10]);
 
-void movemon(float speedmultmon, struct time_struct timer, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], float (*remainder)[lanes.total], SDL_Rect player_out, SDL_Rect rcSword);
+void movemon(int totallanes, float speedmultmon, struct time_struct timing, struct monster_node *linkptrs_start[TOTAL_LANES], struct monster_node *linkptrs_end[TOTAL_LANES], int monsterlanenum[TOTAL_LANES], double remainder[level->lanes.total], SDL_Rect player_out, SDL_Rect rcSword, int width);
 
-void mode2(int spritepos [2], int *walkdir, SDL_Rect rcTSrc[grid.x][grid.y], 
-SDL_Rect rcTSrcmid[grid.x][grid.y], int sampletilemap[100][100][2], 
-int sampletilemapmid[100][100][2], SDL_Rect rcTile[grid.x][grid.y], 
-SDL_Rect rcTilemid[grid.x][grid.y]);
+void mode2(int spritepos [2], int *walkdir, SDL_Rect rcTSrc[level->grid.x][level->grid.y], 
+SDL_Rect rcTSrcmid[level->grid.x][level->grid.y], int sampletilemap[100][100][2], 
+int sampletilemapmid[100][100][2], SDL_Rect rcTile[level->grid.x][level->grid.y], 
+SDL_Rect rcTilemid[level->grid.x][level->grid.y]);
 
-void refreshtiles(int (*screenstrip[level.maxscreens])[grid.x][grid.y][2], 
-int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3],  
-int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
-int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], 
+void refreshtiles(int totallanes, int (*screenstrip[])[level->grid.x][level->grid.y][2], 
+int (*itemscreenstrip[level->maxscreens])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], 
+int currentscreen, struct xy_struct grid, SDL_Rect rcTile[level->grid.x][level->grid.y], 
 SDL_Rect rcTilemid[grid.x][grid.y], 
 SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, 
-int laneheight[lanes.total], struct monster *monsterpokedex[10], 
+int laneheight[totallanes], struct monster *bestiary[10], 
 struct item *itempokedex[10]);
 
 /* Offence */
 
-void laserfire(struct laser_struct *laser_ptr, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, 
-int laneheight[lanes.total], int currentlane, int framecount, 
-int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
-int currentscreen, int hue);
+void laserfire(struct level_struct *level, int totallanes, struct laser_struct *laser_ptr, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, 
+int laneheight[totallanes], int currentlane, int framecount, 
+int currentscreen, int hue, int *soundchecklist);
 
 /*void swordfunc(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_turnoff, 
 SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect rcSprite, 
-int laneheight[lanes.total], int currentlane, int framecount, 
-int (*monsterscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
+int laneheight[level->lanes.total], int currentlane, int framecount, 
+int (*monsterscreenstrip[level.maxscreens])[level->lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][3], 
 int currentscreen, int hue);
 */
 
-void swordfunc(struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect player_out, int laneheight[lanes.total], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES]);
+//void swordfunc(int totallanes, struct sword_struct *sword, SDL_Rect *rcSword, SDL_Rect *rcSwordSrc, SDL_Rect player_out, int laneheight[totallanes], int currentlane, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES], struct audio_struct audio);
+void swordfunc(struct level_struct *level, struct sword_struct *sword, SDL_Rect player_out, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES], struct audio_struct audio);
 
-void damage(int currentlane, struct monster_node *ptr2mon, int power);
+void damage(int currentlane, struct monster_node *ptr2mon, int power, int *soundchecklist, struct level_struct *level);
 
 /* Player Status */
 
-void amihurt(struct status_struct status, struct monster_node *linkptrs_start[lanes.total], SDL_Rect player_out, struct monster *bestiary[10]);
+void amihurt(int totallanes, struct status_struct status, struct monster_node *linkptrs_start[level->lanes.total], SDL_Rect player_out, struct monster *bestiary[10]);
 
-void touchitem(int currentlane, int currentscreen, SDL_Rect player_out, 
+void touchitem(struct lane_struct *lanes, int currentlane, int currentscreen, SDL_Rect player_out, 
 struct item *itempokedex[10], 
-int (*itemscreenstrip[level.maxscreens])[lanes.total][MAX_MONS_PER_LANE_PER_SCREEN][2], 
-int *levelover);
+int (*itemscreenstrip[level->maxscreens])[lanes->total][MAX_MONS_PER_LANE_PER_SCREEN][2], 
+int *levelover, int *soundchecklist);
 
 int invinciblefunc(struct player_struct *player);
 
@@ -205,7 +132,6 @@ void multidrop();
 
 void dropin( char arg[], int map[100][100][2], int posx, int posy);
 
-void quitlevel(SDL_Texture *img, SDL_Texture *Timg, SDL_Texture *Laserimg, 
-SDL_Texture *Swordimg, SDL_Renderer *renderer);
+void quitlevel(struct status_struct status);
 
 void emptyfunc();

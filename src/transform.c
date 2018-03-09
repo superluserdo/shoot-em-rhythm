@@ -1,6 +1,7 @@
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "structdef.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
@@ -34,7 +35,7 @@ void tr_bump(void *rect_trans, void *data) {
 	}
 
 	SDL_Rect rect = *(SDL_Rect*)rect_trans;
-	float dec = timing.currentbeat - (int)timing.currentbeat;
+	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	float peak_start = str.peak_offset - str.bump_width/2;
 	float peak_end = str.peak_offset + str.bump_width/2;
 	if ((dec >= peak_start && dec <= peak_end) || (dec >= peak_start + 1) || (dec <= peak_end - 1)) {
@@ -57,7 +58,7 @@ void tr_bump(void *rect_trans, void *data) {
 void tr_sine(void *rect_trans, void *data) {
 	struct tr_sine_data str = *(struct tr_sine_data *)data;
 	SDL_Rect rect = *(SDL_Rect*)rect_trans;
-	float dec = timing.currentbeat - (int)timing.currentbeat;
+	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	if (str.rect_bitmask & 1) {
 		rect.x += (int)str.ampl_pix*sin(2*PI*str.freq_perbeat*(dec+str.offset));
 	}
@@ -79,7 +80,7 @@ void tr_blink(void *rect_trans, void *data) {
 	int on = str.frames_on;	
 	int off = str.frames_off;	
 
-	if (timing.framecount%(on + off) >= on) {
+	if (str.status->timing->framecount%(on + off) >= on) {
 		rect.w = 0;
 		rect.h = 0;
 	}

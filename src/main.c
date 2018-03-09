@@ -3,14 +3,14 @@
 #include <semaphore.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
+#include "structdef.h"
 #include "main.h"
+#include "level.h"
 #include "music.h"
 #include <libconfig.h>
 
-extern struct time_struct timing;
 struct program_struct program = {
-	.width = NATIVE_RES_X * ZOOM_MULT,
-	.height = NATIVE_RES_Y * ZOOM_MULT
 };
 int soundchecklist[MAX_SOUNDS_LIST] = {0};
 
@@ -19,33 +19,56 @@ SDL_Window *win;
 
 int main() {
 
+
+	SDL_Window *win = NULL;
+	SDL_Renderer *renderer = NULL;
+	// Initialize SDL.
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		return 1;
+
+	//TODO:	Fix audio segfaults!
+	// start SDL with audio support
+	//if(SDL_Init(SDL_INIT_AUDIO)==-1) {
+	//    printf("SDL_Init: %s\n", SDL_GetError());
+	//    exit(1);
+	//}
+	//if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
+	//    printf("Mix_OpenAudio: %s\n", Mix_GetError());
+	//    exit(2);
+	//}
+    //    pthread_t soundeffects;
+    //    rc = pthread_create(&soundeffects, NULL, playsound, (void*)NULL);
+    //    if (rc) {
+    //            printf("ya dun goofed. return code is %d\n.", rc);
+    //            exit(-1);
+    //    }
+
+	/*	Initialise the basic game state struct	*/
+
+	struct level_struct level;
+	struct player_struct player;
+	struct audio_struct audio;
+	struct time_struct timing = get_timing();
+	struct graphics_struct graphics;
+	
+	struct status_struct status = {
+		.level = &level,
+		.player = &player,
+		.audio = &audio,
+		.timing = &timing,
+		.graphics = &graphics
+	};
+		graphics.width = NATIVE_RES_X * ZOOM_MULT;
+		graphics.height = NATIVE_RES_Y * ZOOM_MULT;
+
 	pthread_t framethread;
-	int rc = pthread_create(&framethread, NULL, frametimer, NULL);
+	int rc = pthread_create(&framethread, NULL, frametimer, (void *)&timing);
 	if (rc) {
 		printf("ya dun goofed. return code is %d\n.", rc);
 		exit(-1);
 	}
 
-
-	SDL_Window *win = NULL;
-        SDL_Renderer *renderer = NULL;
-	// Initialize SDL.
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
-                        return 1;
-
-	// start SDL with audio support
-	if(SDL_Init(SDL_INIT_AUDIO)==-1) {
-	    printf("SDL_Init: %s\n", SDL_GetError());
-	    exit(1);
-	}
-        pthread_t soundeffects;
-        rc = pthread_create(&soundeffects, NULL, playsound, (void*)NULL);
-        if (rc) {
-                printf("ya dun goofed. return code is %d\n.", rc);
-                exit(-1);
-        }
-
-	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, program.width, program.height, 0);
+	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
 		printf("SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
@@ -60,27 +83,31 @@ int main() {
 	   	printf("%s  %d\n", info.name, info.flags&2);
 		}
 	}
+	graphics.renderer = renderer;
 
+	enum  return_codes_e returncode = startscreen(win, renderer, &status);
 
-
-	int returncode = startscreen(win, renderer);
-
+	/*	The Main Game Loop */
+	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
 	while (1) {
 
-		if ( returncode == 0 ) {
-			returncode = levelfunc(win, renderer);
+		if ( returncode == R_SUCCESS ) {
+			returncode = level_init(status);
 		}
-		else if ( returncode > 0 && returncode < 100 ) {
+		else if ( returncode == R_FAILURE ) {
+			returncode = level_loop(status);
+		}
+		else if ( returncode == R_STARTSCREEN ) {
+			returncode = startscreen(win, renderer, &status);
+		}
+		else if ( returncode == R_LOOP_LEVEL) {
+			returncode = level_loop(status);
+		}
+		else if ( returncode == R_RESTART_LEVEL) {
+			returncode = level_init(status);
+		}
+		else if ( returncode == R_QUIT_TO_DESKTOP) {
 			break;
-		}
-		else if ( returncode == 101 ) {
-			returncode = startscreen(win, renderer);
-		}
-		else if ( returncode == 102 ) {
-			break;
-		}
-		else if ( returncode >= 200 ) {
-			returncode = levelfunc(win, renderer);
 		}
 		else {
 			break;

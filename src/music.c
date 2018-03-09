@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include "structdef.h"
 #include "main.h"
 #include "music.h"
 #define SAMPLE_RATE 44100
@@ -12,6 +13,7 @@
 pthread_cond_t soundstatus_cond;
 pthread_mutex_t soundstatus_mutex;
 pthread_mutex_t track_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t songstatus_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  cond_end   = PTHREAD_COND_INITIALIZER;
 pthread_cond_t  cond_end2   = PTHREAD_COND_INITIALIZER;
 
@@ -40,6 +42,8 @@ int endsound = 0;
 int endingcount = END_COUNT_MAX;
 int starting = 1;
 int startingcount = START_COUNT_MAX;
+int soundstatus;
+int music_ended;
 
 int fade = 0;
 
@@ -75,10 +79,10 @@ void* musicstart(void* argvoid) {
 	pthread_t soundthread;
 	char *trackarray[5];
 	trackarray[0] = "0";	
-	trackarray[1] = "../music/Gator.ogg";
-	trackarray[2] = "../music/rally2.ogg";
-	trackarray[3] = "../music/world.ogg";	
-	trackarray[4] = "../music/rubyremix.wav";	
+	trackarray[1] = "./../music/Gator.ogg";
+	trackarray[2] = "./../music/rally2.ogg";
+	trackarray[3] = "./../music/world.ogg";	
+	trackarray[4] = "./../music/rubyremix.wav";	
 	
 	pthread_mutex_lock( &track_mutex );
 	int oldtrack = audio.track;
@@ -111,16 +115,27 @@ void *playsound(void* soundpath){
 
 	extern pthread_cond_t soundstatus_cond;
 	// start SDL with audio support
-	if(SDL_Init(SDL_INIT_AUDIO)==-1) {
-	    printf("SDL_Init: %s\n", SDL_GetError());
-	    exit(1);
-	}
+	//if(SDL_Init(SDL_INIT_AUDIO)==-1) {
+	//    printf("SDL_Init: %s\n", SDL_GetError());
+	//    exit(1);
+	//}
 	// open 44.1KHz, signed 16bit, system byte order,
 	//      stereo audio, using 1024 byte chunks
-	if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
-	    printf("Mix_OpenAudio: %s\n", Mix_GetError());
-	    exit(2);
-	}
+	int audio_rate = 44100;
+	int audio_channels = 2;
+	int audio_buffers = 2;
+	Uint16 audio_format = MIX_DEFAULT_FORMAT;
+	//if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0) {
+	//    printf("Mix_OpenAudio: %s\n", Mix_GetError());
+	//    exit(2);
+	//} else {
+		Mix_QuerySpec(&audio_rate, &audio_format, &audio_channels);
+		printf("Opened audio at %d Hz %d bit %s (%s), %d bytes audio buffer\n", audio_rate,
+		(audio_format&0xFF),
+		(audio_channels > 2) ? "surround" : (audio_channels > 1) ? "stereo" : "mono",
+		(audio_format&0x1000) ? "BE" : "LE",
+		audio_buffers );
+	//}
 	
 	endsound = 0;
 
@@ -205,6 +220,7 @@ void *playsound(void* soundpath){
 	int soundchecklisttemp[MAX_SOUNDS_LIST];	
 
 	while(1) {
+		pthread_mutex_lock(&display_mutex);
 		pthread_cond_wait(&display_cond, &display_mutex);
 		pthread_mutex_unlock(&display_mutex);
 
@@ -212,8 +228,10 @@ void *playsound(void* soundpath){
 		for (int i = 0; i < MAX_SOUNDS_LIST; i++ ) {
 			soundchecklisttemp[i] = audio.soundchecklist[i];
 		}
-		pthread_cond_broadcast( &soundstatus_cond );
+
+		soundstatus = 1;
 		pthread_mutex_unlock( &soundstatus_mutex);
+		pthread_cond_broadcast( &soundstatus_cond );
 
 		for (int i = 0; i < MAX_SOUNDS_LIST; i++ ) {
 			if ( soundchecklisttemp[i] == 1 ) {
@@ -267,7 +285,6 @@ void *playsound(void* soundpath){
 	}	
 	
 	pthread_cond_broadcast( &soundstatus_cond );
-	pthread_mutex_unlock( &soundstatus_mutex);
 
 	Mix_CloseAudio();
 	
@@ -298,21 +315,23 @@ void *playmusic(void* argvoid){
 	struct playmusic_struct *arguments = (struct playmusic_struct *)argvoid;
 	// open 44.1KHz, signed 16bit, system byte order,
 	//      stereo audio, using 1024 byte chunks
-	if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
-	    printf("Mix_OpenAudio: %s\n", Mix_GetError());
-	    exit(2);
-	}
+	//if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
+	//    printf("Mix_OpenAudio: %s\n", Mix_GetError());
+	//    exit(2);
+	//}
+	
+	struct time_struct timing = *arguments->timing;
 
 	printf("%s\n", arguments->soundpath);
 	// print the number of music decoders available
-	//printf("There are %d music deocoders available\n", Mix_GetNumMusicDecoders());
+	printf("There are %d music deocoders available\n", Mix_GetNumMusicDecoders());
 
 
 
 	// print music decoders available
-	//int i,max=Mix_GetNumMusicDecoders();
-	//for(i=0; i<max; ++i)
-	//      printf("Music decoder %d is for %s",Mix_GetMusicDecoder(i));
+	int i,max=Mix_GetNumMusicDecoders();
+	for(i=0; i<max; ++i)
+		printf("Music decoder %d is for %s", i, Mix_GetMusicDecoder(i));
 
 	const char *path = arguments->soundpath;
 
@@ -352,13 +371,16 @@ void *playmusic(void* argvoid){
 		            // fade out music to finish 3 seconds from now
 		                while(Mix_FadeOutMusic(1000) && Mix_PlayingMusic()) {
 					// wait for any fades to complete
-					SDL_Delay(100);
+					pthread_mutex_lock(&display_mutex);
+					pthread_cond_wait(&display_cond, &display_mutex);
+					pthread_mutex_unlock(&display_mutex);
 		                }
 			}
 		    break;
 		}
 		else if (*arguments->pause) {
 			Mix_PauseMusic();
+		Mix_SetMusicPosition((float)(timing.startpause - timing.pausetime) / 1000);
 			while (1) {
 				if (ending) {
 					Mix_HaltMusic();
@@ -368,7 +390,9 @@ void *playmusic(void* argvoid){
 					Mix_ResumeMusic();
 					break;
 				}
-				SDL_Delay(10);
+				pthread_mutex_lock(&display_mutex);
+				pthread_cond_wait(&display_cond, &display_mutex);
+				pthread_mutex_unlock(&display_mutex);
 			}
 		}
 		else if (audio.music_mute != muted) {
@@ -380,10 +404,15 @@ void *playmusic(void* argvoid){
 				Mix_VolumeMusic(audio.music_volume * 128);
 			}
 		}
-		SDL_Delay(100);
+		pthread_mutex_lock(&display_mutex);
+		pthread_cond_wait(&display_cond, &display_mutex);
+		pthread_mutex_unlock(&display_mutex);
 	}
 	audio.noise = 0;
-	pthread_cond_signal( &cond_end);
+	pthread_mutex_lock(&songstatus_mutex);
+	music_ended = 1;
+	pthread_mutex_unlock(&songstatus_mutex);
+	pthread_cond_broadcast(&cond_end);
 
 	Mix_Quit();
 

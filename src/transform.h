@@ -1,4 +1,5 @@
 struct tr_resize_data {
+	struct status_struct *status;
 	float w;
 	float h;
 	struct xy_struct *centre;
@@ -6,6 +7,7 @@ struct tr_resize_data {
 void tr_resize(void *rect_trans, void *data);
 
 struct tr_bump_data {
+	struct status_struct *status;
 	float freq_perbeat;
 	float ampl;
 	float peak_offset;
@@ -15,6 +17,7 @@ struct tr_bump_data {
 void tr_bump(void *rect_trans, void *data);
 
 struct tr_sine_data {
+	struct status_struct *status;
 	int rect_bitmask;
 	float freq_perbeat;
 	float ampl_pix;
@@ -24,6 +27,7 @@ struct tr_sine_data {
 void tr_sine(void *rect_trans, void *data);
 
 struct tr_blink_data {
+	struct status_struct *status;
 	int frames_on;
 	int frames_off;
 };

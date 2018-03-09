@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <SDL2/SDL.h>
+#include "structdef.h"
 #include "main.h"
 #include "level.h"
 #include "helpers.h"

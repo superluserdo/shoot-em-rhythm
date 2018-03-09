@@ -1,6 +1,7 @@
 struct playmusic_struct {
 	char *soundpath;
 	int *pause;
+	struct time_struct *timing;
 };
 
 extern pthread_mutex_t display_mutex;
