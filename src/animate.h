@@ -1,35 +1,8 @@
-	/* Funcs */
+/* Funcs */
 
 int advanceFrames(struct render_node *render_node_head, float currentbeat);
 
-/* RENDERING */
-
-	/* Structs */
-
-struct render_node {
-
-	struct render_node *prev;
-	struct render_node *next;
-	SDL_Rect *rect_in;
-	SDL_Rect rect_out;//*rect_out;
-	SDL_Texture *img;
-	int (*customRenderFunc)(void*);
-	void *customRenderArgs;
-	SDL_Renderer *renderer;
-	struct animate_specific *animation;
-	struct func_node *transform_list;
-	float z; // Player defined as z = 0. +z defined as out of screen towards human.
-};
-
-	/* z	Reserved for
-	 * -1	background
-	 *  0	player
-	 *  1	enemies
-	 */
-
-	/* Funcs */
-
-
+void render_process(struct graphics_struct *graphics, struct time_struct *timing);
 int renderlist(struct render_node *node_ptr);
 
 int node_insert_over(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest);

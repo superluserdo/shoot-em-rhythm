@@ -26,6 +26,10 @@ struct tr_sine_data {
 
 void tr_sine(void *rect_trans, void *data);
 
+void tr_sine_sq(void *rect_trans, void *data);
+
+void tr_sine_abs(void *rect_trans, void *data);
+
 struct tr_blink_data {
 	struct status_struct *status;
 	int frames_on;
@@ -33,4 +37,6 @@ struct tr_blink_data {
 };
 
 void tr_blink(void *rect_trans, void *data);
+
+void tr_constmult(SDL_Rect *rect, int rect_bitmask, float ampl_pix, float mult);
 

@@ -6,6 +6,7 @@
 #include "structdef.h"
 #include "main.h"
 #include "music.h"
+#include "clock.h"
 #define START_PATH0 "../art/startimgbg.png"
 #define START_PATH1 "../art/startimgtext1.png"
 #define START_PATH2 "../art/startimgtext2.png"
@@ -112,10 +113,12 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 		SDL_SetRenderTarget(renderer, NULL);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texTarget, NULL,  NULL);
-		pthread_mutex_lock(&display_mutex);
-		pthread_cond_wait(&display_cond, &display_mutex);
+		//pthread_mutex_lock(&display_mutex);
+		//pthread_cond_wait(&display_cond, &display_mutex);
+		SDL_Delay(wait_to_present(status->timing));
 		SDL_RenderPresent(renderer);
-		pthread_mutex_unlock(&display_mutex);
+		update_time(status->timing);
+		//pthread_mutex_unlock(&display_mutex);
 	}
 
 return R_SUCCESS;

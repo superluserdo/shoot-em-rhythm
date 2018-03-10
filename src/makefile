@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o rdtsc.o
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall
+output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o rdtsc.o
+	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -o ../bin/shoot-em-rhythm -Wall
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c main.c
@@ -27,6 +27,9 @@ animate.o: animate.c structdef.h animate.h
 
 transform.o: transform.c structdef.h transform.h
 	gcc -g3 -c transform.c
+
+newstruct.o: newstruct.c structdef.h newstruct.h
+	gcc -g3 -c newstruct.c
 
 rdtsc.o: rdtsc.c
 	gcc -g3 -c rdtsc.c

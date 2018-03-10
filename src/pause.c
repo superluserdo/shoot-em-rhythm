@@ -7,6 +7,7 @@
 #include <SDL2/SDL_ttf.h>
 #include "structdef.h"
 #include "main.h"
+#include "clock.h"
 //#include "level.h"
 
 extern pthread_mutex_t display_mutex;
@@ -173,9 +174,10 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		SDL_SetRenderTarget(renderer, NULL);
 		SDL_RenderCopy(renderer, texTarget, NULL, NULL);
 
-		pthread_cond_wait(&display_cond, &display_mutex);
+		wait_to_present(status->timing);
+		//pthread_cond_wait(&display_cond, &display_mutex);
 		SDL_RenderPresent(renderer);
-		pthread_mutex_unlock(&display_mutex);
+		//pthread_mutex_unlock(&display_mutex);
 
 	}
 

@@ -5,9 +5,11 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include "structdef.h"
+#include "newstruct.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
+#include "clock.h"
 #include <libconfig.h>
 
 struct program_struct program = {
@@ -47,11 +49,11 @@ int main() {
 
 	/*	Initialise the basic game state struct	*/
 
-	struct level_struct level;
-	struct player_struct player;
-	struct audio_struct audio;
-	struct time_struct timing = get_timing();
-	struct graphics_struct graphics;
+	struct level_struct level = {0};
+	struct player_struct player = {0};
+	struct audio_struct audio = {0};
+	struct time_struct timing = {0};
+	struct graphics_struct graphics = {0};
 	
 	struct status_struct status = {
 		.level = &level,
@@ -60,15 +62,20 @@ int main() {
 		.timing = &timing,
 		.graphics = &graphics
 	};
-		graphics.width = NATIVE_RES_X * ZOOM_MULT;
-		graphics.height = NATIVE_RES_Y * ZOOM_MULT;
+	timing.fpsanim = 30;
+	timing.fpsglobal = 60;
+	timing_init(&timing);
+	graphics.width = NATIVE_RES_X * ZOOM_MULT;
+	graphics.height = NATIVE_RES_Y * ZOOM_MULT;
 
-	pthread_t framethread;
-	int rc = pthread_create(&framethread, NULL, frametimer, (void *)&timing);
-	if (rc) {
-		printf("ya dun goofed. return code is %d\n.", rc);
-		exit(-1);
-	}
+	/* NOTE: I've moved timing out of its own thread into the main thread.
+	 * frametimer() is no longer used */
+	//pthread_t framethread;
+	//int rc = pthread_create(&framethread, NULL, frametimer, (void *)&timing);
+	//if (rc) {
+	//	printf("ya dun goofed. return code is %d\n.", rc);
+	//	exit(-1);
+	//}
 
 	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
@@ -120,9 +127,9 @@ int main() {
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
 	printf("%d\n", timing.framecount);
-	pthread_mutex_lock(&quit_mutex);
-	quitgame = 1;
-	pthread_mutex_unlock(&quit_mutex);
-	pthread_join(framethread, NULL);
+	//pthread_mutex_lock(&quit_mutex);
+	//quitgame = 1;
+	//pthread_mutex_unlock(&quit_mutex);
+	//pthread_join(framethread, NULL);
 	return 0;
 }

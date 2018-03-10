@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
 #include "structdef.h"
+#include "newstruct.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
@@ -144,6 +145,7 @@ int level_init (struct status_struct status) {
 
 	/* Declare Textures */
 	struct rects_struct *rects = malloc(sizeof(struct rects_struct));
+	*rects = new_rects_struct();
 	level->rects = rects;
 
 	SDL_Texture *Spriteimg = NULL;
@@ -183,7 +185,8 @@ int level_init (struct status_struct status) {
 	player->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 	player->size_ratio.w = 1.0;
 	player->size_ratio.h = 1.0;
-	graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
+	//graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
+	graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
 	player->animation->rules_list->data = (void *)&status;
 
 	/*		Tiles		*/
@@ -768,15 +771,8 @@ int level_init (struct status_struct status) {
 	/*	Event Handling	*/
 
 	struct level_var_struct *vars = malloc(sizeof(struct level_var_struct));
+	*vars = new_level_var_struct();
 	level->vars = vars;
-	//vars->directionbuttonlist = {0, 0, 0, 0};
-	//vars->history = {0, 0, 0, 0};
-	vars->histwrite = 0;
-	vars->histread = 0;
-	//vars->actionbuttonlist = {0, 0, 0, 0}; //a, b, start, select
-	//vars->acthistory = {0, 0, 0, 0};
-	vars->acthistwrite = 0;
-	vars->acthistread = 0;
 
 	/* Play some music */
 
@@ -800,19 +796,19 @@ int level_init (struct status_struct status) {
 	//}
 
 
-	pthread_mutex_lock( &track_mutex );
+	//pthread_mutex_lock( &track_mutex );
 	audio->track = audio->newtrack;
-	pthread_mutex_unlock( &track_mutex );
+	//pthread_mutex_unlock( &track_mutex );
 
-	pthread_mutex_lock( &clock_mutex );
+	//pthread_mutex_lock( &clock_mutex );
 	level->pauselevel = 0;
 	timing->pausetime = 0;
 	timing->zerotime = SDL_GetTicks();
 	timing->countbeats = 1;
-	pthread_mutex_unlock( &clock_mutex );
-	pthread_mutex_lock(&display_mutex);
-	pthread_cond_wait(&display_cond, &display_mutex);
-	pthread_mutex_unlock(&display_mutex);
+	//pthread_mutex_unlock( &clock_mutex );
+	//pthread_mutex_lock(&display_mutex);
+	//pthread_cond_wait(&display_cond, &display_mutex);
+	//pthread_mutex_unlock(&display_mutex);
 
 	/* Snazzy Effects */
 
@@ -873,12 +869,12 @@ int level_loop(struct status_struct status) {
 			quitlevel(status);
 			return R_STARTSCREEN;
 		}
-		pthread_mutex_lock( &soundstatus_mutex);
+		//pthread_mutex_lock( &soundstatus_mutex);
 		//while(!vars->soundstatus) {
 		//	pthread_cond_wait( &soundstatus_cond, &soundstatus_mutex );
 		//}
 		vars->soundstatus = 0;
-		pthread_mutex_unlock( &soundstatus_mutex);
+		//pthread_mutex_unlock( &soundstatus_mutex);
 		for (int i = 0; i < MAX_SOUNDS_LIST; i++ ) {
 			if ( audio->soundchecklist[i] == 1 )
 				audio->soundchecklist[i] = 0;
@@ -896,7 +892,7 @@ int level_loop(struct status_struct status) {
 			if (e.type == SDL_QUIT) {
 				level->levelover = 1;
 				quitlevel(status);
-				return R_QUIT_TO_DESKTOP; /* Quit to desktop" code */
+				return R_QUIT_TO_DESKTOP;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
 				timing->startpause = SDL_GetTicks();
@@ -993,6 +989,10 @@ int level_loop(struct status_struct status) {
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_f){
 				vars->actionbuttonlist[3] = 1;
 				vars->acthistory[vars->acthistwrite] = 0;
+			}
+
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_p){
+				level->partymode = !level->partymode;
 			}
 
 
@@ -1143,13 +1143,13 @@ int level_loop(struct status_struct status) {
 			rects->rcBeatSrc[i].x = beatarray[i] * 5;
 			//			SDL_RenderCopy(renderer, imgs->Beatimg, &rcBeatSrc[i], &rcBeat[i]);
 		}
-		advanceFrames(graphics->render_node_head, timing->currentbeat);
-		renderlist(graphics->render_node_head);
+		//advanceFrames(graphics->render_node_head, timing->currentbeat);
+		//renderlist(graphics->render_node_head);
 		struct render_node *node_ptr = graphics->render_node_head;
 		//Detach the texture
-		SDL_SetRenderTarget(renderer, NULL);
+		//SDL_SetRenderTarget(renderer, NULL);
 
-		SDL_RenderClear(renderer);
+		//SDL_RenderClear(renderer);
 
 		if (status.level->partymode) {
 			level->effects->angle ++;
@@ -1158,18 +1158,36 @@ int level_loop(struct status_struct status) {
 			int g = (level->effects->colournum + 100)%255;
 			int b = (level->effects->colournum + 200)%255;
 			SDL_SetTextureColorMod(graphics->imgs->texTarget, r,g,b);
-			SDL_RenderCopyEx(renderer, graphics->imgs->texTarget, NULL, NULL, level->effects->angle * level->speedmult, NULL, SDL_FLIP_NONE);
+			struct rendercopyex_struct rendercopyex_data = {
+				.renderer = renderer,
+				.texture = graphics->imgs->texTarget,
+				.srcrect = NULL,
+				.dstrect = NULL,
+				.angle = level->effects->angle * level->speedmult,
+				.center = NULL,
+				.flip = SDL_FLIP_NONE
+			};
+			graphics->rendercopyex_data = &rendercopyex_data;
+			//SDL_RenderCopyEx(renderer, graphics->imgs->texTarget, NULL, NULL, level->effects->angle * level->speedmult, NULL, SDL_FLIP_NONE);
 		}
 		else {
-			SDL_RenderCopy(renderer, graphics->imgs->texTarget, NULL, NULL);
+			graphics->rendercopyex_data = NULL;
+			//SDL_RenderCopy(renderer, graphics->imgs->texTarget, NULL, NULL);
 		}
 
-		pthread_mutex_lock(&display_mutex);
-		pthread_cond_wait(&display_cond, &display_mutex);
-		SDL_RenderPresent(renderer);
-		pthread_mutex_unlock(&display_mutex);
+		//pthread_mutex_lock(&display_mutex);
+		//pthread_cond_wait(&display_cond, &display_mutex);
+		
+		//int delay_time =wait_to_present(timing);
+		//printf("Delaying by %d ms\n", delay_time);
+		//SDL_Delay(delay_time);
+		//SDL_RenderPresent(renderer);
+		//update_time(timing);
+		render_process(graphics, timing);
 
-		SDL_SetRenderTarget(renderer, graphics->imgs->texTarget);
+		//pthread_mutex_unlock(&display_mutex);
+
+		//SDL_SetRenderTarget(renderer, graphics->imgs->texTarget);
 		cpuend = rdtsc();
 		//printf("%d\n", cpuend-cpustart);
 	//}
@@ -1286,10 +1304,10 @@ void movemon(int totallanes, float speedmultmon, struct time_struct timing, stru
 			float Dt;
 			while (linkptrs_start[lane] != NULL && linkptrs_end[lane] != NULL) {
 				transspeed = timing.bps * linkptrs_start[lane]->speed * ZOOM_MULT * speedmultmon * timing.pxperbeat + ptr2mon->remainder;
-				pthread_mutex_lock( &clock_mutex );
+				//pthread_mutex_lock( &clock_mutex );
 				float extra = (((float)(width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
 				Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
-				pthread_mutex_unlock( &clock_mutex );
+				//pthread_mutex_unlock( &clock_mutex );
 				if (Dt >= 0) {
 					float Dx = Dt / timing.bps * speedmultmon * linkptrs_end[lane]->speed;
 					linkptrs_end[lane]->monster_rect.x = width - Dx;
@@ -1505,7 +1523,7 @@ void quitlevel(struct status_struct status) {
 	//while(!music_ended) {
 	//	pthread_cond_wait( &cond_end, &track_mutex);
 	//}
-	pthread_mutex_unlock( &track_mutex );
+	//pthread_mutex_unlock( &track_mutex );
 	SDL_DestroyTexture(graphics->imgs->Spriteimg);
 	SDL_DestroyTexture(graphics->imgs->Timg);
 	SDL_DestroyTexture(graphics->imgs->Laserimg);

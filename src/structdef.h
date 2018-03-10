@@ -176,6 +176,7 @@ struct audio_struct {
 struct time_struct {
 
 	int ticks;
+	int ticks_last_frame;
 	int countbeats;
 	float bps;
 	float startbeat;
@@ -205,6 +206,7 @@ struct graphics_struct {
 	struct ui_struct *ui;
 	struct texture_struct *imgs; //temporary
 	int num_images;
+	struct rendercopyex_struct *rendercopyex_data;
 	SDL_Texture *image_bank[];
 };
 
@@ -220,6 +222,41 @@ struct texture_struct {
 	SDL_Texture *Itemimg;
 	SDL_Texture *texTarget;
 };
+
+/* RENDERING */
+
+/* Custom Rendering (SDL_RenderCopyEx()) arguments struct */
+
+struct rendercopyex_struct {
+	SDL_Renderer *renderer;
+	SDL_Texture *texture;
+	SDL_Rect *srcrect;
+	SDL_Rect *dstrect;
+	double angle;
+	SDL_Point *center;
+	SDL_RendererFlip flip;
+};
+
+struct render_node {
+
+	struct render_node *prev;
+	struct render_node *next;
+	SDL_Rect *rect_in;
+	SDL_Rect rect_out;//*rect_out;
+	SDL_Texture *img;
+	int (*customRenderFunc)(void*);
+	void *customRenderArgs;
+	SDL_Renderer *renderer;
+	struct animate_specific *animation;
+	struct func_node *transform_list;
+	float z; // Player defined as z = 0. +z defined as out of screen towards human.
+};
+
+	/* z	Reserved for
+	 * -1	background
+	 *  0	player
+	 *  1	enemies
+	 */
 
 /*	Level	*/
 
@@ -350,6 +387,6 @@ struct func_node {
 };
 
 enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
-enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS};
+enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2};
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };

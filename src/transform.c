@@ -57,22 +57,44 @@ void tr_bump(void *rect_trans, void *data) {
 
 void tr_sine(void *rect_trans, void *data) {
 	struct tr_sine_data str = *(struct tr_sine_data *)data;
-	SDL_Rect rect = *(SDL_Rect*)rect_trans;
 	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
-	if (str.rect_bitmask & 1) {
-		rect.x += (int)str.ampl_pix*sin(2*PI*str.freq_perbeat*(dec+str.offset));
-	}
-	if (str.rect_bitmask & 2) {
-		rect.y += (int)str.ampl_pix*sin(2*PI*str.freq_perbeat*(dec+str.offset));
-	}
-	if (str.rect_bitmask & 4) {
-		rect.w += (int)str.ampl_pix*sin(2*PI*str.freq_perbeat*(dec+str.offset));
-	}
-	if (str.rect_bitmask & 8) {
-		rect.h += (int)str.ampl_pix*sin(2*PI*str.freq_perbeat*(dec+str.offset));
-	}
-	*(SDL_Rect *)rect_trans = rect;
+	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
+	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
 }
+
+void tr_sine_sq(void *rect_trans, void *data) {
+	struct tr_sine_data str = *(struct tr_sine_data *)data;
+	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
+	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
+	sin_mult *= sin_mult;
+	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
+}
+
+void tr_sine_abs(void *rect_trans, void *data) {
+	struct tr_sine_data str = *(struct tr_sine_data *)data;
+	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
+	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
+	sin_mult = -fabs(sin_mult);
+	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
+}
+
+void tr_constmult(SDL_Rect *rect, int rect_bitmask, float ampl_pix, float mult) {
+	if (rect_bitmask & 1) {
+		rect->x += (int)ampl_pix*mult;
+	}
+	if (rect_bitmask & 2) {
+		rect->y += (int)ampl_pix*mult;
+	}
+	if (rect_bitmask & 4) {
+		rect->w += (int)ampl_pix*mult;
+	}
+	if (rect_bitmask & 8) {
+		rect->h += (int)ampl_pix*mult;
+	}
+}
+
+//void tr_sine_sq(void *rect_trans, void *data) {
+	
 
 void tr_blink(void *rect_trans, void *data) {
 	SDL_Rect rect = *(SDL_Rect*)rect_trans;

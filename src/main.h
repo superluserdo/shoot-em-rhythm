@@ -3,8 +3,6 @@
 #define NATIVE_RES_X 640
 #define NATIVE_RES_Y 360
 
-void *frametimer(void *);
-struct time_struct get_timing();
 int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status);
 
 int level_init(struct status_struct status);

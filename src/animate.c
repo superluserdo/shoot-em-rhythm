@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
 #include "structdef.h"
+#include "newstruct.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
@@ -22,6 +23,28 @@ int transform_node_count = 0;
 /* RENDER */
 extern SDL_Texture **image_bank;
 struct animate_specific *default_specific_template = NULL;
+
+void render_process(struct graphics_struct *graphics, struct time_struct *timing) {
+	advanceFrames(graphics->render_node_head, timing->currentbeat);
+	renderlist(graphics->render_node_head);
+
+	SDL_SetRenderTarget(graphics->renderer, NULL);
+	SDL_RenderClear(graphics->renderer);
+
+	if (graphics->rendercopyex_data) {
+		struct rendercopyex_struct *data = graphics->rendercopyex_data;
+		SDL_RenderCopyEx(data->renderer, data->texture, data->srcrect, 
+						data->dstrect, data->angle, data->center, data->flip);
+	}
+	else {
+		SDL_RenderCopy(graphics->renderer, graphics->imgs->texTarget, NULL, NULL);
+	}
+	SDL_Delay(wait_to_present(timing));
+	SDL_RenderPresent(graphics->renderer);
+	update_time(timing);
+
+	SDL_SetRenderTarget(graphics->renderer, graphics->imgs->texTarget);
+}
 
 int renderlist(struct render_node *node_ptr) {
 	while (node_ptr != NULL) {
@@ -353,7 +376,8 @@ int render_node_populate(struct graphics_struct *graphics, struct render_node *r
 	testfunc->next->next = NULL;
 
 
-	r_node = create_render_node();
+	r_node = malloc(sizeof(struct render_node));
+	*r_node = new_render_node();
 	r_node->rect_in = &rcSrc;
 	r_node->rect_out = testspecific->rect_out;
 	r_node->renderer = renderer;
@@ -413,11 +437,11 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
 		teststruct->status = status;
 		teststruct->rect_bitmask = 2;
-		teststruct->freq_perbeat = 1;
-		teststruct->ampl_pix = 10.0;
+		teststruct->freq_perbeat = 0.5;
+		teststruct->ampl_pix = 30.0;
 		teststruct->offset = 0.0;
 		tr_node->data = (void *)teststruct;
-		tr_node->func = &tr_sine;
+		tr_node->func = &tr_sine_abs;
 		tr_node->next = NULL;
 	}else if (graphic_category == UI) {
 		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
@@ -523,7 +547,8 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 
 	struct animate_generic *generic = specific->generic;
 
-	struct render_node *r_node = create_render_node();
+	struct render_node *r_node = malloc(sizeof(struct render_node));
+	*r_node = new_render_node();
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
 	r_node->renderer = graphics->renderer;
 	r_node->img = generic->clips[specific->clip]->img;
