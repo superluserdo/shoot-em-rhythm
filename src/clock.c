@@ -114,8 +114,8 @@ int wait_to_present(struct time_struct *timing) {
 
 void update_time(struct time_struct *timing) {
 
-	timing->ticks = SDL_GetTicks();
 	timing->ticks_last_frame = timing->ticks;
+	timing->ticks = SDL_GetTicks();
 	int ticktime = timing->ticks - timing->zerotime;
 	timing->currentbeat = (float)(ticktime - timing->pausetime)* timing->bps / 1000 + timing->startbeat + 1;
 	timing->currentbeat_int = (int) timing->currentbeat;
