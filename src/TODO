@@ -29,3 +29,11 @@
 	> Fix broken restart and return to startscreen
 
 	> Fix segfault on setting total lane number too high in level.cfg (not sure how high is too high)
+
+------ 2018-03-10 ---------
+
+	> As well as purely function-based transformations, have some kind of frame-based-with-interpolation transformation system too.
+
+	> Add method to log the render_node list (or changes to it?) every frame. This could be stored and played back as a film later.
+
+	> Add a module/dynamic library system, possibly with the option of a whole python interpreter that can edit variables and call functions from another thread/process. Look into restricting function calls to a set of the ones in the game for security.

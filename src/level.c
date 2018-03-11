@@ -854,6 +854,14 @@ int level_loop(struct status_struct status) {
 	//while (1) {
 
 		cpustart = rdtsc();
+
+		/* Hooks! */
+
+		struct hooks_list_struct *hook = status.program->hooks.level_loop;
+		while (hook) {
+			hook->hookfunc(&status);
+			hook = hook->next;
+		}
 		
 		if ( !debugcount ) {
 			printf("%f\n", timing->currentbeat);

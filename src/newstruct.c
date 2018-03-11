@@ -75,10 +75,10 @@ struct player_struct new_player_struct() {
 
 /* Whole Program */
 
-//struct program_struct new_program_struct() {
-//	struct program_struct new = {0};
-//	return new;
-//}
+struct program_struct new_program_struct() {
+	struct program_struct new = {0};
+	return new;
+}
 
 /* Audio */
 

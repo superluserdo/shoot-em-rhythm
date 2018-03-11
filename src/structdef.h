@@ -38,6 +38,7 @@ struct status_struct {
 	struct audio_struct *audio;
 	struct time_struct *timing;
 	struct graphics_struct *graphics;
+	struct program_struct *program;
 
 };
 
@@ -153,9 +154,28 @@ struct player_struct {
 	};
 };
 
+/* Plugin Stuff */
+
+struct hooks_struct {
+	int numhooks;
+	void *(**hookfuncs)(struct status_struct *status);
+};
+
+struct hooks_list_struct {
+	void *(*hookfunc)(struct status_struct *status);
+	struct hooks_list_struct *next;
+};
+
+struct hooktypes_struct {
+	struct hooks_list_struct *frame;
+	struct hooks_list_struct *level_init;
+	struct hooks_list_struct *level_loop;
+};
+
 /* Whole Program */
 
 struct program_struct {
+	struct hooktypes_struct hooks;
 };
 
 /* Audio */
@@ -390,3 +410,5 @@ enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
 enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2};
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
+
+enum hook_type_e {FRAME, LEVEL_INIT, LEVEL_LOOP};
