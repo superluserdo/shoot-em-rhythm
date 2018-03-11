@@ -55,6 +55,8 @@ int level_init (struct status_struct status) {
 
 	struct lane_struct *lanes = &level->lanes;
 
+	timing_init(timing);
+
 	timing->pauselevel = &level->pauselevel;
 
 	/* Status of the Player */
@@ -806,10 +808,6 @@ int level_init (struct status_struct status) {
 	//pthread_mutex_unlock( &track_mutex );
 
 	//pthread_mutex_lock( &clock_mutex );
-	level->pauselevel = 0;
-	timing->pausetime = 0;
-	timing->zerotime = SDL_GetTicks();
-	timing->countbeats = 1;
 	//pthread_mutex_unlock( &clock_mutex );
 	//pthread_mutex_lock(&display_mutex);
 	//pthread_cond_wait(&display_cond, &display_mutex);
@@ -1321,6 +1319,7 @@ void movemon(int totallanes, float speedmultmon, struct time_struct timing, stru
 				//pthread_mutex_lock( &clock_mutex );
 				float extra = (((float)(width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
 				Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
+				printf("%f\n", extra);
 				//pthread_mutex_unlock( &clock_mutex );
 				if (Dt >= 0) {
 					float Dx = Dt / timing.bps * speedmultmon * linkptrs_end[lane]->speed;

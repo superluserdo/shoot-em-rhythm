@@ -584,8 +584,8 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 	if(! config_read_file(&cfg, cfg_path))
 	{
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
-		fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 		config_error_line(&cfg), config_error_text(&cfg));
+		fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 		config_destroy(&cfg);
 		return(R_FAILURE);
 	}

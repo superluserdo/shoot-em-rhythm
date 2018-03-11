@@ -89,14 +89,27 @@ void timing_init(struct time_struct *timing) {
 	 * Right now intended to be run once in the whole program.
 	 * May change this to once per level if needed. */
 
-	timing->zerotime = SDL_GetTicks();
+	float fpsanim, fpsglobal;
+
 	/* Set fps to 60 if not already specified */
-	if (!timing->fpsanim) {
-		timing->fpsanim = 60;
+	if (timing->fpsanim == 0) {
+		fpsanim = 60;
+	} else {
+		fpsanim = timing->fpsanim;
 	}
-	if (!timing->fpsglobal) {
-		timing->fpsglobal = 60;
+	if (timing->fpsglobal == 0) {
+		fpsglobal = 60;
+	} else {
+		fpsglobal = timing->fpsglobal;
 	}
+
+	struct time_struct newtime = {0};
+	*timing = newtime;
+	timing->fpsanim = fpsanim;
+	timing->fpsglobal = fpsglobal;
+	timing->zerotime = SDL_GetTicks();
+	timing->ticks_last_frame = timing->zerotime;
+	timing->ticks = timing->zerotime;
 	timing->intervalanim = 1000.0/timing->fpsanim;
 	timing->intervalglobal = 1000.0/(float)timing->fpsglobal;
 }
@@ -118,6 +131,17 @@ void update_time(struct time_struct *timing) {
 	timing->ticks = SDL_GetTicks();
 	int ticktime = timing->ticks - timing->zerotime;
 	timing->currentbeat = (float)(ticktime - timing->pausetime)* timing->bps / 1000 + timing->startbeat + 1;
+
+//	printf("zerotime = %d\n", timing->zerotime);
+//	printf("ticks = %d\n", timing->ticks);
+//	printf("ticktime = %d\n", ticktime);
+//	printf("pausetime = %d\n", timing->pausetime);
+//	printf("bps = %f\n", timing->bps);
+//	printf("startbeat = %f\n", timing->startbeat);
+////printf("ticks_last_frame = %d\n", timing->ticks_last_frame);
+//	printf("currentbeat = %f\n", timing->currentbeat);
+//	printf("\n");
+
 	timing->currentbeat_int = (int) timing->currentbeat;
 	timing->framecount++;
 	if (timing->pause_change) {
@@ -125,6 +149,9 @@ void update_time(struct time_struct *timing) {
 		if (timing->pauselevel) {
 			if (!(*timing->pauselevel)) {
 				timing->pausetime_completed += (timing->endpause - timing->startpause);
+	printf("pausetime = %d\n", timing->startpause);
+	printf("pausetime = %d\n", timing->endpause);
+	printf("\n");
 				timing->pausetime_ongoing = 0;
 				timing->pausetime = timing->pausetime_completed;
 				*timing->pauselevel = 0;
