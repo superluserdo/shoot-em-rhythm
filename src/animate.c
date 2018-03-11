@@ -584,15 +584,17 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 	if(! config_read_file(&cfg, cfg_path))
 	{
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+		fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 		config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
-		return(EXIT_FAILURE);
+		return(R_FAILURE);
 	}
 
 
 	config_setting_t *image_list_setting = config_lookup(&cfg, "image_list");
 	if (image_list_setting == NULL) {
 		printf("Error looking up setting for 'image_list'\n");
+		return R_FAILURE;
 	}
 	int num_images = config_setting_length(image_list_setting); 
 	printf("num_images: %d\n", num_images);
@@ -603,14 +605,14 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 		}
 		else {
 			printf("Could not find valid image file path in entry %d of file %s\n", i, cfg_path);
-			return -1;
+			return R_FAILURE;
 		}
 		if (image_bank[i] == NULL) {
 			printf("Error loading image file: %s\n", path);
-			return -1;
+			return R_FAILURE;
 		}
 	}
-	return 0;
+	return R_SUCCESS;
 }	
 
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank, struct status_struct *status) {
@@ -626,12 +628,13 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 		config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
-		return(EXIT_FAILURE);
+		return(R_FAILURE);
 	}
 
 	config_setting_t *generics_setting = config_lookup(&cfg, "generics");
 	if (generics_setting == NULL) {
 		printf("Error looking up setting for 'generics'\n");
+		return(R_FAILURE);
 	}
 	int num_generics = config_setting_length(generics_setting); 
 	generic_bank = malloc(num_generics * sizeof(struct animate_generic *));
@@ -658,6 +661,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		generic_setting = config_setting_get_elem(generics_setting, i);
 		if (generic_setting == NULL) {
 			printf("Error looking up setting for 'generic'\n");
+			return(R_FAILURE);
 		}
 		generic_ptr = malloc(sizeof(struct animate_generic));
 
@@ -666,6 +670,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		int graphic_cat_int;
 		if (config_setting_lookup_int(generic_setting, "graphic_category", &graphic_cat_int) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
+			return(R_FAILURE);
 		}
 		enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
 
@@ -674,6 +679,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
 			printf("Error looking up setting for 'clips' %d\n", i);
+			return(R_FAILURE);
 		}
 		num_clips = config_setting_length(clips_setting); 
 		generic_ptr->num_clips = num_clips;
@@ -688,14 +694,17 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 			clip_setting = config_setting_get_elem(clips_setting, j);
 			if (clip_setting == NULL) {
 				printf("Error looking up setting for 'clip'\n");
+				return(R_FAILURE);
 			}
 			if (config_setting_lookup_int(clip_setting, "img", &img_index) == CONFIG_FALSE) {
 				printf("Error looking up value for 'img'\n");
+				return(R_FAILURE);
 			}
 			clip_ptr->img = image_bank[img_index];
 			frames_setting = config_setting_lookup(clip_setting, "frames");
 			if (frames_setting == NULL) {
 				printf("Error looking up setting for 'frames'\n");
+				return(R_FAILURE);
 			}
 			num_frames = config_setting_length(frames_setting);
 			clip_ptr->num_frames = num_frames;
@@ -707,10 +716,12 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 				frame_setting = config_setting_get_elem(frames_setting, k);
 				if (frame_setting == NULL) {
 					printf("Error looking up setting for 'frame'\n");
+					return(R_FAILURE);
 				}
 				rect_setting = config_setting_lookup(frame_setting, "rect");
 				if (rect_setting == NULL) {
 					printf("Error looking up setting for 'rect'\n");
+					return(R_FAILURE);
 				}
 				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);
 				frame_array[k].rect.y = config_setting_get_int_elem(rect_setting, 1);
@@ -725,7 +736,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 
 	*generic_bank_ptr = generic_bank;
 	config_destroy(&cfg);
-	return 0;
+	return R_SUCCESS;
 }
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {

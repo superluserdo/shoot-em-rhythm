@@ -24,6 +24,8 @@ int debugcount = 0; //delete
 
 int level_init (struct status_struct status) {
 
+	int rc; // Return code
+
 	/*	Get some structs	*/
 
 	struct graphics_struct *graphics = status.graphics;
@@ -173,12 +175,16 @@ int level_init (struct status_struct status) {
 
 	SDL_Texture *image_bank[num_images];
 	/*	Initialise the image bank - a fixed array of (as of now hardcoded) pointers to SDL_Textures
-		that is used to populate the "img" pointers in the clip sections of each generic struct
+		that is used to copulate the "img" pointers in the clip sections of each generic struct
 	*/
-	image_bank_populate(image_bank, renderer);
+	rc = image_bank_populate(image_bank, renderer);
+	if (rc != R_SUCCESS)
+		return R_FAILURE;
 
 	struct animate_generic **generic_bank;
-	generic_bank_populate(&generic_bank, image_bank, &status); //EXPERIMENTAL
+	rc = generic_bank_populate(&generic_bank, image_bank, &status); //EXPERIMENTAL
+	if (rc != R_SUCCESS)
+		return R_FAILURE;
 
 	/* set sprite position */
 	player->pos.x = 0.2 * graphics->width;
@@ -778,7 +784,6 @@ int level_init (struct status_struct status) {
 
 	soundstart();
 
-	int rc;
 	config_setting_lookup_int(thislevel_setting, "track", &audio->newtrack);
 
 	struct musicstart_struct {
@@ -833,6 +838,7 @@ int level_loop(struct status_struct status) {
 	pthread_t threads;
 	extern pthread_cond_t soundstatus_cond;
 	extern pthread_mutex_t soundstatus_mutex;
+	int rc; //Return code
 
 	/* Frame Loop */
 
@@ -906,7 +912,7 @@ int level_loop(struct status_struct status) {
 				timing->startpause = SDL_GetTicks();
 				level->pauselevel = 1;
 				timing->pause_change = 1;
-				int rc = pausefunc(renderer, graphics->imgs->texTarget, level->currentlevel, &status);
+				rc = pausefunc(renderer, graphics->imgs->texTarget, level->currentlevel, &status);
 				timing->endpause = SDL_GetTicks();
 				level->pauselevel = 0;
 				timing->pause_change = 1;
@@ -1064,7 +1070,7 @@ int level_loop(struct status_struct status) {
 				musicstop();
 			}
 			else {
-				int rc = pthread_create(&threads, NULL, musicstart, (void*)&audio->newtrack);
+				rc = pthread_create(&threads, NULL, musicstart, (void*)&audio->newtrack);
 				printf("NEW\n");
 				if (rc) {
 					printf("ya dun goofed. return code is %d\n.", rc);
