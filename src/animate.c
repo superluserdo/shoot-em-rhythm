@@ -831,6 +831,11 @@ void rules_ui_counter(void *animvoid) {
 	int2array(*counter->value, counter->array, counter->digits);
 	for (int i = 0; i < counter->digits; i++) {
 		if (animation) {
+			if (counter->array < 0) {
+				fprintf(stderr, "A UI counter has en*counter*ed (haha) a negative number. That's bad.\n");
+				fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
+				abort();
+			}
 			animation->clip = counter->array[i];
 			animation = animation->next;
 		}

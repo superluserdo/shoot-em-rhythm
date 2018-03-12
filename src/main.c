@@ -126,7 +126,7 @@ int main() {
 			returncode = level_init(status);
 		}
 		else if ( returncode == R_FAILURE ) {
-			returncode = level_loop(status);
+			returncode = R_FAILURE;
 		}
 		else if ( returncode == R_STARTSCREEN ) {
 			returncode = startscreen(win, renderer, &status);
