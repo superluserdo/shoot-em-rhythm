@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o rdtsc.o myfunc.mod.so
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
+output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so
+	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c main.c
@@ -30,6 +30,9 @@ transform.o: transform.c structdef.h transform.h
 
 newstruct.o: newstruct.c structdef.h newstruct.h
 	gcc -g3 -c newstruct.c
+
+structure.o: structure.c
+	gcc -g3 -c structure.c
 
 rdtsc.o: rdtsc.c
 	gcc -g3 -c rdtsc.c

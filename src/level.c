@@ -1319,7 +1319,7 @@ void movemon(int totallanes, float speedmultmon, struct time_struct timing, stru
 				//pthread_mutex_lock( &clock_mutex );
 				float extra = (((float)(width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
 				Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
-				printf("%f\n", extra);
+				//printf("%f\n", extra);
 				//pthread_mutex_unlock( &clock_mutex );
 				if (Dt >= 0) {
 					float Dx = Dt / timing.bps * speedmultmon * linkptrs_end[lane]->speed;

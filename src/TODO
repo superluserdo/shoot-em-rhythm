@@ -37,3 +37,13 @@
 	> Add method to log the render_node list (or changes to it?) every frame. This could be stored and played back as a film later.
 
 	> Add a module/dynamic library system, possibly with the option of a whole python interpreter that can edit variables and call functions from another thread/process. Look into restricting function calls to a set of the ones in the game for security.
+
+	>	Add a CSS-type mechanism. Declare either in C code or in a txt file that is read in. The latter would need some kind of dictionary implementation (this may also be needed if you want to declare what box an object occupies in a txt file).
+
+	>	CSS system sub-boxes could have varying types (inherit node, anchor type=top left/centre, binary parents (union, intersection, exclusion, etc).
+
+	>	Work on freeing everything necessary after leaving/restarting a level so that multiple levels don't accumulate memory.
+
+	>	In the main loop, maybe change from a return code system to having some kind of "program->func_ptr" that tells the loop what to do next. func_ptr could be level_init/level_loop/pausefunc/etc...
+
+	>	Merkle tree for finding box position/size alterations each frame from just the screen box? Could be overkill unless you have extremely deeply nested boxes. Could just perform necessary updates on structs the moment you make the change.

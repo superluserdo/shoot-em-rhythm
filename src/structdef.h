@@ -2,6 +2,8 @@
 #define MAX_ITEMS_PER_LANE_PER_SCREEN 20
 #define TOTAL_LANES 5
 
+#define FILEINFO fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
+
 /*	Main	*/
 
 struct xy_struct {
@@ -412,3 +414,19 @@ enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, P
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 
 enum hook_type_e {FRAME, LEVEL_INIT, LEVEL_LOOP};
+
+struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
+	double x;
+	double y;
+	double w;
+	double h;
+};
+enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
+
+struct style_struct {
+	enum visual_structure_name_e name;
+	enum visual_structure_name_e inherit;
+	struct float_rect rect;
+};
+
+enum vector_e { ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};

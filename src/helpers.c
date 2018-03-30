@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <SDL2/SDL.h>
 #include "structdef.h"
@@ -41,5 +43,42 @@ void deleteList(struct monster_node** head_ref) {
    *head_ref = NULL;
 }
 
+void *vector(int elem_size, int len) {
+	int *ptr = malloc((sizeof(int)) * 3 + elem_size*len);
+	ptr = &ptr[3];
+	ptr[ELEM_SIZE] = elem_size;
+	ptr[LEN] = len;
+	ptr[USED] = 0;
+	memset(&ptr[DATA], 0, elem_size*len);
+	return (void *)ptr;
+}
+
+void append_vec(void **vecptr) {
+	int *vec = (int *)*vecptr;
+	int elem_size = vec[-3];
+	int len = vec[-2];
+	int used = vec[-1];
+	if (used == len) {
+		int *newvec = realloc(&vec[-3], elem_size*len*2 + 3*sizeof(int));
+		if (!newvec) {
+			fprintf(stderr, "Can't realloc vector\n");
+			FILEINFO
+			abort();
+		}
+		newvec = &newvec[3];
+		*vecptr = (void *)newvec;
+		newvec[-2] *= 2; // Expand listed size
+		newvec[-1]++; // Increase "used" count
+	}
+}
+
+void free_vec(void *vector) {
+	int *int_vec = (int *)vector;
+	int_vec = &int_vec[-3];
+	free(int_vec);
+}
 
 
+/*	Example of usage:
+ *	struct test *testarray = (struct test *)vector((sizeof(struct test)), 5);
+ */
