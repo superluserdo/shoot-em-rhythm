@@ -3,6 +3,8 @@
 #define TOTAL_LANES 5
 
 #define FILEINFO fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
+#define VEC_RESIZE_MULTIPLIER 2
+
 
 /*	Main	*/
 
@@ -229,7 +231,7 @@ struct graphics_struct {
 	struct texture_struct *imgs; //temporary
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
-	SDL_Texture *image_bank[];
+	SDL_Texture **image_bank;
 };
 
 struct texture_struct {
@@ -429,4 +431,4 @@ struct style_struct {
 	struct float_rect rect;
 };
 
-enum vector_e { ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};
+enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};

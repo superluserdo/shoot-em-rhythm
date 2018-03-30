@@ -169,22 +169,22 @@ int level_init (struct status_struct status) {
 
 	/*		Sprite		*/
 
-	int num_images = 100; //TODO
+	graphics->num_images = 100; //TODO
 
 	//enum {
 	//	sprite, flyinghamster, HP1, HP2
 	//} img_enum;
 
-	SDL_Texture *image_bank[num_images];
+	graphics->image_bank = malloc(sizeof(SDL_Texture *) * graphics->num_images);
 	/*	Initialise the image bank - a fixed array of (as of now hardcoded) pointers to SDL_Textures
 		that is used to copulate the "img" pointers in the clip sections of each generic struct
 	*/
-	rc = image_bank_populate(image_bank, renderer);
+	rc = image_bank_populate(graphics->image_bank, renderer);
 	if (rc != R_SUCCESS)
 		return R_FAILURE;
 
 	struct animate_generic **generic_bank;
-	rc = generic_bank_populate(&generic_bank, image_bank, &status); //EXPERIMENTAL
+	rc = generic_bank_populate(&generic_bank, graphics->image_bank, &status); //EXPERIMENTAL
 	if (rc != R_SUCCESS)
 		return R_FAILURE;
 
@@ -824,6 +824,9 @@ int level_init (struct status_struct status) {
 	/* Create a Master Render Target */
 
 	graphics->imgs->texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
+	SDL_SetRenderTarget(renderer, graphics->imgs->texTarget);
+	SDL_RenderClear(graphics->renderer);
+	SDL_SetRenderTarget(renderer, NULL);
 
 
 	level->vars->soundstatus = 0;
@@ -1529,6 +1532,9 @@ void quitlevel(struct status_struct status) {
 	//	for ( int i = 0; i < MAX_SOUNDS_LIST; i++ )
 	//		soundchecklist[i] = 0;
 	SDL_RenderClear(graphics->renderer);
+	SDL_SetRenderTarget(graphics->renderer, graphics->imgs->texTarget);
+	SDL_RenderClear(graphics->renderer);
+	SDL_SetRenderTarget(graphics->renderer, NULL);
 	//musicstop();
 	//soundstop();
 	//pthread_mutex_lock( &track_mutex );

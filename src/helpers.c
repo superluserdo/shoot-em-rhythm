@@ -43,7 +43,7 @@ void deleteList(struct monster_node** head_ref) {
    *head_ref = NULL;
 }
 
-void *vector(int elem_size, int len) {
+void *vec(int elem_size, int len) {
 	int *ptr = malloc((sizeof(int)) * 3 + elem_size*len);
 	ptr = &ptr[3];
 	ptr[ELEM_SIZE] = elem_size;
@@ -53,28 +53,52 @@ void *vector(int elem_size, int len) {
 	return (void *)ptr;
 }
 
-void append_vec(void **vecptr) {
+void vec_push(void **vecptr) {
+
 	int *vec = (int *)*vecptr;
-	int elem_size = vec[-3];
-	int len = vec[-2];
-	int used = vec[-1];
-	if (used == len) {
-		int *newvec = realloc(&vec[-3], elem_size*len*2 + 3*sizeof(int));
-		if (!newvec) {
+
+	/* Resize vector if we have run out of space */
+	if (vec[USED] == vec[LEN]) {
+		vec = realloc(&vec[START], vec[ELEM_SIZE]*vec[LEN]*VEC_RESIZE_MULTIPLIER + 3*sizeof(int));
+		if (!vec) {
 			fprintf(stderr, "Can't realloc vector\n");
 			FILEINFO
 			abort();
 		}
-		newvec = &newvec[3];
-		*vecptr = (void *)newvec;
-		newvec[-2] *= 2; // Expand listed size
-		newvec[-1]++; // Increase "used" count
+		vec = &vec[3]; // Make vec point to start of data
+		vec[LEN] *= VEC_RESIZE_MULTIPLIER; // Expand listed size
 	}
+
+		vec[USED]++; // Increase "used" count
+		*vecptr = (void *)vec;
 }
 
-void free_vec(void *vector) {
+void vec_pop(void **vecptr) {
+	int *vec = (int *)*vecptr;
+
+	/* Free vector if we are popping the only remaining element */
+	if (vec[USED] > 0) {
+		vec[USED]--; // Reduce "used" count
+	}
+
+	/* Reduce vector if we have unecessarily large free space */
+	if (vec[LEN] > vec[USED] * VEC_RESIZE_MULTIPLIER) {
+		vec = realloc(&vec[START], vec[ELEM_SIZE]*vec[USED] + 3*sizeof(int));
+		if (!vec) {
+			fprintf(stderr, "Can't realloc vector\n");
+			FILEINFO
+			abort();
+		}
+		vec = &vec[3]; // Make vec point to start of data
+		vec[LEN] = vec[USED]; // Expand listed size
+	}
+
+		*vecptr = (void *)vec;
+}
+
+void vec_free(void *vector) {
 	int *int_vec = (int *)vector;
-	int_vec = &int_vec[-3];
+	int_vec = &int_vec[START];
 	free(int_vec);
 }
 
