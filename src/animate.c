@@ -680,6 +680,8 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 		generate_render_node(anim, graphics);
 		a_ptr = (&(*a_ptr)->next);
 	}
+	// Make final "next" ptr NULL to prevent segfaults
+	*a_ptr = NULL;
 
 	return 0;
 }
