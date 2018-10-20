@@ -14,6 +14,9 @@
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
 
+#define SWORD_WIDTH 32
+#define SWORD_HEIGHT 32 // Get rid of this, put it in animaions.cfg or something
+
 //TODO: Layers functionality. Include spawnLayer() function (above or below)
 /*	Global Variables	*/
 
@@ -45,6 +48,8 @@ int level_init (struct status_struct status) {
 	struct audio_struct *audio = status.audio;
 
 	struct level_struct *level = status.level;
+	level->object_list_stack = NULL;
+	struct std_list **object_list_stack_ptr = &level->object_list_stack;
 	level->gameover = 0;
 	level->levelover = 0;
 	level->pauselevel = 0;
@@ -131,12 +136,20 @@ int level_init (struct status_struct status) {
 	config_setting_lookup_int(level_setting, "lanewidthnative", &lanewidthnative);
 
 	int *laneheightarray = malloc(sizeof (laneheightarray) * lanes->total);
+	lanes->containers = malloc(sizeof(struct visual_container_struct) * lanes->total);
+	struct visual_container_struct *container_level_play_area = malloc(sizeof(struct visual_container_struct));
+	*container_level_play_area = (struct visual_container_struct) {
+		.inherit = &graphics->screen,
+		.rect = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7}
+	};
 
-	lanes->lanewidth = lanewidthnative * ZOOM_MULT; //in pixels
+	//lanes->lanewidth = lanewidthnative * ZOOM_MULT; //in pixels
+	lanes->lanewidth = 0.2; //Fractional scaling! :O
 	lanes->laneheight = laneheightarray;
 
 	for (int i = 0; i < lanes->total; i++) {
-		lanes->laneheight[i] = graphics->height + lanes->lanewidth * (-(lanes->total - 1) + i - 0.5);
+		//lanes->laneheight[i] = graphics->height + lanes->lanewidth * (-(lanes->total - 1) + i - 0.5);
+		lanes->laneheight[i] = 1 - lanes->lanewidth * ((lanes->total - 1) - i + 0.5);
 	}
 
 
@@ -189,12 +202,30 @@ int level_init (struct status_struct status) {
 		return R_FAILURE;
 
 	/* set sprite position */
-	player->pos.x = 0.2 * graphics->width;
-	player->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	graphics->screen = (struct visual_container_struct) {
+		.inherit = NULL,
+		.rect = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1}
+	};
+	for (int lane = 0; lane < lanes->total; lane++) {
+		lanes->containers[lane] = (struct visual_container_struct) {
+			.inherit = &graphics->screen,
+			.rect = (struct float_rect) { .x = 0, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth}
+		};
+	}
+
+	player->container = malloc(sizeof(struct visual_container_struct));
+	*player->container = (struct visual_container_struct) {
+		.inherit = &lanes->containers[lanes->currentlane],
+		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1}
+		//.rect = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
+	};
+	player->name = "player";
+	player->pos.x = 0;//0.2 * graphics->width;
+	player->pos.y = 0;//lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
 	player->size_ratio.w = 1.0;
 	player->size_ratio.h = 1.0;
 	//graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
-	graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
+	graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
 	player->animation->rules_list->data = (void *)&status;
 
 	/*		Tiles		*/
@@ -235,14 +266,25 @@ int level_init (struct status_struct status) {
 
 	struct ui_bar *hp = &ui->hp;
 
+	struct visual_container_struct *container_level_ui_top = malloc(sizeof(struct visual_container_struct));
+	*container_level_ui_top = (struct visual_container_struct) {
+		.inherit = &graphics->screen,
+		.rect = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3}
+	};
+	hp->container = malloc(sizeof(struct visual_container_struct));
+	*hp->container = (struct visual_container_struct) {
+		.inherit = container_level_ui_top,
+		.rect = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2}
+	};
 	hp->amount = &player->HP;
 	hp->max = &player->max_HP;
+	hp->name = "hp";
 	hp->pos.x = 10 * ZOOM_MULT * 2;
 	hp->pos.y = 10 * ZOOM_MULT * 2;
 	hp->size_ratio.w = 1.0;
 	hp->size_ratio.h = 1.0;
 	hp->self = hp;
-	graphic_spawn(&hp->std, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
+	graphic_spawn(&hp->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
 
 	hp->animation->next->native_offset.x = 29;
 	hp->animation->next->native_offset.y = 6;
@@ -271,14 +313,20 @@ int level_init (struct status_struct status) {
 
 	struct ui_bar *power = &ui->power;
 
+	power->container = malloc(sizeof(struct visual_container_struct));
+	*power->container = (struct visual_container_struct) {
+		.inherit = container_level_ui_top,
+		.rect = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2}
+	};
 	power->amount = &player->power;
 	power->max = &player->max_PP;
+	power->name = "power";
 	power->pos.x = 10 * ZOOM_MULT * 2;
 	power->pos.y = 10 * ZOOM_MULT * 2;
 	power->size_ratio.w = 1.0;
 	power->size_ratio.h = 1.0;
 	power->self = power;
-	graphic_spawn(&power->std, generic_bank, graphics, (enum graphic_type_e[]){POWER, COLOURED_BAR}, 2);
+	graphic_spawn(&power->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){POWER, COLOURED_BAR}, 2);
 	power->pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - power->animation->rect_out.w;
 	//printf("%d\n", power.animation->rect_out.w);
 
@@ -321,16 +369,22 @@ int level_init (struct status_struct status) {
 
 	struct ui_counter *score = &ui->score;
 
+	score->container = malloc(sizeof(struct visual_container_struct));
+	*score->container = (struct visual_container_struct) {
+		.inherit = container_level_ui_top,
+		.rect = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2}
+	};
 	score->value = &level->score;
 	score->digits = 5;
 	score->array = calloc(5, sizeof(int));//(int[5]){0};
+	score->name = "score";
 	score->pos.x = 48 * ZOOM_MULT * 2;
 	score->pos.y = 6 * ZOOM_MULT * 2;
 	score->size_ratio.w = 1.0;
 	score->size_ratio.h = 1.0;
 	score->self = score;
 
-	graphic_spawn(&score->std, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
+	graphic_spawn(&score->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
 	//printf("%d\n", power.animation->rect_out.w);
 
 	score->animation->rules_list->next = malloc(sizeof(struct rule_node));
@@ -362,16 +416,22 @@ int level_init (struct status_struct status) {
 
 	struct ui_counter *beat = &ui->beat;
 
+	beat->container = malloc(sizeof(struct visual_container_struct));
+	*beat->container = (struct visual_container_struct) {
+		.inherit = container_level_ui_top,
+		.rect = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2}
+	};
 	beat->value = &timing->currentbeat_int;
 	beat->digits = 5;
 	beat->array = calloc(5, sizeof(int));//(int[5]){0};
+	beat->name = "beat";
 	beat->pos.x = 100 * ZOOM_MULT * 2;
 	beat->pos.y = 6 * ZOOM_MULT * 2;
 	beat->size_ratio.w = 2.0;
 	beat->size_ratio.h = 2.0;
 	beat->self = beat;
 
-	graphic_spawn(&beat->std, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
+	graphic_spawn(&beat->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
 	//printf("%d\n", power.animation->rect_out.w);
 
 	beat->animation->rules_list->next = malloc(sizeof(struct rule_node));
@@ -486,7 +546,9 @@ int level_init (struct status_struct status) {
 
 	/* Sword */
 
+	// TODO: Finish making the sword just a regular object
 	struct sword_struct *sword = &level->sword;
+	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
 	sword->count = 0;
 	sword->down = 0;
 	sword->swing = 0;
@@ -1198,7 +1260,7 @@ int level_loop(struct status_struct status) {
 		//SDL_Delay(delay_time);
 		//SDL_RenderPresent(renderer);
 		//update_time(timing);
-		render_process(graphics, timing);
+		render_process(level->object_list_stack, graphics, timing);
 
 		//pthread_mutex_unlock(&display_mutex);
 
@@ -1230,7 +1292,8 @@ void moveme(struct lane_struct *lanes, int *direction, struct animate_specific *
 		*direction = 4;
 	}
 	/* set sprite position */
-	anim->parent->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	//anim->parent->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	anim->parent->container->inherit = &lanes->containers[lanes->currentlane];
 
 }
 

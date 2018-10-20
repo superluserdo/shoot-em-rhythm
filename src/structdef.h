@@ -18,6 +18,41 @@ struct size_ratio_struct {
 	float h;
 };
 
+/* Generic Struct For Graphical Object */
+
+#define SELF_GENERICS_UNION \
+	struct player_struct *self_player;\
+	struct ui_bar *self_ui_bar;\
+	struct ui_counter *self_ui_counter;\
+
+#define STD_MEMBERS \
+	char *name;\
+	struct xy_struct pos;\
+	struct size_ratio_struct size_ratio;\
+	struct visual_container_struct *container;\
+	struct animate_specific *animation;\
+
+#define STD_STRUCT_DEF \
+	STD_MEMBERS\
+	union {\
+		SELF_GENERICS_UNION\
+	};
+
+/*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
+ *	other structs (without -fms-extensions). So I'm writing a macro to define the struct
+ *	that I can paste into other places as if it were a tagged unnamed struct.
+ */
+
+struct std {
+STD_STRUCT_DEF;
+};
+
+struct std_list {
+	struct std *std;
+	struct std_list *next;
+	struct std_list *prev;
+};
+
 struct laser_struct {
 	int power;
 	int count;
@@ -31,8 +66,15 @@ struct sword_struct {
 	int count;
 	int down;
 	int swing;
-	SDL_Rect rect_out;
 	SDL_Rect rect_in;
+	SDL_Rect rect_out;
+	union {
+		struct {
+			STD_MEMBERS
+			struct player_struct *self;
+		};
+		struct std std;
+	};
 };
 /* Status Struct */
 
@@ -53,6 +95,7 @@ struct lane_struct {
 	int currentlane;
 	int lanewidth;
 	int *laneheight;
+	struct visual_container_struct *containers;
 };
 struct level_struct {
 	int score;
@@ -69,6 +112,7 @@ struct level_struct {
 	int currentscreen;
 	int *laneheight;
 	struct lane_struct lanes;
+	struct std_list *object_list_stack;
 	struct laser_struct laser;
 	struct sword_struct sword;
 	struct level_var_struct *vars;
@@ -114,26 +158,6 @@ struct mutex_list_struct {
 };
 
 
-/* Generic Struct For Grasphical Object */
-
-#define STD_STRUCT_DEF \
-	struct xy_struct pos;\
-	struct size_ratio_struct size_ratio;\
-	struct animate_specific *animation;\
-	union {\
-		struct player_struct *self_player;\
-		struct ui_bar *self_ui_bar;\
-		struct ui_counter *self_ui_counter;\
-	};
-
-//	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
-//	other structs (without -fms-extensions). So I'm writing a macro to define the struct
-//	that I can paste into other places as if it were a tagged unnamed struct.
-
-struct std {
-STD_STRUCT_DEF;
-};
-
 /* Status of the Player */
 
 struct player_struct {
@@ -149,9 +173,7 @@ struct player_struct {
 	int flydir;
 	union {
 		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
+			STD_MEMBERS
 			struct player_struct *self;
 		};
 		struct std std;
@@ -222,8 +244,26 @@ struct time_struct {
 	float intervalglobal;
 };
 
+struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
+	double x;
+	double y;
+	double w;
+	double h;
+};
+enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
+
+struct visual_container_struct {
+	//enum visual_structure_name_e name;
+	//enum visual_structure_name_e inherit;
+	struct visual_container_struct *inherit;
+	struct float_rect rect;
+};
+
+enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};
+
 struct graphics_struct {
 	int width, height;
+	struct visual_container_struct screen;
 	SDL_Renderer *renderer;
 	struct render_node *render_node_head;
 	struct render_node *render_node_tail;
@@ -325,9 +365,7 @@ struct ui_bar {
 	int *max;
 	union {
 		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
+			STD_MEMBERS
 			struct ui_bar *self;
 		};
 		struct std std;
@@ -339,9 +377,7 @@ struct ui_counter {
 	int *array;
 	union {
 		struct {
-			struct xy_struct pos;
-			struct size_ratio_struct size_ratio;
-			struct animate_specific *animation;
+			STD_MEMBERS
 			struct ui_counter *self;
 		};
 		struct std std;
@@ -359,8 +395,11 @@ struct ui_struct {
 
 	/* Structs */
 
+enum layer_mode_e { TIGHT, GLOBAL };
+
 struct frame {
 	SDL_Rect rect;
+	struct xy_struct anchor_hook; /* The position of the texture that "hooks" onto anchors */
 	float duration;
 };
 
@@ -391,6 +430,20 @@ struct animate_specific {
 	//struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
 	//struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
 	//struct animate_specific *list_head;
+	
+	/* Container-related - experimental! */
+	enum layer_mode_e layer_mode;
+	int z;
+	float screen_height_ratio; /* How much the texture fills the screen height.
+													* Preserves aspect ratio. I chose height
+													* since the game has a set height but is
+													* arbitrarily long. */
+	struct size_ratio_struct *anchors; /* List of "anchors" for a single texture/layer animation
+								* Either an array (first is primary anchor which determines 
+								* the object's position), or a pointer to another object's 
+								* anchor to "lock" it to another object's position
+	*	--------------------	*/
+
 	struct func_node *transform_list;
 
 	struct render_node *render_node;
@@ -411,24 +464,8 @@ struct func_node {
 };
 
 enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
-enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2};
+enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD};
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 
 enum hook_type_e {FRAME, LEVEL_INIT, LEVEL_LOOP};
-
-struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
-	double x;
-	double y;
-	double w;
-	double h;
-};
-enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
-
-struct style_struct {
-	enum visual_structure_name_e name;
-	enum visual_structure_name_e inherit;
-	struct float_rect rect;
-};
-
-enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};

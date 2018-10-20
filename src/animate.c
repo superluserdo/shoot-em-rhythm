@@ -13,6 +13,7 @@
 #include "helpers.h"
 #include "animate.h"
 #include "transform.h"
+#include "structure.h"
 
 /* For debugging */
 
@@ -24,8 +25,8 @@ int transform_node_count = 0;
 extern SDL_Texture **image_bank;
 struct animate_specific *default_specific_template = NULL;
 
-void render_process(struct graphics_struct *graphics, struct time_struct *timing) {
-	advanceFrames(graphics->render_node_head, timing->currentbeat);
+void render_process(struct std_list *object_list_stack, struct graphics_struct *graphics, struct time_struct *timing) {
+	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
 	renderlist(graphics->render_node_head);
 
 	SDL_SetRenderTarget(graphics->renderer, NULL);
@@ -298,6 +299,102 @@ int advanceFrames(struct render_node *render_node_head, float currentbeat) {
 	return 0;
 }
 
+void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
+
+	struct std_list *std_list_node = object_list_stack;
+	int std_list_node_count = 0;
+	int render_node_count = 0;
+	while (std_list_node) {
+		struct std *object = std_list_node->std;
+		struct visual_container_struct *container = object->container;
+		SDL_Rect abs_container = visual_container_to_pixels(container, (struct xy_struct) 
+															{graphics->width, graphics->height});
+		
+		struct animate_specific *animation = object->animation;
+		while (animation) {
+			struct animate_generic *generic = animation->generic;
+			struct size_ratio_struct anchor = animation->anchors[0];
+			struct xy_struct abs_anchor = {
+				.x = abs_container.x + anchor.w * abs_container.w,
+				.y = abs_container.y + anchor.h * abs_container.h
+			};
+
+			struct rule_node *rule_node = animation->rules_list;
+			while (rule_node) {
+				(rule_node->rule)(rule_node->data);
+				rule_node = rule_node->next;
+				rule_node_count++;
+			}
+
+			if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
+				if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
+					animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
+					animation->frame++;
+				}
+			}
+			if (animation->frame >= generic->clips[animation->clip]->num_frames) {
+				if (animation->loops == 0) {
+					animation->clip = animation->return_clip;	
+					animation->frame = 0;
+					animation->loops = -1;
+				}
+				else {
+					animation->frame = 0;
+					if (animation->loops > 0)
+						animation->loops--;
+				}
+			}
+
+			animation->screen_height_ratio = (float)generic->clips[animation->clip]->frames[0].rect.y/\
+											 (float)graphics->height;
+
+			struct float_rect rel_rect_scaled = {
+				.x = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.x * animation->screen_height_ratio,
+				.y = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.y * animation->screen_height_ratio,
+				.w = generic->clips[animation->clip]->frames[animation->frame].rect.w * animation->screen_height_ratio,
+				.h = generic->clips[animation->clip]->frames[animation->frame].rect.h * animation->screen_height_ratio
+			};
+
+			SDL_Rect abs_rect = {
+				.x = abs_anchor.x - rel_rect_scaled.x,
+				.y = abs_anchor.y - rel_rect_scaled.y,
+				.w = rel_rect_scaled.w,
+				.h = rel_rect_scaled.h
+			};
+
+			//SDL_Rect rect_trans = animation->rect_out;
+			struct func_node *transform_node = animation->transform_list;
+			while (transform_node) {
+				transform_node->func((void *)&abs_rect, transform_node->data);
+				transform_node = transform_node->next;
+				transform_node_count++;
+			}
+
+			struct render_node *render_node = animation->render_node;
+			if (!render_node) {
+				generate_render_node(animation, graphics);
+			} else {
+				render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
+				if (render_node->z != animation->z) {
+					if (render_node->prev)
+						render_node->prev->next = render_node->next;
+					if (render_node->next)
+						render_node->next->prev = render_node->prev;
+					node_insert_z_over(graphics, render_node, animation->z);
+				}
+			}
+
+			render_node->rect_out = abs_rect;
+			//render_node = render_node->next;
+			render_node_count++;
+
+			animation = animation->next;
+		}
+		std_list_node = std_list_node->prev;
+		std_list_node_count++;
+	}		
+}
+
 /* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
 
 int render_node_populate(struct graphics_struct *graphics, struct render_node *r_node, struct player_struct *playerptr) {
@@ -539,6 +636,8 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 							*specific->parent->size_ratio.h*ZOOM_MULT*2;
 	/*	You will need to set x and y manually after this.	*/
 	
+	specific->anchors = malloc(sizeof(struct size_ratio_struct)); //Temporary until I get anchors properly implemented
+	specific->anchors[0] = (struct size_ratio_struct) { 0, 0 };
 	return specific;
 }
 
@@ -554,13 +653,24 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	r_node->img = generic->clips[specific->clip]->img;
 	r_node->animation = specific;
 	r_node->customRenderFunc = NULL;
-	node_insert_z_over(graphics, r_node, 0);
+	node_insert_z_over(graphics, r_node, specific->z);
 	specific->render_node = r_node;
 
 	return 0;
 }
 
-int graphic_spawn(struct std *std, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
+
+	struct std_list *list_node = malloc(sizeof(struct std_list));
+	*list_node = (struct std_list) {
+		.std = std,
+		.next = NULL,
+		.prev = *object_list_stack_ptr
+	};
+	if (*object_list_stack_ptr) {
+		(*object_list_stack_ptr)->next = list_node;
+	}
+	*object_list_stack_ptr = list_node;
 
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;

@@ -3,8 +3,6 @@
 #define TILE_PATH "../art/selftile.png"
 #define LASER_PATH "../art/lasers.png"
 #define SWORD_PATH "../art/swords.png"
-#define SWORD_WIDTH 32
-#define SWORD_HEIGHT 32
 #define LASER_HEIGHT 20
 #define LASER_SEPARATOR_X 38
 #define LASER_SEPARATOR_Y 20
