@@ -93,8 +93,8 @@ struct status_struct {
 struct lane_struct {
 	int total;
 	int currentlane;
-	int lanewidth;
-	int *laneheight;
+	float lanewidth;
+	int *laneheight;	//TODO: Make float
 	struct visual_container_struct *containers;
 };
 struct level_struct {
