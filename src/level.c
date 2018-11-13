@@ -1,3 +1,6 @@
+/*	For the interactive python interpreter	*/
+#include <Python.h>
+
 #include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -1073,6 +1076,9 @@ int level_loop(struct status_struct status) {
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_p){
 				level->partymode = !level->partymode;
 			}
+			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_i){
+				status.program->python_interpreter_activate = 1;
+			}
 
 
 		}
@@ -1165,6 +1171,26 @@ int level_loop(struct status_struct status) {
 		amihurt(lanes->total, status, linkptrs_start, player->animation->rect_out, (*bestiary));
 
 		touchitem(lanes, lanes->currentlane, level->currentscreen, player->animation->rect_out, (*itempokedex), level->itemscreenstrip, &level->levelover, audio->soundchecklist);
+
+		/*	Drop into python interpreter */
+
+		if (status.program->python_interpreter_activate) {
+			if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
+				printf("Python interpreter activated!\n");
+			
+				status.program->python_interpreter_activate = 0;
+
+				/* Build the input arguments */
+				printf("Calling function\n");
+				PyRun_SimpleString("print('Calling (python)')");
+				PyObject *status_python_capsule = PyCapsule_New(&status, NULL, NULL);
+				PyObject *pResult = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
+				printf("Called function that returned %p\n", pResult);
+
+			} else {
+				printf ("Some error with the function\n") ;
+			}
+		}
 
 		/* Clear screen */
 		SDL_RenderClear(renderer);

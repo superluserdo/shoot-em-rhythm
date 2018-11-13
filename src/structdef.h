@@ -20,10 +20,6 @@ struct size_ratio_struct {
 
 /* Generic Struct For Graphical Object */
 
-#define SELF_GENERICS_UNION \
-	struct player_struct *self_player;\
-	struct ui_bar *self_ui_bar;\
-	struct ui_counter *self_ui_counter;\
 
 #define STD_MEMBERS \
 	char *name;\
@@ -31,12 +27,7 @@ struct size_ratio_struct {
 	struct size_ratio_struct size_ratio;\
 	struct visual_container_struct *container;\
 	struct animate_specific *animation;\
-
-#define STD_STRUCT_DEF \
-	STD_MEMBERS\
-	union {\
-		SELF_GENERICS_UNION\
-	};
+	void *self;\
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
  *	other structs (without -fms-extensions). So I'm writing a macro to define the struct
@@ -44,7 +35,7 @@ struct size_ratio_struct {
  */
 
 struct std {
-STD_STRUCT_DEF;
+	STD_MEMBERS;
 };
 
 struct std_list {
@@ -71,7 +62,6 @@ struct sword_struct {
 	union {
 		struct {
 			STD_MEMBERS
-			struct player_struct *self;
 		};
 		struct std std;
 	};
@@ -174,7 +164,6 @@ struct player_struct {
 	union {
 		struct {
 			STD_MEMBERS
-			struct player_struct *self;
 		};
 		struct std std;
 	};
@@ -202,6 +191,9 @@ struct hooktypes_struct {
 
 struct program_struct {
 	struct hooktypes_struct hooks;
+	void *python_helper_function;
+	void *status_python_capsule;
+	int python_interpreter_activate;
 };
 
 /* Audio */
@@ -366,7 +358,6 @@ struct ui_bar {
 	union {
 		struct {
 			STD_MEMBERS
-			struct ui_bar *self;
 		};
 		struct std std;
 	};
@@ -378,7 +369,6 @@ struct ui_counter {
 	union {
 		struct {
 			STD_MEMBERS
-			struct ui_counter *self;
 		};
 		struct std std;
 	};

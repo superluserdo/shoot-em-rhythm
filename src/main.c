@@ -1,3 +1,6 @@
+/*	For the interactive python interpreter	*/
+#include <Python.h>
+
 #include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -81,7 +84,7 @@ int main() {
 	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, 0);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
-		printf("SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
+		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
 		
 		/* Print driver info if renderer creation fails */
 		SDL_RendererInfo info;
@@ -97,7 +100,7 @@ int main() {
 
 	enum return_codes_e rc = hooks_setup(&program);
 	if (rc!=R_SUCCESS) {
-		printf("Failed to setup the module hooks, sorry :(\n");
+		fprintf(stderr,"Failed to setup the module hooks, sorry :(\n");
 		return R_FAILURE;
 	}
 
@@ -108,6 +111,56 @@ int main() {
 	/* ---------------------------------------------------------------------- */
 
 	enum  return_codes_e returncode = startscreen(win, renderer, &status);
+
+	/*	Initialise the Python interpreter	*/
+	Py_Initialize() ;
+
+	PyObject    *pName ;
+	PyObject    *pModule ; 
+	PyObject    *pDict ;
+	PyObject    *python_func;
+	int         iSize = 0 ;
+	char        python_funcname[] = "launch_interpreter_with_state" ;
+	char		python_filename[] = "pythonhelper";
+
+	/*	Don't start the python interpreter until prompted	*/
+	program.python_interpreter_activate = 0;
+
+	/*	Add current directory to path of C-API python interpreter	*/
+	PyRun_SimpleString("import sys");
+	PyRun_SimpleString("print(sys.path)");
+	PyRun_SimpleString("sys.path.append('.')");
+	PyRun_SimpleString("print(sys.path)");
+	PyRun_SimpleString("import os");
+	PyRun_SimpleString("print(os.listdir('.'))");
+
+	/* Get Python code/module */
+	pName = PyUnicode_FromString(python_filename);
+	if (NULL != pName)
+	{
+		/* Import the module equivalent to doing 'import calresidual' in python */
+		//pModule = PyImport_Import(pName);
+		pModule = PyImport_ImportModule(python_filename);
+		printf("%p\n", pModule);
+		Py_DECREF(pName) ;
+		if (NULL != pModule)
+		{
+			/* Get the function and check if its callable function */   
+			program.python_helper_function = PyObject_GetAttrString(pModule, python_funcname);
+
+			/* Build the input arguments */
+			program.status_python_capsule = PyCapsule_New(&status, NULL, NULL);
+
+		}
+		else
+		{
+			fprintf (stderr,"Couldnt load the python module %s\n", python_filename) ;
+		}
+	}
+	else
+	{
+		fprintf (stderr,"Couldnt convert the name of the python module to python name\n") ;
+	}
 
 	/*	The Main Game Loop */
 	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
@@ -145,6 +198,18 @@ int main() {
 		}
 
 	}
+	/* Release python resources. */
+	if (pModule)
+		Py_DECREF(pModule) ;
+	if (python_func)
+		Py_DECREF(python_func) ;
+	if (pName)
+		Py_DECREF(pName) ;
+
+	/*Release the interpreter */
+	Py_Finalize() ;
+
+	/* Release SDL resources. */
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
@@ -196,7 +261,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 
 	config_setting_t *modules_list_setting = config_lookup(&cfg, "modules_list");
 	if (modules_list_setting == NULL) {
-		printf("Error looking up setting for 'modules_list'\n");
+		fprintf(stderr,"Error looking up setting for 'modules_list'\n");
 		return(R_FAILURE);
 	}
 	int num_modules = config_setting_length(modules_list_setting); 
@@ -206,13 +271,13 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 		config_setting_t *path_setting = config_setting_get_member(module_setting, "path");
 		const char *path = config_setting_get_string(path_setting);
 		if (!path) {
-			printf("Could not find valid module file path in entry %d of file %s\n", i, cfg_path);
+			fprintf(stderr,"Could not find valid module file path in entry %d of file %s\n", i, cfg_path);
 			return(R_FAILURE);
 		}
 
 		config_setting_t *functions_setting = config_setting_get_member(module_setting, "functions");
 		if (!functions_setting) {
-			printf("Error looking up setting for 'functions'\n");
+			fprintf(stderr,"Error looking up setting for 'functions'\n");
 			return(R_FAILURE);
 		}
 		int num_functions = config_setting_length(functions_setting);
@@ -230,28 +295,28 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 		for (int j = 0; j < num_functions; j++) {
 			config_setting_t *function_setting = config_setting_get_elem(functions_setting, j);
 			if (!function_setting) {
-				printf("Error looking up setting for function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for function %d in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 			config_setting_t *name_setting = config_setting_get_member(function_setting, "name");
 			if (!name_setting) {
-				printf("Error looking up setting for 'name' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for 'name' in function %d in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 			const char *func_name = config_setting_get_string(name_setting);
 			if (!func_name) {
-				printf("Error getting value for 'name' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error getting value for 'name' in function %d in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 
 			config_setting_t *exec_location_setting = config_setting_get_member(function_setting, "exec_location");
 			if (!exec_location_setting) {
-				printf("Error looking up setting for 'exec_location' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for 'exec_location' in function %d in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 			enum hook_type_e hook_type = config_setting_get_int(exec_location_setting);
 			if (hook_type < 0 || hook_type >= NUM_HOOK_LOCATIONS) {
-				printf("Attempting to store hook in execution location that doesn't exist.\n");
+				fprintf(stderr,"Attempting to store hook in execution location that doesn't exist.\n");
 				return R_FAILURE;
 			}
 

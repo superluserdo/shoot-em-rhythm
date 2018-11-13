@@ -922,7 +922,8 @@ void rules_ui(void *data) {
 }
 void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
-	struct ui_bar *bar = animation->parent->self_ui_bar;
+	//struct ui_bar *bar = animation->parent->self_ui_bar;
+	struct ui_bar *bar = animation->parent->self;
 	float HP_ratio = (float) *bar->amount / *bar->max;
 	animation->rect_out.w = 50 * ZOOM_MULT * 2 * HP_ratio * animation->parent->size_ratio.w;
 	if ( HP_ratio <= 0.5 ) {
@@ -939,7 +940,8 @@ void rules_ui_bar(void *animvoid) {
 }
 void rules_ui_counter(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
-	struct ui_counter *counter = animation->parent->self_ui_counter;
+	//struct ui_counter *counter = animation->parent->self_ui_counter;
+	struct ui_counter *counter = animation->parent->self;
 	int2array(*counter->value, counter->array, counter->digits);
 	for (int i = 0; i < counter->digits; i++) {
 		if (animation) {

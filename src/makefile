@@ -1,8 +1,8 @@
-output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
+output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so structdef.py
+	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
 
 main.o: main.c structdef.h main.h music.h
-	gcc -g3 -c main.c
+	gcc -g3 -c `pkg-config --cflags --libs python3` main.c
 
 music.o: music.c structdef.h music.h
 	gcc -g3 -c music.c
@@ -14,7 +14,7 @@ startscreen.o: startscreen.c structdef.h music.h
 	gcc -g3 -c startscreen.c
 
 level.o: level.c structdef.h main.h level.h helpers.h music.h clock.h animate.h
-	gcc -g3 -c level.c
+	gcc -g3 -c `pkg-config --cflags --libs python3` level.c
 
 pause.o: pause.c structdef.h
 	gcc -g3 -c pause.c
@@ -34,6 +34,12 @@ newstruct.o: newstruct.c structdef.h newstruct.h
 structure.o: structure.c
 	gcc -g3 -c structure.c
 
+structdef.py: structdef.h
+	echo '#include <SDL2/SDL.h>\n#include <SDL2/SDL_image.h>' > sdl-incl.h
+	cat sdl-incl.h structdef.h > structdef-incl.h
+	clang2py structdef-incl.h > structdef.py
+	#clang2py --clang-args="-v" structdef-incl.h > structdef.py
+
 rdtsc.o: rdtsc.c
 	gcc -g3 -c rdtsc.c
 
@@ -43,3 +49,4 @@ myfunc.mod.so: myfunc.mod.c
 
 clean:
 	rm -f *.o
+	rm -f structdef-incl.h sdl-incl.h
