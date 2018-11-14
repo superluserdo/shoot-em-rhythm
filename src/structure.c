@@ -45,12 +45,23 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 	struct float_rect rect = container->rect;
 
 	while (container->inherit) {
+		enum aspctr_lock_e aspctr_lock = container->aspctr_lock;
+		float aspctr = container->aspctr;
 		container = container->inherit;
 		struct float_rect parent_rect = container->rect;
 		rect.x = parent_rect.x + rect.x * parent_rect.w;
 		rect.y = parent_rect.y + rect.y * parent_rect.h;
-		rect.w *= parent_rect.w;
-		rect.h *= parent_rect.h;
+		if (aspctr_lock == WH_INDEPENDENT) {
+			rect.w *= parent_rect.w;
+			rect.h *= parent_rect.h;
+		} else if (aspctr_lock == W_DOMINANT) {
+			rect.w *= parent_rect.w;
+			rect.h *= parent_rect.w / aspctr;
+		} else if (aspctr_lock == H_DOMINANT) {
+			rect.w *= parent_rect.h;
+			rect.w *= parent_rect.h * aspctr;
+		}
+
 	}
 	return rect;
 

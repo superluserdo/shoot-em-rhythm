@@ -84,7 +84,7 @@ struct lane_struct {
 	int total;
 	int currentlane;
 	float lanewidth;
-	int *laneheight;	//TODO: Make float
+	float *laneheight;	//TODO: Make float
 	struct visual_container_struct *containers;
 };
 struct level_struct {
@@ -100,7 +100,7 @@ struct level_struct {
 	float speedmult;
 	float speedmultmon;
 	int currentscreen;
-	int *laneheight;
+	float *laneheight;
 	struct lane_struct lanes;
 	struct std_list *object_list_stack;
 	struct laser_struct laser;
@@ -244,11 +244,16 @@ struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
 };
 enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
 
+enum aspctr_lock_e {WH_INDEPENDENT, W_DOMINANT, H_DOMINANT};
+
 struct visual_container_struct {
 	//enum visual_structure_name_e name;
 	//enum visual_structure_name_e inherit;
 	struct visual_container_struct *inherit;
 	struct float_rect rect;
+	float aspctr; /* Aspect ratio of container = w/h
+				   * Don't use if aspctr_lock == WH_INDEPENDENT */
+	enum aspctr_lock_e aspctr_lock; /* Should both w and h be inherited, or just one (locked aspect ratio) */
 };
 
 enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};
@@ -404,6 +409,8 @@ struct animate_generic {
 	struct clip **clips;
 	struct animate_specific *default_specific;
 };
+	
+enum scale_mode_e {WIDTH, HEIGHT};
 
 struct animate_specific {
 	struct animate_generic *generic;
@@ -420,9 +427,12 @@ struct animate_specific {
 	//struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
 	//struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
 	//struct animate_specific *list_head;
-	
+
 	/* Container-related - experimental! */
-	enum layer_mode_e layer_mode;
+	float container_scale_factor; /* Animation layer's size as fraction of container */
+	enum scale_mode_e container_scale_mode; /*	Whether to scale based on container's width or height */
+	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
+								  // or all animations (I think? Can't remember)
 	int z;
 	float screen_height_ratio; /* How much the texture fills the screen height.
 													* Preserves aspect ratio. I chose height

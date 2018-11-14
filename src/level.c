@@ -138,18 +138,17 @@ int level_init (struct status_struct status) {
 	int lanewidthnative;
 	config_setting_lookup_int(level_setting, "lanewidthnative", &lanewidthnative);
 
-	int *laneheightarray = malloc(sizeof (laneheightarray) * lanes->total);
 	lanes->containers = malloc(sizeof(struct visual_container_struct) * lanes->total);
 	struct visual_container_struct *container_level_play_area = malloc(sizeof(struct visual_container_struct));
 	*container_level_play_area = (struct visual_container_struct) {
 		.inherit = &graphics->screen,
-		.rect = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7}
+		.rect = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 
 	//lanes->lanewidth = lanewidthnative * ZOOM_MULT; //in pixels
 	lanes->lanewidth = 0.2; //Fractional scaling! :O
-	lanes->laneheight = laneheightarray;
-
+	lanes->laneheight = malloc(sizeof (float) * lanes->total);
 	for (int i = 0; i < lanes->total; i++) {
 		//lanes->laneheight[i] = graphics->height + lanes->lanewidth * (-(lanes->total - 1) + i - 0.5);
 		lanes->laneheight[i] = 1 - lanes->lanewidth * ((lanes->total - 1) - i + 0.5);
@@ -209,20 +208,23 @@ int level_init (struct status_struct status) {
 	/* set sprite position */
 	graphics->screen = (struct visual_container_struct) {
 		.inherit = NULL,
-		.rect = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1}
+		.rect = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	for (int lane = 0; lane < lanes->total; lane++) {
 		lanes->containers[lane] = (struct visual_container_struct) {
 			.inherit = &graphics->screen,
-			.rect = (struct float_rect) { .x = 0.25, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth}
+			.rect = (struct float_rect) { .x = 0.25, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
+			.aspctr_lock = WH_INDEPENDENT,
 		};
 	}
 
 	player->container = malloc(sizeof(struct visual_container_struct));
 	*player->container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
-		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1}
+		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
 		//.rect = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	player->name = "player";
 	player->pos.x = 0;//0.2 * graphics->width;
@@ -274,12 +276,14 @@ int level_init (struct status_struct status) {
 	struct visual_container_struct *container_level_ui_top = malloc(sizeof(struct visual_container_struct));
 	*container_level_ui_top = (struct visual_container_struct) {
 		.inherit = &graphics->screen,
-		.rect = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3}
+		.rect = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	hp->container = malloc(sizeof(struct visual_container_struct));
 	*hp->container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2}
+		.rect = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	hp->amount = &player->HP;
 	hp->max = &player->max_HP;
@@ -321,7 +325,8 @@ int level_init (struct status_struct status) {
 	power->container = malloc(sizeof(struct visual_container_struct));
 	*power->container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2}
+		.rect = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	power->amount = &player->power;
 	power->max = &player->max_PP;
@@ -377,7 +382,8 @@ int level_init (struct status_struct status) {
 	score->container = malloc(sizeof(struct visual_container_struct));
 	*score->container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2}
+		.rect = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	score->value = &level->score;
 	score->digits = 5;
@@ -424,7 +430,8 @@ int level_init (struct status_struct status) {
 	beat->container = malloc(sizeof(struct visual_container_struct));
 	*beat->container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2}
+		.rect = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2},
+		.aspctr_lock = WH_INDEPENDENT,
 	};
 	beat->value = &timing->currentbeat_int;
 	beat->digits = 5;
@@ -1430,7 +1437,7 @@ void movemon(int totallanes, float speedmultmon, struct time_struct timing, stru
 }
 
 
-void refreshtiles(int totallanes, int (*screenstrip[]) [grid.x][grid.y][2], int (*itemscreenstrip[])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, int laneheight[totallanes], struct monster *bestiary[10], struct item *itempokedex[10]) {
+void refreshtiles(int totallanes, int (*screenstrip[]) [grid.x][grid.y][2], int (*itemscreenstrip[])[totallanes][MAX_ITEMS_PER_LANE_PER_SCREEN][2], int currentscreen, struct xy_struct grid, SDL_Rect rcTile[grid.x][grid.y], SDL_Rect rcTilemid[grid.x][grid.y], SDL_Rect rcTSrc[grid.x][grid.y], SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, float laneheight[totallanes], struct monster *bestiary[10], struct item *itempokedex[10]) {
 
 	for (int k = 0; k <= 2; k++) {
 		for (int i = 0; i < grid.x; i++){
@@ -1489,7 +1496,7 @@ for (int lane = 0; lane < totallanes; lane++){
 }
 }
 
-void laserfire(struct level_struct *level, int totallanes, struct laser_struct *laser, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, int laneheight[totallanes], int currentlane, int framecount, int currentscreen, int hue, int *soundchecklist) {
+void laserfire(struct level_struct *level, int totallanes, struct laser_struct *laser, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, float laneheight[totallanes], int currentlane, int framecount, int currentscreen, int hue, int *soundchecklist) {
 	if (laser->turnon) {
 		(laser->count)++;
 

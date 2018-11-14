@@ -82,13 +82,13 @@ int currentscreen, struct xy_struct grid, SDL_Rect rcTile[level->grid.x][level->
 SDL_Rect rcTilemid[grid.x][grid.y], 
 SDL_Rect rcTSrc[grid.x][grid.y], 
 SDL_Rect rcTSrcmid[grid.x][grid.y], int frameoffset, 
-int laneheight[totallanes], struct monster *bestiary[10], 
+float laneheight[totallanes], struct monster *bestiary[10], 
 struct item *itempokedex[10]);
 
 /* Offence */
 
 void laserfire(struct level_struct *level, int totallanes, struct laser_struct *laser_ptr, struct player_struct *player, SDL_Rect rcLaser[3], SDL_Rect rcLaserSrc[3], SDL_Rect player_out, 
-int laneheight[totallanes], int currentlane, int framecount, 
+float laneheight[totallanes], int currentlane, int framecount, 
 int currentscreen, int hue, int *soundchecklist);
 
 /*void swordfunc(int *lasercountptr, int *laser_on, int *laser_turnon, int *laser_turnoff, 

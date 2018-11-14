@@ -345,21 +345,52 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				}
 			}
 
-			animation->screen_height_ratio = (float)generic->clips[animation->clip]->frames[0].rect.y/\
-											 (float)graphics->height;
+			//animation->screen_height_ratio = (float)generic->clips[animation->clip]->frames[0].rect.y/\
+			//								 (float)graphics->height;
 
-			struct float_rect rel_rect_scaled = {
-				.x = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.x * animation->screen_height_ratio,
-				.y = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.y * animation->screen_height_ratio,
-				.w = generic->clips[animation->clip]->frames[animation->frame].rect.w * animation->screen_height_ratio,
-				.h = generic->clips[animation->clip]->frames[animation->frame].rect.h * animation->screen_height_ratio
+			//struct float_rect rel_rect_scaled = {
+			//	.x = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.x * animation->screen_height_ratio,
+			//	.y = generic->clips[animation->clip]->frames[animation->frame].anchor_hook.y * animation->screen_height_ratio,
+			//	.w = generic->clips[animation->clip]->frames[animation->frame].rect.w * animation->screen_height_ratio,
+			//	.h = generic->clips[animation->clip]->frames[animation->frame].rect.h * animation->screen_height_ratio
+			//};
+
+			//SDL_Rect abs_rect = {
+			//	.x = abs_anchor.x - rel_rect_scaled.x,
+			//	.y = abs_anchor.y - rel_rect_scaled.y,
+			//	.w = rel_rect_scaled.w,
+			//	.h = rel_rect_scaled.h
+			//};
+
+
+			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
+
+			struct xy_struct rect_wh_abs;
+
+			float aspect_ratio = (float)frame.rect.w / (float)frame.rect.h;
+			if (animation->container_scale_mode == WIDTH) {
+				rect_wh_abs.x = animation->container_scale_factor * abs_container.x,
+				rect_wh_abs.y = abs_container.x / aspect_ratio;
+			} else if (animation->container_scale_mode == HEIGHT) {
+				rect_wh_abs.y = animation->container_scale_factor * abs_container.y,
+				rect_wh_abs.x = abs_container.y * aspect_ratio;
+			}
+
+			struct size_ratio_struct anchor_hook_pos_ratio = {
+				.w = frame.anchor_hook.x / frame.rect.w,
+				.h = frame.anchor_hook.y / frame.rect.h,
+			};
+
+			struct xy_struct anchor_hook_pos_abs = {
+				.x = anchor_hook_pos_ratio.w * rect_wh_abs.x,
+				.y = anchor_hook_pos_ratio.h * rect_wh_abs.y,
 			};
 
 			SDL_Rect abs_rect = {
-				.x = abs_anchor.x - rel_rect_scaled.x,
-				.y = abs_anchor.y - rel_rect_scaled.y,
-				.w = rel_rect_scaled.w,
-				.h = rel_rect_scaled.h
+				.x = abs_anchor.x - anchor_hook_pos_abs.x,
+				.y = abs_anchor.y - anchor_hook_pos_abs.y,
+				.w = rect_wh_abs.x,
+				.h = rect_wh_abs.y,
 			};
 
 			//SDL_Rect rect_trans = animation->rect_out;
@@ -593,6 +624,8 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 
 	*specific = *generic_bank[index]->default_specific;
 	specific->generic = generic_bank[index];
+	specific->container_scale_mode = HEIGHT; //Temp placeholder value
+	specific->container_scale_factor = 1.0; //Temp placeholder value
 	struct animate_generic *generic = specific->generic;
 	
 	struct rule_node *rule_tmp;
