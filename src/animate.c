@@ -369,11 +369,11 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			float aspect_ratio = (float)frame.rect.w / (float)frame.rect.h;
 			if (animation->container_scale_mode == WIDTH) {
-				rect_wh_abs.x = animation->container_scale_factor * abs_container.x,
-				rect_wh_abs.y = abs_container.x / aspect_ratio;
+				rect_wh_abs.x = animation->container_scale_factor * abs_container.w,
+				rect_wh_abs.y = abs_container.w / aspect_ratio;
 			} else if (animation->container_scale_mode == HEIGHT) {
-				rect_wh_abs.y = animation->container_scale_factor * abs_container.y,
-				rect_wh_abs.x = abs_container.y * aspect_ratio;
+				rect_wh_abs.y = animation->container_scale_factor * abs_container.h,
+				rect_wh_abs.x = abs_container.h * aspect_ratio;
 			}
 
 			struct size_ratio_struct anchor_hook_pos_ratio = {
