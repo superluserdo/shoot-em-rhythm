@@ -1,6 +1,7 @@
 #define MAX_SOUNDS_LIST 10
 #define MAX_ITEMS_PER_LANE_PER_SCREEN 20
 #define TOTAL_LANES 5
+#define PI 3.14159265
 
 #define FILEINFO fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 #define VEC_RESIZE_MULTIPLIER 2
@@ -22,12 +23,12 @@ struct size_ratio_struct {
 
 
 #define STD_MEMBERS \
-	char *name;\
-	struct xy_struct pos;\
-	struct size_ratio_struct size_ratio;\
-	struct visual_container_struct *container;\
-	struct animate_specific *animation;\
-	void *self;\
+	char *name; \
+	struct xy_struct pos; \
+	struct size_ratio_struct size_ratio; \
+	struct visual_container_struct *container; \
+	struct animate_specific *animation; \
+	void *self; \
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
  *	other structs (without -fms-extensions). So I'm writing a macro to define the struct
@@ -37,6 +38,19 @@ struct size_ratio_struct {
 struct std {
 	STD_MEMBERS;
 };
+
+/* Generic Struct For Living Object */
+
+struct living {
+	int HP, power;
+	float defence;
+	int max_HP;
+	int max_PP;
+	int invincibility;
+	int invincibility_toggle;
+	void *self;
+};
+
 
 struct std_list {
 	struct std *std;
@@ -152,21 +166,17 @@ struct mutex_list_struct {
 
 struct player_struct {
 
-	int HP, power;
-	int max_HP;
-	int max_PP;
-	int invincibility;
-	int invincibility_toggle;
-	int invinciblecounter[2];
-	int sword;
-	int direction;
-	int flydir;
 	union {
 		struct {
 			STD_MEMBERS
 		};
 		struct std std;
 	};
+	int invinciblecounter[2];
+	int sword;
+	int direction;
+	int flydir;
+	struct living living;
 };
 
 /* Plugin Stuff */
@@ -194,6 +204,7 @@ struct program_struct {
 	void *python_helper_function;
 	void *status_python_capsule;
 	int python_interpreter_activate;
+	int python_interpreter_enable;
 };
 
 /* Audio */
@@ -335,7 +346,7 @@ struct monster_node {
 };
 
 
-struct monster {
+struct monster { /* SOON TO BE OLD */
 	int health;
 	int attack;
 	float defence;
@@ -344,6 +355,17 @@ struct monster {
 	int generic_bank_index;
 	SDL_Texture *image;
 	};
+
+struct monster_new {
+	union {
+		struct {
+			STD_MEMBERS
+		};
+		struct std std;
+	};
+	struct living living;
+};
+
 
 struct item {
 	int itemnumber;
@@ -355,7 +377,7 @@ struct item {
 	int wh[2];
 	SDL_Texture **image;
 	//void (*functionptr)(int int1, int int2);
-	};
+};
 
 struct ui_bar {
 	int *amount;
@@ -398,10 +420,14 @@ struct frame {
 	float duration;
 };
 
+enum scale_mode_e {WIDTH, HEIGHT};
+
 struct clip {
 	SDL_Texture *img;
 	int num_frames;
 	struct frame *frames;
+	float container_scale_factor;
+	enum scale_mode_e container_scale_mode;
 };
 
 struct animate_generic {
@@ -409,9 +435,12 @@ struct animate_generic {
 	struct clip **clips;
 	struct animate_specific *default_specific;
 };
-	
-enum scale_mode_e {WIDTH, HEIGHT};
 
+struct anchor_struct {
+	struct size_ratio_struct pos_anim_internal;
+	struct animate_specific *anim;
+};
+	
 struct animate_specific {
 	struct animate_generic *generic;
 
@@ -433,21 +462,25 @@ struct animate_specific {
 	enum scale_mode_e container_scale_mode; /*	Whether to scale based on container's width or height */
 	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
 								  // or all animations (I think? Can't remember)
-	int z;
+	float z;
 	float screen_height_ratio; /* How much the texture fills the screen height.
 													* Preserves aspect ratio. I chose height
 													* since the game has a set height but is
 													* arbitrarily long. */
-	struct size_ratio_struct *anchors; /* List of "anchors" for a single texture/layer animation
-								* Either an array (first is primary anchor which determines 
-								* the object's position), or a pointer to another object's 
-								* anchor to "lock" it to another object's position
-	*	--------------------	*/
+	//struct size_ratio_struct *anchor_grabbed;
+	struct anchor_struct *anchor_grabbed; /* Pointer to the container-scale anchor 
+												 this animation is locked to. Can be
+												 defined by the animation, or point to
+												 another animation's exposed anchor */
+	//struct size_ratio_struct *anchors_exposed;
+	struct anchor_struct *anchors_exposed; /* List of "exposed anchors" for a single texture/layer
+										  animation. Other animations can lock onto these */
 
 	struct func_node *transform_list;
 
 	struct render_node *render_node;
 	SDL_Rect rect_out;
+	struct float_rect rect_out_container_scale;
 	struct animate_specific *next;
 };
 
@@ -464,7 +497,7 @@ struct func_node {
 };
 
 enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
-enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD};
+enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD, SMILEY};
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 

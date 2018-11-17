@@ -6,12 +6,12 @@
 #include "level.h"
 #include "music.h"
 #include "transform.h"
-#define PI 3.14159265
 
 
 void tr_resize(void *rect_trans, void *data) {
 	struct tr_resize_data str = *(struct tr_resize_data *)data;
-	SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	//SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	struct float_rect rect = *(struct float_rect*)rect_trans;
 	struct xy_struct local_centre = {
 		.x = rect.x + rect.w/2,
 		.y = rect.y + rect.h/2
@@ -24,7 +24,8 @@ void tr_resize(void *rect_trans, void *data) {
 	}
 		rect.x  = local_centre.x - rect.w/2;
 		rect.y  = local_centre.y - rect.h/2;
-	*(SDL_Rect *)rect_trans = rect;
+	//*(SDL_Rect *)rect_trans = rect;
+	*(struct float_rect *)rect_trans = rect;
 }
 void tr_bump(void *rect_trans, void *data) {
 	/*	Resizes object from centre in periodic triangle-shaped "bump" pattern	*/
@@ -34,7 +35,8 @@ void tr_bump(void *rect_trans, void *data) {
 		str.bump_width = 1.0;
 	}
 
-	SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	//SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	struct float_rect rect = *(struct float_rect*)rect_trans;
 	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	float peak_start = str.peak_offset - str.bump_width/2;
 	float peak_end = str.peak_offset + str.bump_width/2;
@@ -59,7 +61,7 @@ void tr_sine(void *rect_trans, void *data) {
 	struct tr_sine_data str = *(struct tr_sine_data *)data;
 	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
-	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
+	tr_constmult((struct float_rect *)rect_trans, str.rect_bitmask, str.ampl, sin_mult);
 }
 
 void tr_sine_sq(void *rect_trans, void *data) {
@@ -67,7 +69,7 @@ void tr_sine_sq(void *rect_trans, void *data) {
 	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
 	sin_mult *= sin_mult;
-	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
+	tr_constmult((struct float_rect *)rect_trans, str.rect_bitmask, str.ampl, sin_mult);
 }
 
 void tr_sine_abs(void *rect_trans, void *data) {
@@ -75,29 +77,27 @@ void tr_sine_abs(void *rect_trans, void *data) {
 	float dec = str.status->timing->currentbeat - (int)str.status->timing->currentbeat;
 	float sin_mult = sin(2*PI*str.freq_perbeat*(dec+str.offset));
 	sin_mult = -fabs(sin_mult);
-	tr_constmult((SDL_Rect *)rect_trans, str.rect_bitmask, str.ampl_pix, sin_mult);
+	tr_constmult((struct float_rect *)rect_trans, str.rect_bitmask, str.ampl, sin_mult);
 }
 
-void tr_constmult(SDL_Rect *rect, int rect_bitmask, float ampl_pix, float mult) {
+void tr_constmult(struct float_rect *rect, int rect_bitmask, float ampl, float mult) {
 	if (rect_bitmask & 1) {
-		rect->x += (int)ampl_pix*mult;
+		rect->x += ampl*mult;
 	}
 	if (rect_bitmask & 2) {
-		rect->y += (int)ampl_pix*mult;
+		rect->y += ampl*mult;
 	}
 	if (rect_bitmask & 4) {
-		rect->w += (int)ampl_pix*mult;
+		rect->w += ampl*mult;
 	}
 	if (rect_bitmask & 8) {
-		rect->h += (int)ampl_pix*mult;
+		rect->h += ampl*mult;
 	}
 }
 
-//void tr_sine_sq(void *rect_trans, void *data) {
-	
-
 void tr_blink(void *rect_trans, void *data) {
-	SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	//SDL_Rect rect = *(SDL_Rect*)rect_trans;
+	struct float_rect rect = *(struct float_rect*)rect_trans;
 	struct tr_blink_data str = *(struct tr_blink_data *)data;
 	int on = str.frames_on;	
 	int off = str.frames_off;	
@@ -108,5 +108,29 @@ void tr_blink(void *rect_trans, void *data) {
 	}
 	else {
 	}
-	*(SDL_Rect *)rect_trans = rect;
+	//*(SDL_Rect *)rect_trans = rect;
+	*(struct float_rect *)rect_trans = rect;
+}
+
+void tr_orbit_xyz(void *rect_trans, void *data) {
+	//SDL_Rect *rect = (SDL_Rect*)rect_trans;
+	struct float_rect *rect = (struct float_rect*)rect_trans;
+	
+	struct tr_orbit_xyz_data str = *(struct tr_orbit_xyz_data *) data;
+	float beat = *str.currentbeat;
+	rect->x += str.x.ampl*sin(2*PI*(str.x.freq*beat + str.x.phase));
+	rect->y += str.y.ampl*sin(2*PI*(str.y.freq*beat + str.y.phase));
+
+	//SDL_Rect pre_scaling = *rect;
+	struct float_rect pre_scaling = *rect;
+	rect->w *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
+	rect->h *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
+
+	/* Enlarge about centre so move back to correct position: */
+	rect->x -= (rect->w - pre_scaling.w)/2;
+	rect->y -= (rect->h - pre_scaling.h)/2;
+	*str.z_set = str.z_eqm + str.z_layer_ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
+
+	//*str.z_set = ((int)beat%4)/2 ? 1 : -1;
+	//*str.z_set = 1;
 }

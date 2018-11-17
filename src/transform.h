@@ -16,11 +16,18 @@ struct tr_bump_data {
 };
 void tr_bump(void *rect_trans, void *data);
 
+struct cycle_struct {
+	float ampl;
+	float freq;
+	float phase; /* Phase of cycle in radians */
+};
+
 struct tr_sine_data {
 	struct status_struct *status;
 	int rect_bitmask;
+	//struct cycle_struct cycle;
 	float freq_perbeat;
-	float ampl_pix;
+	float ampl;
 	float offset;
 };
 
@@ -38,5 +45,19 @@ struct tr_blink_data {
 
 void tr_blink(void *rect_trans, void *data);
 
-void tr_constmult(SDL_Rect *rect, int rect_bitmask, float ampl_pix, float mult);
+void tr_orbit_xyz(void *animate_timing, void *data);
+
+struct tr_orbit_xyz_data {
+	struct cycle_struct x;
+	struct cycle_struct y;
+	struct cycle_struct z;
+	float z_eqm; /* z value at equilibrium */
+	float z_layer_ampl; /* Only for layer ordering */
+	float *z_set; /* z value of the animation we're setting */
+	float *currentbeat;
+	//float size_multiplier_close;
+	//float size_multiplier_far;
+};
+
+void tr_constmult(struct float_rect *rect, int rect_bitmask, float ampl, float mult);
 

@@ -71,8 +71,8 @@ int level_init (struct status_struct status) {
 
 	struct player_struct *player = status.player;
 
-	player->invincibility = 0;
-	player->invincibility_toggle = 0;
+	player->living.invincibility = 0;
+	player->living.invincibility_toggle = 0;
 	player->sword = 1;
 	player->direction = 4;
 	player->flydir = 1;
@@ -285,8 +285,8 @@ int level_init (struct status_struct status) {
 		.rect = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	hp->amount = &player->HP;
-	hp->max = &player->max_HP;
+	hp->amount = &player->living.HP;
+	hp->max = &player->living.max_HP;
 	hp->name = "hp";
 	hp->pos.x = 10 * ZOOM_MULT * 2;
 	hp->pos.y = 10 * ZOOM_MULT * 2;
@@ -314,8 +314,8 @@ int level_init (struct status_struct status) {
 		printf("No settings found for 'player' in the config file\n");
 		return R_FAILURE;
 	}
-	config_setting_lookup_int(player_setting, "max_HP", &player->max_HP);
-	player->HP = player->max_HP;
+	config_setting_lookup_int(player_setting, "max_HP", &player->living.max_HP);
+	player->living.HP = player->living.max_HP;
 
 
 	/*	Power	*/
@@ -328,8 +328,8 @@ int level_init (struct status_struct status) {
 		.rect = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	power->amount = &player->power;
-	power->max = &player->max_PP;
+	power->amount = &player->living.power;
+	power->max = &player->living.max_PP;
 	power->name = "power";
 	power->pos.x = 10 * ZOOM_MULT * 2;
 	power->pos.y = 10 * ZOOM_MULT * 2;
@@ -352,8 +352,8 @@ int level_init (struct status_struct status) {
 	power->animation->next->rules_list->next->data = tmp_data;
 	power->animation->next->transform_list->data = tmp_data;
 
-	config_setting_lookup_int(player_setting, "max_PP", &player->max_PP);
-	player->power = player->max_PP;
+	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
+	player->living.power = player->living.max_PP;
 
 	/*	Score	*/
 
@@ -497,7 +497,7 @@ int level_init (struct status_struct status) {
 	struct item potion;
 
 	potion.itemnumber = 0;
-	potion.int1 = &player->HP;
+	potion.int1 = &player->living.HP;
 	potion.int2 = 50; //Amount of HP restored by potion
 	potion.otherdata = (void *)&player;
 	potion.functionptr = &restorehealth;
@@ -508,7 +508,7 @@ int level_init (struct status_struct status) {
 	struct item laserjuice;
 
 	laserjuice.itemnumber = 1;
-	laserjuice.int1 = &player->power;
+	laserjuice.int1 = &player->living.power;
 	laserjuice.int2 = 200; //Amount of HP restored by laserjuice
 	laserjuice.otherdata = (void *)&player;
 	laserjuice.functionptr = &restorepower;
@@ -519,7 +519,7 @@ int level_init (struct status_struct status) {
 	struct item fist;
 
 	fist.itemnumber = 2;
-	fist.int1 = &player->max_PP;
+	fist.int1 = &player->living.max_PP;
 	fist.int2 = 20; //Amount of PP increased
 	fist.functionptr = &PPup;
 	memcpy(&fist.Src, &(int [2]){ 20, 0 }, sizeof fist.Src);
@@ -536,7 +536,7 @@ int level_init (struct status_struct status) {
 	void (*itemfunctionarray[10])(int *int1ptr, int int2, void *otherdata);
 	itemfunctionarray[0] = &restorehealth;
 	itemfunctionarray[1] = &restorepower;
-	//	(*itemfunctionarray[0])(&player->HP, 3);
+	//	(*itemfunctionarray[0])(&player->living.HP, 3);
 
 
 	/*		Weapons		*/
@@ -585,6 +585,67 @@ int level_init (struct status_struct status) {
 	Mon1img = IMG_LoadTexture(renderer, "../art/angrycircle.png");
 	SDL_QueryTexture(Mon0img, NULL, NULL, &w, &h); // get the width and height of the texture
 	SDL_QueryTexture(Mon1img, NULL, NULL, &w, &h); // get the width and height of the texture
+
+	struct monster_new *new_flyinghamster = malloc(sizeof(struct monster_new));
+	printf("ham: %p\n", new_flyinghamster);
+
+	new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
+	*new_flyinghamster->container = (struct visual_container_struct) {
+		.inherit = &lanes->containers[lanes->currentlane],
+		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
+		//.rect = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
+		.aspctr_lock = WH_INDEPENDENT,
+	};
+	printf("ham: %p\n", new_flyinghamster);
+	printf("container: %p\n", new_flyinghamster->container);
+
+	new_flyinghamster->living.HP = 1;
+	new_flyinghamster->living.power = 10;
+	new_flyinghamster->living.defence = 10;
+	//new_flyinghamster->image = Mon0img;
+	//new_flyinghamster->generic_bank_index = 1;
+
+	new_flyinghamster->name = "new_flyinghamster";
+	new_flyinghamster->pos.x = 0;//0.2 * graphics->width;
+	new_flyinghamster->pos.y = 0;//lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	//graphic_spawn(&new_flyinghamster->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
+	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
+	new_flyinghamster->animation->rules_list->data = (void *)&status;
+	new_flyinghamster->animation->next->rules_list->data = (void *)&status;
+
+	struct tr_orbit_xyz_data *orbit_data = malloc(sizeof(*orbit_data));
+	*orbit_data = (struct tr_orbit_xyz_data) {
+		//.x = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
+		//.y = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
+		//.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0.5*PI},
+		.x = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0},
+		.y = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0},
+		.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0.5*PI},
+		.z_eqm = new_flyinghamster->animation->z, /* z value at equilibrium */
+		.z_layer_ampl = 0.1, /* Only for layer ordering */
+		.z_set = &new_flyinghamster->animation->next->z,
+		.currentbeat = &timing->currentbeat,
+	};
+	struct tr_blink_data *blink_data = malloc(sizeof(*blink_data));
+	*blink_data = (struct tr_blink_data) {
+		.status = &status,
+		.frames_on = 10,
+		.frames_off = 10,
+	};
+
+
+	new_flyinghamster->animation->next->anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	new_flyinghamster->animation->next->transform_list->next = malloc(sizeof(struct rule_node));
+	//
+	new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_orbit_xyz;
+	new_flyinghamster->animation->next->transform_list->next->data = (void *)orbit_data;
+	//
+	//new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_blink;
+	//new_flyinghamster->animation->next->transform_list->next->data = (void *)blink_data;
+	new_flyinghamster->animation->next->transform_list->next->next = NULL;
+
+	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
+	//new_flyinghamster->animation->rules_list->data = (void *)&status;
 
 	struct monster *flyinghamster = malloc(sizeof(struct monster));
 
@@ -1092,7 +1153,7 @@ int level_loop(struct status_struct status) {
 
 		int donehere = 0;
 
-		if ( player->power > 0 ) {
+		if ( player->living.power > 0 ) {
 
 			for (int i = 0; i < 3; i++) {
 				if (vars->actionbuttonlist[i] == 1) {
@@ -1181,21 +1242,23 @@ int level_loop(struct status_struct status) {
 
 		/*	Drop into python interpreter */
 
-		if (status.program->python_interpreter_activate) {
-			if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
-				printf("Python interpreter activated!\n");
-			
-				status.program->python_interpreter_activate = 0;
+		if (status.program->python_interpreter_enable) {
+			if (status.program->python_interpreter_activate) {
+				if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
+					printf("Python interpreter activated!\n");
+				
+					status.program->python_interpreter_activate = 0;
 
-				/* Build the input arguments */
-				printf("Calling function\n");
-				PyRun_SimpleString("print('Calling (python)')");
-				PyObject *status_python_capsule = PyCapsule_New(&status, NULL, NULL);
-				PyObject *pResult = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
-				printf("Called function that returned %p\n", pResult);
+					/* Build the input arguments */
+					printf("Calling function\n");
+					PyRun_SimpleString("print('Calling (python)')");
+					PyObject *status_python_capsule = PyCapsule_New(&status, NULL, NULL);
+					PyObject *pResult = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
+					printf("Called function that returned %p\n", pResult);
 
-			} else {
-				printf ("Some error with the function\n") ;
+				} else {
+					printf ("Some error with the function\n") ;
+				}
 			}
 		}
 
@@ -1566,7 +1629,7 @@ void laserfire(struct level_struct *level, int totallanes, struct laser_struct *
 	rcLaser[2].w = LASER_SEPARATOR_X * ZOOM_MULT;
 	rcLaser[2].h = LASER_HEIGHT * ZOOM_MULT;
 
-	player->power--;
+	player->living.power--;
 }
 
 void swordfunc(struct level_struct *level, struct sword_struct *sword, SDL_Rect player_out, int framecount, struct monster_node *linkptrs_start[TOTAL_LANES], struct audio_struct audio) {
@@ -1720,30 +1783,30 @@ void touchitem(struct lane_struct *lanes, int currentlane, int currentscreen, SD
 
 int invinciblefunc(struct player_struct *player) {
 
-	if ( player->invincibility != 0 ) {
-		player->invinciblecounter[player->invincibility]--;
-		if ( player->invinciblecounter[player->invincibility] <= 0 ) {
-			player->invincibility = 0;
-			player->invincibility_toggle = 1;
+	if ( player->living.invincibility != 0 ) {
+		player->invinciblecounter[player->living.invincibility]--;
+		if ( player->invinciblecounter[player->living.invincibility] <= 0 ) {
+			player->living.invincibility = 0;
+			player->living.invincibility_toggle = 1;
 		}
 	}
 
-	return player->invincibility;
+	return player->living.invincibility;
 }
 
 void gethurt(struct status_struct status, int attack) {
 
-	if (status.player->invincibility == 0 ) {
+	if (status.player->living.invincibility == 0 ) {
 		int damage = attack;
-		status.player->HP -= damage;
-		if ( status.player->HP <= 0 ) {
+		status.player->living.HP -= damage;
+		if ( status.player->living.HP <= 0 ) {
 			status.audio->soundchecklist[5] = 1;
 			status.level->levelover = 1;
 		}
 		else {
 			status.audio->soundchecklist[4] = 1;
-			status.player->invincibility = 1;
-			status.player->invincibility_toggle = 1;
+			status.player->living.invincibility = 1;
+			status.player->living.invincibility_toggle = 1;
 			status.player->invinciblecounter[1] = 40;
 		}
 	}
@@ -1751,8 +1814,8 @@ void gethurt(struct status_struct status, int attack) {
 
 void restorehealth(int *HPptr, int restoreHPpts, void *otherdata) {
 	struct player_struct *player = (struct player_struct *) otherdata;
-	if ( player->max_HP - *HPptr <= restoreHPpts ) {
-		*HPptr = player->max_HP;
+	if ( player->living.max_HP - *HPptr <= restoreHPpts ) {
+		*HPptr = player->living.max_HP;
 	}
 	else
 		*HPptr += restoreHPpts;
@@ -1762,8 +1825,8 @@ void restorehealth(int *HPptr, int restoreHPpts, void *otherdata) {
 void restorepower(int *powerptr, int restorepowerpts, void *otherdata) {
 
 	struct player_struct *player = (struct player_struct *)otherdata;
-	if ( player->max_PP - *powerptr <= restorepowerpts ) {
-		*powerptr = player->max_PP;
+	if ( player->living.max_PP - *powerptr <= restorepowerpts ) {
+		*powerptr = player->living.max_PP;
 	}
 	else
 		*powerptr += restorepowerpts;
