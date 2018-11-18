@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so structdef.py
-	gcc -g3 main.o music.o clock.o startscreen.o level.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
+output: main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so structdef.py
+	gcc -g3 main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c `pkg-config --cflags --libs python3` main.c
@@ -15,6 +15,9 @@ startscreen.o: startscreen.c structdef.h music.h
 
 level.o: level.c structdef.h main.h level.h helpers.h music.h clock.h animate.h
 	gcc -g3 -c `pkg-config --cflags --libs python3` level.c
+
+spawn.o: spawn.c spawn.h structdef.h main.h level.h helpers.h music.h clock.h animate.h
+	gcc -g3 -c spawn.c
 
 pause.o: pause.c structdef.h
 	gcc -g3 -c pause.c

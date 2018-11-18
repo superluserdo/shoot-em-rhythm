@@ -126,9 +126,9 @@ void tr_orbit_xyz(void *rect_trans, void *data) {
 	rect->w *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
 	rect->h *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
 
-	/* Enlarge about centre so move back to correct position: */
-	rect->x -= (rect->w - pre_scaling.w)/2;
-	rect->y -= (rect->h - pre_scaling.h)/2;
+	///* Enlarge about centre so move back to correct position: */
+	//rect->x -= (rect->w - pre_scaling.w)/2;
+	//rect->y -= (rect->h - pre_scaling.h)/2;
 	*str.z_set = str.z_eqm + str.z_layer_ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
 
 	//*str.z_set = ((int)beat%4)/2 ? 1 : -1;

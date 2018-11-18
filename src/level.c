@@ -16,6 +16,7 @@
 #include "helpers.h"
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
+#include "spawn.h"
 
 #define SWORD_WIDTH 32
 #define SWORD_HEIGHT 32 // Get rid of this, put it in animaions.cfg or something
@@ -202,6 +203,8 @@ int level_init (struct status_struct status) {
 
 	struct animate_generic **generic_bank;
 	rc = generic_bank_populate(&generic_bank, graphics->image_bank, &status); //EXPERIMENTAL
+	level->generic_bank = generic_bank;
+
 	if (rc != R_SUCCESS)
 		return R_FAILURE;
 
@@ -586,67 +589,7 @@ int level_init (struct status_struct status) {
 	SDL_QueryTexture(Mon0img, NULL, NULL, &w, &h); // get the width and height of the texture
 	SDL_QueryTexture(Mon1img, NULL, NULL, &w, &h); // get the width and height of the texture
 
-	struct monster_new *new_flyinghamster = malloc(sizeof(struct monster_new));
-	printf("ham: %p\n", new_flyinghamster);
-
-	new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
-	*new_flyinghamster->container = (struct visual_container_struct) {
-		.inherit = &lanes->containers[lanes->currentlane],
-		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
-		//.rect = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
-		.aspctr_lock = WH_INDEPENDENT,
-	};
-	printf("ham: %p\n", new_flyinghamster);
-	printf("container: %p\n", new_flyinghamster->container);
-
-	new_flyinghamster->living.HP = 1;
-	new_flyinghamster->living.power = 10;
-	new_flyinghamster->living.defence = 10;
-	//new_flyinghamster->image = Mon0img;
-	//new_flyinghamster->generic_bank_index = 1;
-
-	new_flyinghamster->name = "new_flyinghamster";
-	new_flyinghamster->pos.x = 0;//0.2 * graphics->width;
-	new_flyinghamster->pos.y = 0;//lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
-	//graphic_spawn(&new_flyinghamster->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
-	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
-	new_flyinghamster->animation->rules_list->data = (void *)&status;
-	new_flyinghamster->animation->next->rules_list->data = (void *)&status;
-
-	struct tr_orbit_xyz_data *orbit_data = malloc(sizeof(*orbit_data));
-	*orbit_data = (struct tr_orbit_xyz_data) {
-		//.x = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
-		//.y = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
-		//.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0.5*PI},
-		.x = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0},
-		.y = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0},
-		.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0, .phase = 0.5*PI},
-		.z_eqm = new_flyinghamster->animation->z, /* z value at equilibrium */
-		.z_layer_ampl = 0.1, /* Only for layer ordering */
-		.z_set = &new_flyinghamster->animation->next->z,
-		.currentbeat = &timing->currentbeat,
-	};
-	struct tr_blink_data *blink_data = malloc(sizeof(*blink_data));
-	*blink_data = (struct tr_blink_data) {
-		.status = &status,
-		.frames_on = 10,
-		.frames_off = 10,
-	};
-
-
-	new_flyinghamster->animation->next->anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
-	new_flyinghamster->animation->next->transform_list->next = malloc(sizeof(struct rule_node));
-	//
-	new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_orbit_xyz;
-	new_flyinghamster->animation->next->transform_list->next->data = (void *)orbit_data;
-	//
-	//new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_blink;
-	//new_flyinghamster->animation->next->transform_list->next->data = (void *)blink_data;
-	new_flyinghamster->animation->next->transform_list->next->next = NULL;
-
-	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
-	//new_flyinghamster->animation->rules_list->data = (void *)&status;
-
+	spawn_flying_hamster(&status);
 	struct monster *flyinghamster = malloc(sizeof(struct monster));
 
 	flyinghamster->health = 1;

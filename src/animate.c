@@ -54,6 +54,7 @@ void render_process(struct std_list *object_list_stack, struct graphics_struct *
 }
 
 int renderlist(struct render_node *node_ptr) {
+	int debug_anchors = 1;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
@@ -64,7 +65,24 @@ int renderlist(struct render_node *node_ptr) {
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
+		if (debug_anchors) {
+			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
+			int anchor_width = 6;
+			SDL_Rect anchor_rect = {
+				.x = node_ptr->rect_out.x + node_ptr->animation->anchors_exposed[0].pos_anim_internal.w * node_ptr->rect_out.w - anchor_width/2,
+				.y = node_ptr->rect_out.y + node_ptr->animation->anchors_exposed[0].pos_anim_internal.h * node_ptr->rect_out.h - anchor_width/2,
+				.w = anchor_width,
+				.h = anchor_width,
+			};
+			//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
+			int rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_rect);
+			if (rc != 0) {
+				printf("%s\n", SDL_GetError());
+			}
+			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
+		}
 		node_ptr = node_ptr->next;
+
 	}
 	return 0;
 }
@@ -361,38 +379,75 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
 
-			struct float_rect size_and_hook_pos_container_scale = { /* x, y = container-scale anchor hook position
-																	w, h = container-scale rect size */
+			struct float_rect anchor_hook_pos_internal = {
 				.x = (float)frame.anchor_hook.x / (float)frame.rect.w,
 				.y = (float)frame.anchor_hook.y / (float)frame.rect.h,
 			};
 
-			float aspect_ratio = (float)frame.rect.w / (float)frame.rect.h;
+			struct float_rect size_and_hook_pos_dominant_scale;
+		   	/*  x, y = container-scale anchor hook position.
+				w, h = container-scale rect size, 
+				scaled in units of container size in direction of container_scale_mode */
+
+			float internal_aspect_ratio = (float)frame.rect.w / (float)frame.rect.h;
+			float container_size_aspect_ratio = (float)abs_container.w / (float)abs_container.h;
 
 			if (animation->container_scale_mode == WIDTH) {
-				size_and_hook_pos_container_scale.w = animation->container_scale_factor;
-				size_and_hook_pos_container_scale.h = animation->rect_out_container_scale.w / aspect_ratio;
+				size_and_hook_pos_dominant_scale.x = anchor_grabbed_container_scale.w;
+				size_and_hook_pos_dominant_scale.y = anchor_grabbed_container_scale.h / container_size_aspect_ratio;
+				size_and_hook_pos_dominant_scale.w = animation->container_scale_factor;
+				size_and_hook_pos_dominant_scale.h = animation->container_scale_factor / internal_aspect_ratio;
 			} else if (animation->container_scale_mode == HEIGHT) {
-				size_and_hook_pos_container_scale.h = animation->container_scale_factor;
-				size_and_hook_pos_container_scale.w = animation->rect_out_container_scale.h * aspect_ratio;
+				size_and_hook_pos_dominant_scale.y = anchor_grabbed_container_scale.h;
+				size_and_hook_pos_dominant_scale.x = anchor_grabbed_container_scale.w * container_size_aspect_ratio;
+				size_and_hook_pos_dominant_scale.h = animation->container_scale_factor;
+				size_and_hook_pos_dominant_scale.w = animation->container_scale_factor * internal_aspect_ratio;
 			}
 
 			//SDL_Rect rect_trans = animation->rect_out;
 			struct func_node *transform_node = animation->transform_list;
 			while (transform_node) {
 				//transform_node->func((void *)&abs_rect, transform_node->data);
-				transform_node->func((void *)&size_and_hook_pos_container_scale, transform_node->data);
+				transform_node->func((void *)&size_and_hook_pos_dominant_scale, transform_node->data);
 				transform_node = transform_node->next;
 				transform_node_count++;
 			}
 
-			animation->rect_out_container_scale.x = anchor_grabbed_container_scale.w
-					- animation->rect_out_container_scale.w * size_and_hook_pos_container_scale.x;
-			animation->rect_out_container_scale.y = anchor_grabbed_container_scale.h
-					- animation->rect_out_container_scale.h * size_and_hook_pos_container_scale.y;
+			struct float_rect size_and_hook_pos_container_scale;
+
+			/* Convert back into separate container-scaled dimensions (x and y decoupled): */
+			if (animation->container_scale_mode == WIDTH) {
+
+				size_and_hook_pos_container_scale.w = size_and_hook_pos_dominant_scale.w;
+				size_and_hook_pos_container_scale.h = size_and_hook_pos_dominant_scale.h
+													* container_size_aspect_ratio;
+
+				size_and_hook_pos_container_scale.x = size_and_hook_pos_dominant_scale.x;
+
+				size_and_hook_pos_container_scale.y = size_and_hook_pos_dominant_scale.y 
+													* container_size_aspect_ratio;
+
+			} else if (animation->container_scale_mode == HEIGHT) {
+
+				size_and_hook_pos_container_scale.h = size_and_hook_pos_dominant_scale.h;
+				size_and_hook_pos_container_scale.w = size_and_hook_pos_dominant_scale.w
+													/ container_size_aspect_ratio;
+
+				size_and_hook_pos_container_scale.y = size_and_hook_pos_dominant_scale.y;
+				size_and_hook_pos_container_scale.x = size_and_hook_pos_dominant_scale.x
+													/ container_size_aspect_ratio;
+
+			}
+
+			/* Convert from hook pos to rect pos: */
 			animation->rect_out_container_scale.w = size_and_hook_pos_container_scale.w;
 			animation->rect_out_container_scale.h = size_and_hook_pos_container_scale.h;
+			animation->rect_out_container_scale.x = size_and_hook_pos_container_scale.x
+					- animation->rect_out_container_scale.w * anchor_hook_pos_internal.x;
+			animation->rect_out_container_scale.y = size_and_hook_pos_container_scale.y
+					- animation->rect_out_container_scale.h * anchor_hook_pos_internal.y;
 
+			/* Convert from container-scale relative width to global scale absolute width */
 			SDL_Rect abs_rect = {
 				.x = abs_container.x + animation->rect_out_container_scale.x * abs_container.w,
 				.y = abs_container.y + animation->rect_out_container_scale.y * abs_container.h,
