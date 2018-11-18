@@ -481,6 +481,8 @@ struct animate_specific {
 	//struct size_ratio_struct *anchors_exposed;
 	struct anchor_struct *anchors_exposed; /* List of "exposed anchors" for a single texture/layer
 										  animation. Other animations can lock onto these */
+	struct size_ratio_struct anchor_hook; /* Sprite-relative position of anchor hook.
+											 Default is the one specified by generic animation */
 
 	struct func_node *transform_list;
 

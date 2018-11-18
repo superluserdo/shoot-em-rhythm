@@ -61,6 +61,9 @@ int spawn_flying_hamster(struct status_struct *status) {
 	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
+	//animation->anchor_hook = (struct size_ratio_struct) {0, 0.5};
+	set_anchor_hook(&new_flyinghamster->std, 0, 0.5);
+	new_flyinghamster->container_pos.w = 0.1;
 	
 	animation->rules_list = malloc(sizeof(struct rule_node));
 	animation->rules_list->rule = &rules_player;
@@ -131,9 +134,43 @@ int spawn_flying_hamster(struct status_struct *status) {
 
 int object_logic_monster(struct std *monster, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
-	printf("%f\n", monster->container_pos.w);
-	monster->container_pos.w -= 0.001;
+	monster->container_pos.w -= 0.0001;
+
+	if (pos_at_custom_anchor_hook(monster, 1, 0.5).w < 0) {
+		puts("BEEP!\n");
+	}
 
 	return 0;
 }
 
+void set_anchor_hook(struct std *std, float x, float y) {
+	struct size_ratio_struct new_anchor_hook = {.w = x, .h = y};
+	struct size_ratio_struct old_anchor_hook = std->animation->anchor_hook;
+	/* Set the new anchor hook: */
+	std->animation->anchor_hook = new_anchor_hook;
+
+	/* Preserve the real position: */
+	struct size_ratio_struct old_pos = std->container_pos;
+
+	struct float_rect rect_out = std->animation->rect_out_container_scale;
+	std->container_pos = (struct size_ratio_struct) {
+		.w = old_pos.w + (new_anchor_hook.w - old_anchor_hook.w) * rect_out.w,
+		.h = old_pos.h + (new_anchor_hook.h - old_anchor_hook.h) * rect_out.h,
+	};
+};
+
+struct size_ratio_struct pos_at_custom_anchor_hook(struct std *std, float x, float y) {
+	struct size_ratio_struct custom_anchor_hook = {.w = x, .h = y};
+	struct size_ratio_struct old_anchor_hook = std->animation->anchor_hook;
+
+	/* Preserve the real position: */
+	struct size_ratio_struct old_pos = std->container_pos;
+
+	struct float_rect rect_out = std->animation->rect_out_container_scale;
+	struct size_ratio_struct custom_pos = {
+		.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) * rect_out.w,
+		.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) * rect_out.h,
+	};
+
+	return custom_pos;
+};

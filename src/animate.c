@@ -394,11 +394,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
 
-			struct float_rect anchor_hook_pos_internal = {
-				.x = (float)frame.anchor_hook.x / (float)frame.rect.w,
-				.y = (float)frame.anchor_hook.y / (float)frame.rect.h,
-			};
-
 			struct float_rect size_and_hook_pos_dominant_scale;
 		   	/*  x, y = container-scale anchor hook position.
 				w, h = container-scale rect size, 
@@ -457,10 +452,12 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			/* Convert from hook pos to rect pos: */
 			animation->rect_out_container_scale.w = size_and_hook_pos_container_scale.w;
 			animation->rect_out_container_scale.h = size_and_hook_pos_container_scale.h;
+
 			animation->rect_out_container_scale.x = size_and_hook_pos_container_scale.x
-					- animation->rect_out_container_scale.w * anchor_hook_pos_internal.x;
+			- animation->rect_out_container_scale.w * animation->anchor_hook.w;
+
 			animation->rect_out_container_scale.y = size_and_hook_pos_container_scale.y
-					- animation->rect_out_container_scale.h * anchor_hook_pos_internal.y;
+			- animation->rect_out_container_scale.h * animation->anchor_hook.h;
 
 			/* Convert from container-scale relative width to global scale absolute width */
 			SDL_Rect abs_rect = {
@@ -722,6 +719,16 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	/* By default, make the animation's position in the container be determined
 	 * not by an anchor but by its std object's "pos" */
 	specific->anchor_grabbed = NULL;
+
+	/* By default, make the animation's internal relative anchor hook
+	 * the same as the one specified by the generic animation */
+	struct frame frame = generic->clips[specific->clip]->frames[specific->frame];
+
+	struct size_ratio_struct anchor_hook_pos_internal = {
+		.w = (float)frame.anchor_hook.x / (float)frame.rect.w,
+		.h = (float)frame.anchor_hook.y / (float)frame.rect.h,
+	};
+	specific->anchor_hook = anchor_hook_pos_internal;
 
 	specific->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
 	return specific;
@@ -1060,3 +1067,4 @@ void rules_ui_counter(void *animvoid) {
 		}
 	}
 }
+
