@@ -152,7 +152,7 @@ int level_init (struct status_struct status) {
 	lanes->laneheight = malloc(sizeof (float) * lanes->total);
 	for (int i = 0; i < lanes->total; i++) {
 		//lanes->laneheight[i] = graphics->height + lanes->lanewidth * (-(lanes->total - 1) + i - 0.5);
-		lanes->laneheight[i] = 1 - lanes->lanewidth * ((lanes->total - 1) - i + 0.5);
+		lanes->laneheight[i] = 0.2*i;//1 - lanes->lanewidth * ((lanes->total - 1) - i + 0.5);
 	}
 
 	//TODO: Currently all laneheights used in functions are ints (pixels). Change to floats for container format!
@@ -214,9 +214,10 @@ int level_init (struct status_struct status) {
 		.rect = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
+
 	for (int lane = 0; lane < lanes->total; lane++) {
 		lanes->containers[lane] = (struct visual_container_struct) {
-			.inherit = &graphics->screen,
+			.inherit = container_level_play_area,
 			.rect = (struct float_rect) { .x = 0, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
 			.aspctr_lock = WH_INDEPENDENT,
 		};
