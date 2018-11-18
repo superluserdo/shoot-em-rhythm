@@ -24,16 +24,9 @@ int transform_node_count = 0;
 /* RENDER */
 extern SDL_Texture **image_bank;
 
-/* By default, make the animation's grabbed anchor in the top left of the container: */
-//struct anchor_struct *default_anchor = malloc(sizeof(*default_anchor));
-struct anchor_struct default_anchor = {
-	.pos_anim_internal = (struct size_ratio_struct) { 0.5, 0.5 },
-	.anim = NULL,
-};
-
 void render_process(struct std_list *object_list_stack, struct graphics_struct *graphics, struct time_struct *timing) {
 	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
-	renderlist(graphics->render_node_head);
+	renderlist(graphics->render_node_head, graphics);
 
 	SDL_SetRenderTarget(graphics->renderer, NULL);
 	SDL_RenderClear(graphics->renderer);
@@ -53,8 +46,9 @@ void render_process(struct std_list *object_list_stack, struct graphics_struct *
 	SDL_SetRenderTarget(graphics->renderer, graphics->imgs->texTarget);
 }
 
-int renderlist(struct render_node *node_ptr) {
-	int debug_anchors = 1;
+int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
+	graphics->debug_anchors = 1;
+	graphics->debug_containers = 1;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
@@ -65,7 +59,7 @@ int renderlist(struct render_node *node_ptr) {
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
-		if (debug_anchors) {
+		if (graphics->debug_anchors) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
 			int anchor_width = 6;
 			SDL_Rect anchor_rect = {
@@ -76,6 +70,25 @@ int renderlist(struct render_node *node_ptr) {
 			};
 			//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
 			int rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_rect);
+			if (rc != 0) {
+				printf("%s\n", SDL_GetError());
+			}
+			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
+		}
+		if (graphics->debug_containers) {
+			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
+			int line_width = 6;
+			SDL_Rect abs_container = visual_container_to_pixels(node_ptr->animation->parent->container,
+									(struct xy_struct){graphics->width, graphics->height});
+			SDL_Point points[5] = {
+				{abs_container.x, abs_container.y},
+				{abs_container.x + abs_container.w, abs_container.y},
+				{abs_container.x + abs_container.w, abs_container.y + abs_container.h},
+				{abs_container.x, abs_container.y + abs_container.h},
+				{abs_container.x, abs_container.y},
+			};
+			//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
+			int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
 			}
@@ -364,17 +377,19 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				}
 			}
 
-			struct anchor_struct anchor_grabbed = *animation->anchor_grabbed;
 			struct size_ratio_struct anchor_grabbed_container_scale;
-			if (anchor_grabbed.anim) { /* anchor_grabbed_container_scale.w, h are the relative position in the exposing animation */
+			if (animation->anchor_grabbed) { /* anchor_grabbed_container_scale.w, h are the relative position in the exposing animation */
+				struct anchor_struct anchor_grabbed = *animation->anchor_grabbed;
 				
 				anchor_grabbed_container_scale.w = anchor_grabbed.pos_anim_internal.w * anchor_grabbed.anim->rect_out_container_scale.w
 					 + anchor_grabbed.anim->rect_out_container_scale.x;
 				anchor_grabbed_container_scale.h = anchor_grabbed.pos_anim_internal.h * anchor_grabbed.anim->rect_out_container_scale.h
 					 + anchor_grabbed.anim->rect_out_container_scale.y;
 			} else { /* anchor_grabbed_container_scale.w, h are the relative position in the container */
-				anchor_grabbed_container_scale.w = anchor_grabbed.pos_anim_internal.w;
-				anchor_grabbed_container_scale.h = anchor_grabbed.pos_anim_internal.h;
+				//anchor_grabbed_container_scale.w = anchor_grabbed.pos_anim_internal.w;
+				//anchor_grabbed_container_scale.h = anchor_grabbed.pos_anim_internal.h;
+				anchor_grabbed_container_scale.w = object->container_pos.w;
+				anchor_grabbed_container_scale.h = object->container_pos.h;
 			}
 
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
@@ -695,16 +710,7 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	}
 	/*	Fetch object-type default values for the specific-animation struct.	*/
 
-	/* set sprite position */
 	specific->parent = std;
-	specific->rect_out.x = specific->parent->pos.x;
-	specific->rect_out.y = specific->parent->pos.y;
-
-	specific->rect_out.w = generic->clips[specific->clip]->frames[specific->frame].rect.w
-							*specific->parent->size_ratio.w*ZOOM_MULT*2;
-	specific->rect_out.h = generic->clips[specific->clip]->frames[specific->frame].rect.h
-							*specific->parent->size_ratio.h*ZOOM_MULT*2;
-	/*	You will need to set x and y manually after this.	*/
 	
 	specific->anchors_exposed = malloc(sizeof(struct size_ratio_struct)); //Temporary until I get anchors properly implemented
 	/* By default, make the animation's main exposed anchor in the middle */
@@ -712,7 +718,10 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 		.pos_anim_internal = (struct size_ratio_struct) { 0.5, 0.5 },
 		.anim = specific,
 	};
-	specific->anchor_grabbed = &default_anchor;
+
+	/* By default, make the animation's position in the container be determined
+	 * not by an anchor but by its std object's "pos" */
+	specific->anchor_grabbed = NULL;
 
 	specific->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
 	return specific;

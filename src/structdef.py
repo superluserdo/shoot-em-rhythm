@@ -141,18 +141,6 @@ class struct_std(ctypes.Structure):
 class struct_animate_specific(ctypes.Structure):
     pass
 
-
-# values for enumeration 'layer_mode_e'
-TIGHT = 0
-GLOBAL = 1
-layer_mode_e = ctypes.c_int # enum
-class struct_anchor_struct(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('pos_anim_internal', struct_size_ratio_struct),
-    ('anim', POINTER_T(struct_animate_specific)),
-     ]
-
 class struct_rule_node(ctypes.Structure):
     pass
 
@@ -163,15 +151,6 @@ struct_rule_node._fields_ = [
     ('next', POINTER_T(struct_rule_node)),
 ]
 
-class struct_float_rect(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('x', ctypes.c_double),
-    ('y', ctypes.c_double),
-    ('w', ctypes.c_double),
-    ('h', ctypes.c_double),
-     ]
-
 class struct_func_node(ctypes.Structure):
     pass
 
@@ -181,6 +160,15 @@ struct_func_node._fields_ = [
     ('func', POINTER_T(ctypes.CFUNCTYPE(None, POINTER_T(None), POINTER_T(None)))),
     ('next', POINTER_T(struct_func_node)),
 ]
+
+class struct_float_rect(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('x', ctypes.c_double),
+    ('y', ctypes.c_double),
+    ('w', ctypes.c_double),
+    ('h', ctypes.c_double),
+     ]
 
 class struct_animate_generic(ctypes.Structure):
     pass
@@ -238,6 +226,18 @@ struct_render_node._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
 ]
 
+
+# values for enumeration 'layer_mode_e'
+TIGHT = 0
+GLOBAL = 1
+layer_mode_e = ctypes.c_int # enum
+class struct_anchor_struct(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('pos_anim_internal', struct_size_ratio_struct),
+    ('anim', POINTER_T(struct_animate_specific)),
+     ]
+
 struct_animate_specific._pack_ = True # source:False
 struct_animate_specific._fields_ = [
     ('generic', POINTER_T(struct_animate_generic)),
@@ -286,9 +286,12 @@ struct_std._pack_ = True # source:False
 struct_std._fields_ = [
     ('name', POINTER_T(ctypes.c_char)),
     ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
     ('size_ratio', struct_size_ratio_struct),
     ('container', POINTER_T(struct_visual_container_struct)),
     ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
     ('self', POINTER_T(None)),
 ]
 
@@ -333,15 +336,20 @@ class union_sword_struct_0(ctypes.Union):
     pass
 
 class struct_sword_struct_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+    pass
+
+struct_sword_struct_0_0._pack_ = True # source:False
+struct_sword_struct_0_0._fields_ = [
     ('name', POINTER_T(ctypes.c_char)),
     ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
     ('size_ratio', struct_size_ratio_struct),
     ('container', POINTER_T(struct_visual_container_struct)),
     ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
     ('self', POINTER_T(None)),
-     ]
+]
 
 union_sword_struct_0._pack_ = True # source:False
 union_sword_struct_0._fields_ = [
@@ -362,37 +370,6 @@ struct_sword_struct._fields_ = [
 
 class struct_status_struct(ctypes.Structure):
     pass
-
-class struct_program_struct(ctypes.Structure):
-    pass
-
-class struct_hooktypes_struct(ctypes.Structure):
-    pass
-
-class struct_hooks_list_struct(ctypes.Structure):
-    pass
-
-struct_hooks_list_struct._pack_ = True # source:False
-struct_hooks_list_struct._fields_ = [
-    ('hookfunc', POINTER_T(ctypes.CFUNCTYPE(POINTER_T(None), POINTER_T(struct_status_struct)))),
-    ('next', POINTER_T(struct_hooks_list_struct)),
-]
-
-struct_hooktypes_struct._pack_ = True # source:False
-struct_hooktypes_struct._fields_ = [
-    ('frame', POINTER_T(struct_hooks_list_struct)),
-    ('level_init', POINTER_T(struct_hooks_list_struct)),
-    ('level_loop', POINTER_T(struct_hooks_list_struct)),
-]
-
-struct_program_struct._pack_ = True # source:False
-struct_program_struct._fields_ = [
-    ('hooks', struct_hooktypes_struct),
-    ('python_helper_function', POINTER_T(None)),
-    ('status_python_capsule', POINTER_T(None)),
-    ('python_interpreter_activate', ctypes.c_int32),
-    ('python_interpreter_enable', ctypes.c_int32),
-]
 
 class struct_time_struct(ctypes.Structure):
     _pack_ = True # source:False
@@ -422,8 +399,60 @@ class struct_time_struct(ctypes.Structure):
     ('PADDING_1', ctypes.c_ubyte * 4),
      ]
 
+class struct_player_struct(ctypes.Structure):
+    pass
+
+class union_player_struct_0(ctypes.Union):
+    pass
+
+class struct_player_struct_0_0(ctypes.Structure):
+    pass
+
+struct_player_struct_0_0._pack_ = True # source:False
+struct_player_struct_0_0._fields_ = [
+    ('name', POINTER_T(ctypes.c_char)),
+    ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
+    ('size_ratio', struct_size_ratio_struct),
+    ('container', POINTER_T(struct_visual_container_struct)),
+    ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
+    ('self', POINTER_T(None)),
+]
+
+union_player_struct_0._pack_ = True # source:False
+union_player_struct_0._fields_ = [
+    ('_0', struct_player_struct_0_0),
+    ('std', struct_std),
+]
+
+struct_player_struct._pack_ = True # source:False
+struct_player_struct._fields_ = [
+    ('_0', union_player_struct_0),
+    ('invinciblecounter', ctypes.c_int32 * 2),
+    ('sword', ctypes.c_int32),
+    ('direction', ctypes.c_int32),
+    ('flydir', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('living', struct_living),
+]
+
 class struct_graphics_struct(ctypes.Structure):
     pass
+
+class struct_rendercopyex_struct(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('renderer', POINTER_T(struct_SDL_Renderer)),
+    ('texture', POINTER_T(struct_SDL_Texture)),
+    ('srcrect', POINTER_T(struct_SDL_Rect)),
+    ('dstrect', POINTER_T(struct_SDL_Rect)),
+    ('angle', ctypes.c_double),
+    ('center', POINTER_T(struct_SDL_Point)),
+    ('flip', c__EA_SDL_RendererFlip),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+     ]
 
 class struct_texture_struct(ctypes.Structure):
     _pack_ = True # source:False
@@ -440,19 +469,6 @@ class struct_texture_struct(ctypes.Structure):
     ('texTarget', POINTER_T(struct_SDL_Texture)),
      ]
 
-class struct_rendercopyex_struct(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('renderer', POINTER_T(struct_SDL_Renderer)),
-    ('texture', POINTER_T(struct_SDL_Texture)),
-    ('srcrect', POINTER_T(struct_SDL_Rect)),
-    ('dstrect', POINTER_T(struct_SDL_Rect)),
-    ('angle', ctypes.c_double),
-    ('center', POINTER_T(struct_SDL_Point)),
-    ('flip', c__EA_SDL_RendererFlip),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-     ]
-
 class struct_ui_struct(ctypes.Structure):
     pass
 
@@ -463,15 +479,20 @@ class union_ui_counter_0(ctypes.Union):
     pass
 
 class struct_ui_counter_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+    pass
+
+struct_ui_counter_0_0._pack_ = True # source:False
+struct_ui_counter_0_0._fields_ = [
     ('name', POINTER_T(ctypes.c_char)),
     ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
     ('size_ratio', struct_size_ratio_struct),
     ('container', POINTER_T(struct_visual_container_struct)),
     ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
     ('self', POINTER_T(None)),
-     ]
+]
 
 union_ui_counter_0._pack_ = True # source:False
 union_ui_counter_0._fields_ = [
@@ -495,15 +516,20 @@ class union_ui_bar_0(ctypes.Union):
     pass
 
 class struct_ui_bar_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+    pass
+
+struct_ui_bar_0_0._pack_ = True # source:False
+struct_ui_bar_0_0._fields_ = [
     ('name', POINTER_T(ctypes.c_char)),
     ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
     ('size_ratio', struct_size_ratio_struct),
     ('container', POINTER_T(struct_visual_container_struct)),
     ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
     ('self', POINTER_T(None)),
-     ]
+]
 
 union_ui_bar_0._pack_ = True # source:False
 union_ui_bar_0._fields_ = [
@@ -540,59 +566,12 @@ struct_graphics_struct._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('rendercopyex_data', POINTER_T(struct_rendercopyex_struct)),
     ('image_bank', POINTER_T(POINTER_T(struct_SDL_Texture))),
-]
-
-class struct_player_struct(ctypes.Structure):
-    pass
-
-class union_player_struct_0(ctypes.Union):
-    pass
-
-class struct_player_struct_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('name', POINTER_T(ctypes.c_char)),
-    ('pos', struct_xy_struct),
-    ('size_ratio', struct_size_ratio_struct),
-    ('container', POINTER_T(struct_visual_container_struct)),
-    ('animation', POINTER_T(struct_animate_specific)),
-    ('self', POINTER_T(None)),
-     ]
-
-union_player_struct_0._pack_ = True # source:False
-union_player_struct_0._fields_ = [
-    ('_0', struct_player_struct_0_0),
-    ('std', struct_std),
-]
-
-struct_player_struct._pack_ = True # source:False
-struct_player_struct._fields_ = [
-    ('_0', union_player_struct_0),
-    ('invinciblecounter', ctypes.c_int32 * 2),
-    ('sword', ctypes.c_int32),
-    ('direction', ctypes.c_int32),
-    ('flydir', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('living', struct_living),
+    ('debug_anchors', ctypes.c_int32),
+    ('debug_containers', ctypes.c_int32),
 ]
 
 class struct_level_struct(ctypes.Structure):
     pass
-
-class struct_item(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('itemnumber', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('int1', POINTER_T(ctypes.c_int32)),
-    ('int2', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
-    ('otherdata', POINTER_T(None)),
-    ('functionptr', POINTER_T(None)),
-    ('Src', ctypes.c_int32 * 2),
-    ('wh', ctypes.c_int32 * 2),
-    ('image', POINTER_T(POINTER_T(struct_SDL_Texture))),
-     ]
 
 class struct_level_effects_struct(ctypes.Structure):
     _pack_ = True # source:False
@@ -602,15 +581,16 @@ class struct_level_effects_struct(ctypes.Structure):
     ('hue', ctypes.c_int32),
      ]
 
-class struct_rects_struct(ctypes.Structure):
+class struct_monster(ctypes.Structure):
     _pack_ = True # source:False
     _fields_ = [
-    ('rcLaser', struct_SDL_Rect * 3),
-    ('rcLaserSrc', struct_SDL_Rect * 3),
-    ('rcScore', struct_SDL_Rect * 5),
-    ('rcScoreSrc', struct_SDL_Rect * 5),
-    ('rcBeat', struct_SDL_Rect * 5),
-    ('rcBeatSrc', struct_SDL_Rect * 5),
+    ('health', ctypes.c_int32),
+    ('attack', ctypes.c_int32),
+    ('defence', ctypes.c_float),
+    ('Src', ctypes.c_int32 * 2),
+    ('wh', ctypes.c_int32 * 2),
+    ('generic_bank_index', ctypes.c_int32),
+    ('image', POINTER_T(struct_SDL_Texture)),
      ]
 
 class struct_level_var_struct(ctypes.Structure):
@@ -637,6 +617,17 @@ struct_level_var_struct._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
 ]
 
+class struct_rects_struct(ctypes.Structure):
+    _pack_ = True # source:False
+    _fields_ = [
+    ('rcLaser', struct_SDL_Rect * 3),
+    ('rcLaserSrc', struct_SDL_Rect * 3),
+    ('rcScore', struct_SDL_Rect * 5),
+    ('rcScoreSrc', struct_SDL_Rect * 5),
+    ('rcBeat', struct_SDL_Rect * 5),
+    ('rcBeatSrc', struct_SDL_Rect * 5),
+     ]
+
 class struct_lane_struct(ctypes.Structure):
     _pack_ = True # source:False
     _fields_ = [
@@ -648,16 +639,19 @@ class struct_lane_struct(ctypes.Structure):
     ('containers', POINTER_T(struct_visual_container_struct)),
      ]
 
-class struct_monster(ctypes.Structure):
+class struct_item(ctypes.Structure):
     _pack_ = True # source:False
     _fields_ = [
-    ('health', ctypes.c_int32),
-    ('attack', ctypes.c_int32),
-    ('defence', ctypes.c_float),
+    ('itemnumber', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('int1', POINTER_T(ctypes.c_int32)),
+    ('int2', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('otherdata', POINTER_T(None)),
+    ('functionptr', POINTER_T(None)),
     ('Src', ctypes.c_int32 * 2),
     ('wh', ctypes.c_int32 * 2),
-    ('generic_bank_index', ctypes.c_int32),
-    ('image', POINTER_T(struct_SDL_Texture)),
+    ('image', POINTER_T(POINTER_T(struct_SDL_Texture))),
      ]
 
 struct_level_struct._pack_ = True # source:False
@@ -687,8 +681,39 @@ struct_level_struct._fields_ = [
     ('bestiary', POINTER_T(struct_monster) * 10),
     ('itempokedex', POINTER_T(struct_item) * 10),
     ('itemscreenstrip', POINTER_T(POINTER_T(ctypes.c_int32 * 2 * 20 * 5))),
-    ('generic_bank', POINTER_T(POINTER_T(struct_animate_generic))),
     ('remainder', POINTER_T(ctypes.c_double)),
+    ('generic_bank', POINTER_T(POINTER_T(struct_animate_generic))),
+]
+
+class struct_program_struct(ctypes.Structure):
+    pass
+
+class struct_hooktypes_struct(ctypes.Structure):
+    pass
+
+class struct_hooks_list_struct(ctypes.Structure):
+    pass
+
+struct_hooks_list_struct._pack_ = True # source:False
+struct_hooks_list_struct._fields_ = [
+    ('hookfunc', POINTER_T(ctypes.CFUNCTYPE(POINTER_T(None), POINTER_T(struct_status_struct)))),
+    ('next', POINTER_T(struct_hooks_list_struct)),
+]
+
+struct_hooktypes_struct._pack_ = True # source:False
+struct_hooktypes_struct._fields_ = [
+    ('frame', POINTER_T(struct_hooks_list_struct)),
+    ('level_init', POINTER_T(struct_hooks_list_struct)),
+    ('level_loop', POINTER_T(struct_hooks_list_struct)),
+]
+
+struct_program_struct._pack_ = True # source:False
+struct_program_struct._fields_ = [
+    ('hooks', struct_hooktypes_struct),
+    ('python_helper_function', POINTER_T(None)),
+    ('status_python_capsule', POINTER_T(None)),
+    ('python_interpreter_activate', ctypes.c_int32),
+    ('python_interpreter_enable', ctypes.c_int32),
 ]
 
 class struct_audio_struct(ctypes.Structure):
@@ -762,15 +787,20 @@ class union_monster_new_0(ctypes.Union):
     pass
 
 class struct_monster_new_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+    pass
+
+struct_monster_new_0_0._pack_ = True # source:False
+struct_monster_new_0_0._fields_ = [
     ('name', POINTER_T(ctypes.c_char)),
     ('pos', struct_xy_struct),
+    ('container_pos', struct_size_ratio_struct),
     ('size_ratio', struct_size_ratio_struct),
     ('container', POINTER_T(struct_visual_container_struct)),
     ('animation', POINTER_T(struct_animate_specific)),
+    ('object_logic', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(struct_std), POINTER_T(None)))),
+    ('object_data', POINTER_T(None)),
     ('self', POINTER_T(None)),
-     ]
+]
 
 union_monster_new_0._pack_ = True # source:False
 union_monster_new_0._fields_ = [
@@ -822,41 +852,40 @@ LEVEL_INIT = 1
 LEVEL_LOOP = 2
 hook_type_e = ctypes.c_int # enum
 __all__ = \
-    ['struct_SDL_Rect', 'SWORD', 'struct_sword_struct_0_0',
-    'struct_time_struct', 'struct_sword_struct',
-    'struct_SDL_Renderer', 'LEVEL_INIT', 'LEVEL_LOOP',
-    'struct_mutex_list_struct', 'COLOURED_BAR', 'graphic_type_e',
-    'graphic_cat_e', 'PLAYER2', 'HEIGHT', 'struct_func_node',
-    'struct_frame', 'FLYING_HAMSTER', 'struct_float_rect',
-    'struct_graphics_struct', 'R_SUCCESS', 'struct_animate_specific',
-    'struct_level_effects_struct', 'struct_living',
-    'struct_ui_struct', 'union_player_struct_0',
-    'struct_size_ratio_struct', 'LEN', 'UI_COUNTER', 'scale_mode_e',
-    'union_ui_bar_0', 'struct_monster_node', 'vector_e', 'SCREEN',
-    'R_FAILURE', 'R_CASCADE_UP', 'struct_SDL_Point', 'hook_type_e',
-    'TIGHT', 'R_STARTSCREEN', 'union_c__UA_pthread_mutex_t',
-    'struct_clip', 'struct_rendercopyex_struct',
-    'struct___pthread_mutex_s', 'GLOBAL', 'struct_program_struct',
-    'struct_audio_struct', 'R_QUIT_TO_DESKTOP', 'struct_std',
-    'struct_std_list', 'struct_level_struct', 'UI_BAR',
-    'R_LOOP_LEVEL', 'struct_xy_struct', 'struct_monster_new',
-    'struct_SDL_Texture', 'WH_INDEPENDENT', 'NUMBERS', 'CHARACTER',
-    'struct___pthread_internal_list', 'START', 'struct_ui_counter',
-    'SDL_FLIP_VERTICAL', 'struct_ui_counter_0_0',
-    'struct_hooks_struct', 'struct_level_var_struct',
-    'struct_render_node', 'R_CASCADE_UP_MAX', 'LEVEL_UI_TOP',
-    'struct_animate_generic', 'struct_monster_new_0_0',
-    'SDL_FLIP_HORIZONTAL', 'struct_lane_struct',
-    'struct_texture_struct', 'PLAYER', 'return_codes_e',
-    'struct_anchor_struct', 'struct_player_struct',
-    'struct_visual_container_struct', 'SMILEY', 'SDL_FLIP_NONE',
-    'struct_hooktypes_struct', 'struct_ui_bar_0_0',
-    'c__EA_SDL_RendererFlip', 'struct_status_struct',
-    'visual_structure_name_e', 'struct_ui_bar', 'W_DOMINANT', 'UI',
-    'struct_rule_node', 'H_DOMINANT', 'grid', 'R_RESTART_LEVEL',
-    'struct_laser_struct', 'HP', 'struct_monster', 'POWER',
-    'struct_rects_struct', 'WIDTH', 'DATA', 'struct_item',
-    'ELEM_SIZE', 'struct_hooks_list_struct', 'LEVEL_PLAY_AREA',
-    'R_LEVELS', 'aspctr_lock_e', 'union_sword_struct_0', 'FRAME',
-    'union_monster_new_0', 'struct_player_struct_0_0', 'USED',
-    'union_ui_counter_0', 'layer_mode_e']
+    ['struct_player_struct_0_0', 'struct_audio_struct', 'struct_item',
+    'struct_level_var_struct', 'struct_animate_generic',
+    'return_codes_e', 'union_sword_struct_0', 'union_monster_new_0',
+    'SWORD', 'struct_frame', 'union_player_struct_0', 'TIGHT',
+    'struct_visual_container_struct', 'struct_hooktypes_struct',
+    'LEN', 'NUMBERS', 'struct_monster_new', 'ELEM_SIZE',
+    'struct_xy_struct', 'struct_status_struct', 'USED',
+    'struct_std_list', 'WIDTH', 'struct_level_struct',
+    'struct_SDL_Renderer', 'struct_living',
+    'struct___pthread_mutex_s', 'FLYING_HAMSTER', 'R_LOOP_LEVEL',
+    'layer_mode_e', 'struct_rects_struct', 'struct_size_ratio_struct',
+    'struct_time_struct', 'LEVEL_LOOP', 'grid', 'struct_lane_struct',
+    'SDL_FLIP_NONE', 'struct___pthread_internal_list',
+    'R_CASCADE_UP_MAX', 'struct_level_effects_struct',
+    'struct_animate_specific', 'struct_clip', 'struct_ui_struct',
+    'aspctr_lock_e', 'struct_texture_struct', 'struct_SDL_Point',
+    'struct_float_rect', 'PLAYER2', 'struct_func_node',
+    'struct_monster', 'R_RESTART_LEVEL', 'struct_monster_new_0_0',
+    'struct_SDL_Texture', 'LEVEL_PLAY_AREA', 'CHARACTER', 'R_FAILURE',
+    'SDL_FLIP_VERTICAL', 'struct_laser_struct',
+    'struct_rendercopyex_struct', 'scale_mode_e', 'graphic_type_e',
+    'struct_render_node', 'struct_program_struct', 'UI', 'DATA',
+    'struct_ui_counter', 'SCREEN', 'H_DOMINANT', 'union_ui_counter_0',
+    'GLOBAL', 'struct_monster_node', 'UI_BAR',
+    'struct_mutex_list_struct', 'R_SUCCESS', 'SDL_FLIP_HORIZONTAL',
+    'struct_sword_struct_0_0', 'c__EA_SDL_RendererFlip',
+    'COLOURED_BAR', 'struct_ui_counter_0_0', 'graphic_cat_e',
+    'R_CASCADE_UP', 'WH_INDEPENDENT', 'struct_ui_bar',
+    'struct_rule_node', 'UI_COUNTER', 'struct_ui_bar_0_0', 'POWER',
+    'struct_SDL_Rect', 'visual_structure_name_e',
+    'struct_anchor_struct', 'union_c__UA_pthread_mutex_t',
+    'W_DOMINANT', 'union_ui_bar_0', 'struct_hooks_list_struct',
+    'vector_e', 'HEIGHT', 'hook_type_e', 'START', 'struct_std',
+    'LEVEL_UI_TOP', 'struct_hooks_struct', 'SMILEY', 'R_LEVELS',
+    'FRAME', 'R_QUIT_TO_DESKTOP', 'struct_graphics_struct', 'PLAYER',
+    'struct_sword_struct', 'R_STARTSCREEN', 'struct_player_struct',
+    'HP', 'LEVEL_INIT']

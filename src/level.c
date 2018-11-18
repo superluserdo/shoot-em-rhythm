@@ -217,7 +217,7 @@ int level_init (struct status_struct status) {
 	for (int lane = 0; lane < lanes->total; lane++) {
 		lanes->containers[lane] = (struct visual_container_struct) {
 			.inherit = &graphics->screen,
-			.rect = (struct float_rect) { .x = 0.25, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
+			.rect = (struct float_rect) { .x = 0, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
 			.aspctr_lock = WH_INDEPENDENT,
 		};
 	}
@@ -1163,6 +1163,12 @@ int level_loop(struct status_struct status) {
 		}
 
 		/* The real business */
+		struct std_list *current_obj = level->object_list_stack;
+		while (current_obj) {
+			current_obj->std->object_logic(current_obj->std, current_obj->std->object_data);
+			current_obj = current_obj->next;
+		}
+
 		moveme(lanes, &player->direction, player->animation);
 
 

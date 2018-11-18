@@ -24,10 +24,13 @@ struct size_ratio_struct {
 
 #define STD_MEMBERS \
 	char *name; \
-	struct xy_struct pos; \
+	struct xy_struct pos; /* TODO: Get rid of this */\
+	struct size_ratio_struct container_pos; /* Object's relative position within its container */\
 	struct size_ratio_struct size_ratio; \
 	struct visual_container_struct *container; \
 	struct animate_specific *animation; \
+	int (*object_logic)(struct std *std, void *data); \
+	void *object_data; \
 	void *self; \
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
@@ -125,8 +128,8 @@ struct level_struct {
 	struct monster *bestiary[10];
 	struct item *itempokedex[10];
 	int (**itemscreenstrip)[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
-	struct animate_generic **generic_bank;
 	double *remainder;
+	struct animate_generic **generic_bank;
 };
 
 struct level_effects_struct {
@@ -281,6 +284,8 @@ struct graphics_struct {
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
 	SDL_Texture **image_bank;
+	int debug_anchors;
+	int debug_containers;
 };
 
 struct texture_struct {
