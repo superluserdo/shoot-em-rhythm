@@ -98,6 +98,50 @@ int main() {
 	}
 	graphics.renderer = renderer;
 
+	program.python_interpreter_enable = 0;
+	PyObject    *pModule ; 
+	PyObject    *pDict ;
+	PyObject    *python_func;
+	PyObject *generator;
+	if (program.python_interpreter_enable) {
+
+		printf("Python interpreter enabled! Initialising...\n");
+
+		/*	Initialise the Python interpreter	*/
+		Py_Initialize() ;
+
+		int         iSize = 0 ;
+		char        python_funcname[] = "while_ipython" ;
+		char		python_filename[] = "pythonhelper";
+
+		/*	Don't start the python interpreter until prompted	*/
+		program.python_interpreter_activate = 0;
+
+		/*	Add current directory to path of C-API python interpreter	*/
+		PyRun_SimpleString("import sys");
+		PyRun_SimpleString("sys.path.append('.')");
+		PyRun_SimpleString("import os");
+		
+		/* Get Python code/module */
+		pModule = PyImport_ImportModule(python_filename);
+		if (NULL != pModule)
+		{
+			/* Get the function and check if its callable function */   
+			program.python_helper_function = PyObject_GetAttrString(pModule, python_funcname);
+
+			/* Build the input arguments */
+			program.status_python_capsule = PyCapsule_New(&status, NULL, NULL);
+
+		} else {
+			fprintf (stderr,"Couldnt load the python module %s\n", python_filename) ;
+		}
+		program.python_helper_function_generator = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
+		PyObject_CallMethod(status.program->python_helper_function_generator,"send", "s", NULL);
+		printf("Made generator that returned %p\n", program.python_helper_function_generator);
+	}
+
+	/* Set up hooks */
+
 	enum return_codes_e rc = hooks_setup(&program);
 	if (rc!=R_SUCCESS) {
 		fprintf(stderr,"Failed to setup the module hooks, sorry :(\n");
@@ -111,59 +155,6 @@ int main() {
 	/* ---------------------------------------------------------------------- */
 
 	enum  return_codes_e returncode = startscreen(win, renderer, &status);
-
-	program.python_interpreter_enable = 0;
-	PyObject    *pName ;
-	PyObject    *pModule ; 
-	PyObject    *pDict ;
-	PyObject    *python_func;
-	if (program.python_interpreter_enable) {
-		/*	Initialise the Python interpreter	*/
-		Py_Initialize() ;
-
-		int         iSize = 0 ;
-		char        python_funcname[] = "launch_interpreter_with_state" ;
-		char		python_filename[] = "pythonhelper";
-
-		/*	Don't start the python interpreter until prompted	*/
-		program.python_interpreter_activate = 0;
-
-		/*	Add current directory to path of C-API python interpreter	*/
-		PyRun_SimpleString("import sys");
-		PyRun_SimpleString("print(sys.path)");
-		PyRun_SimpleString("sys.path.append('.')");
-		PyRun_SimpleString("print(sys.path)");
-		PyRun_SimpleString("import os");
-		PyRun_SimpleString("print(os.listdir('.'))");
-
-		/* Get Python code/module */
-		pName = PyUnicode_FromString(python_filename);
-		if (NULL != pName)
-		{
-			/* Import the module equivalent to doing 'import calresidual' in python */
-			//pModule = PyImport_Import(pName);
-			pModule = PyImport_ImportModule(python_filename);
-			printf("%p\n", pModule);
-			Py_DECREF(pName) ;
-			if (NULL != pModule)
-			{
-				/* Get the function and check if its callable function */   
-				program.python_helper_function = PyObject_GetAttrString(pModule, python_funcname);
-
-				/* Build the input arguments */
-				program.status_python_capsule = PyCapsule_New(&status, NULL, NULL);
-
-			}
-			else
-			{
-				fprintf (stderr,"Couldnt load the python module %s\n", python_filename) ;
-			}
-		}
-		else
-		{
-			fprintf (stderr,"Couldnt convert the name of the python module to python name\n") ;
-		}
-	}
 
 	/*	The Main Game Loop */
 	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
@@ -201,14 +192,25 @@ int main() {
 		}
 
 	}
-	/* Release python resources. */
-	if (program.python_interpreter_enable) {
+
+	/* Finish Suspended Python Functions */
+	if (status.program->python_interpreter_enable) {
+		if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
+			PyObject *pResult = PyObject_CallMethod(status.program->python_helper_function_generator,"send", "i", 1);
+			if (!pResult) {
+				//PyErr_Print();
+			}
+		} else {
+			printf ("Some error with the function\n") ;
+		}
+
+		/* Release python resources. */
+		if (program.python_helper_function_generator)
+			Py_DECREF(program.python_helper_function_generator);
+		if (program.python_helper_function)
+			Py_DECREF(program.python_helper_function);
 		if (pModule)
-			Py_DECREF(pModule) ;
-		if (python_func)
-			Py_DECREF(python_func) ;
-		if (pName)
-			Py_DECREF(pName) ;
+			Py_DECREF(pModule);
 
 		/*Release the interpreter */
 		Py_Finalize() ;
@@ -218,7 +220,7 @@ int main() {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
-	printf("%d\n", timing.framecount);
+	printf("(After %d frames)\n", timing.framecount);
 	//pthread_mutex_lock(&quit_mutex);
 	//quitgame = 1;
 	//pthread_mutex_unlock(&quit_mutex);

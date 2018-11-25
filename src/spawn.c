@@ -33,11 +33,35 @@
 //	*hp_ptr = hp;
 //}
 
+int spawn_sword(struct status_struct *status) {
+	struct level_struct *level = status->level;
+	struct sword_struct *sword = &level->sword;
+	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
+	sword->count = 0;
+	sword->down = 0;
+	sword->swing = 0;
+	sword->rect_in.w = SWORD_WIDTH;
+	sword->rect_in.h = SWORD_HEIGHT;
+	sword->rect_in.x = 0;
+	sword->rect_in.y = 0;
+
+	sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
+	sword->rect_out.y = level->lanes->laneheight[level->lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
+	sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
+	sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
+
+	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
+	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
+	//SDL_Rect rcSword, rcSwordSrc;
+}
+
 int spawn_flying_hamster(struct status_struct *status) {
 	struct graphics_struct *graphics = status->graphics;
 	struct level_struct *level = status->level;
 
 	struct monster_new *new_flyinghamster = malloc(sizeof(struct monster_new));
+	*new_flyinghamster = (struct monster_new) {0};
+	new_flyinghamster->std.self = new_flyinghamster;
 	struct lane_struct *lanes = &level->lanes;
 	struct std_list **object_list_stack_ptr = &level->object_list_stack;
 	struct animate_generic **generic_bank = level->generic_bank;
@@ -132,12 +156,22 @@ int spawn_flying_hamster(struct status_struct *status) {
 
 //TODO	Write recursive destructors for each struct type
 
-int object_logic_monster(struct std *monster, void *data) {
+int object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
-	monster->container_pos.w -= 0.0001;
+	monster_std->container_pos.w -= 0.001;
+	struct monster_new *monster = monster_std->self;
 
-	if (pos_at_custom_anchor_hook(monster, 1, 0.5).w < 0) {
-		puts("BEEP!\n");
+	if (monster->living.alive == 123123123 /*start-dying code or something */ ) {
+		// TODO: Append animation to animation list of explosion or something.
+		// This animation has rule where it calls function to destroy whole object at the end.
+		// Destroying object involves freeing everything, and taking the 
+		// object out of the std_list, removing the render node, etc.
+	}
+
+
+	if (pos_at_custom_anchor_hook(monster_std, 0, 0.5).w < 0) {
+		// TODO: Destroy monster
+		monster_new_rm((struct monster_new *)monster_std->self, status);
 	}
 
 	return 0;
@@ -157,7 +191,7 @@ void set_anchor_hook(struct std *std, float x, float y) {
 		.w = old_pos.w + (new_anchor_hook.w - old_anchor_hook.w) * rect_out.w,
 		.h = old_pos.h + (new_anchor_hook.h - old_anchor_hook.h) * rect_out.h,
 	};
-};
+}
 
 struct size_ratio_struct pos_at_custom_anchor_hook(struct std *std, float x, float y) {
 	struct size_ratio_struct custom_anchor_hook = {.w = x, .h = y};
@@ -173,4 +207,58 @@ struct size_ratio_struct pos_at_custom_anchor_hook(struct std *std, float x, flo
 	};
 
 	return custom_pos;
-};
+}
+
+//TODO: Freeing functions (still working on these):
+
+void monster_new_rm(struct monster_new *monster, struct status_struct *status) {
+	std_rm(&monster->std, status);
+	free(monster);
+}
+
+void std_rm(struct std *std, struct status_struct *status) {
+	animate_specific_rm_recurse(std->animation, status);
+	//free(std->object_data); //Need to think about how to do this. Data could be custom mallocd
+	//	or pointer to status struct
+	
+	/* Remove from object_list_stack */
+	struct std_list *stack_pos = std->object_stack_location;
+	if (stack_pos->prev) {
+		stack_pos->prev->next = stack_pos->next;
+	}
+	if (stack_pos->next) {
+		stack_pos->next->prev = stack_pos->prev;
+	} else {
+		status->level->object_list_stack = stack_pos->prev;
+	}
+	free(stack_pos);
+	std->object_stack_location = NULL;
+}
+
+void animate_specific_rm(struct animate_specific *animation, struct status_struct *status) {
+
+	struct rule_node *rule = animation->rules_list;
+	while (rule) {
+		struct rule_node *rule_to_free = rule;
+		rule = rule->next;
+		free(rule_to_free);
+	}
+	struct func_node *transform = animation->transform_list;
+	while (rule) {
+		struct func_node *transform_to_free = transform;
+		transform = transform->next;
+		free(transform_to_free);
+	}
+	node_rm(status->graphics,animation->render_node);
+
+	free(animation->anchors_exposed);
+
+}
+
+void animate_specific_rm_recurse(struct animate_specific *animation, struct status_struct *status) {
+	while (animation) {
+		struct animate_specific *animation_to_free = animation;
+		animate_specific_rm(animation_to_free, status);
+		animation = animation->next;
+	}
+}

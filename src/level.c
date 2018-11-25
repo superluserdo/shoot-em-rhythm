@@ -276,6 +276,7 @@ int level_init (struct status_struct status) {
 	graphics->ui = ui;
 
 	struct ui_bar *hp = &ui->hp;
+	*hp = (struct ui_bar) {0};
 
 	struct visual_container_struct *container_level_ui_top = malloc(sizeof(struct visual_container_struct));
 	*container_level_ui_top = (struct visual_container_struct) {
@@ -295,6 +296,7 @@ int level_init (struct status_struct status) {
 	hp->pos.x = 10 * ZOOM_MULT * 2;
 	hp->pos.y = 10 * ZOOM_MULT * 2;
 	hp->size_ratio.w = 1.0;
+	hp->size_ratio.h = 1.0;
 	hp->size_ratio.h = 1.0;
 	hp->self = hp;
 	graphic_spawn(&hp->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
@@ -325,6 +327,7 @@ int level_init (struct status_struct status) {
 	/*	Power	*/
 
 	struct ui_bar *power = &ui->power;
+	*power = (struct ui_bar) {0};
 
 	power->container = malloc(sizeof(struct visual_container_struct));
 	*power->container = (struct visual_container_struct) {
@@ -382,6 +385,7 @@ int level_init (struct status_struct status) {
 	level->score = 0;
 
 	struct ui_counter *score = &ui->score;
+	*score = (struct ui_counter) {0};
 
 	score->container = malloc(sizeof(struct visual_container_struct));
 	*score->container = (struct visual_container_struct) {
@@ -430,6 +434,7 @@ int level_init (struct status_struct status) {
 	/*	Beat Counter	*/
 
 	struct ui_counter *beat = &ui->beat;
+	*beat = (struct ui_counter) {0};
 
 	beat->container = malloc(sizeof(struct visual_container_struct));
 	*beat->container = (struct visual_container_struct) {
@@ -989,13 +994,9 @@ int level_loop(struct status_struct status) {
 				return R_QUIT_TO_DESKTOP;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-				timing->startpause = SDL_GetTicks();
-				level->pauselevel = 1;
-				timing->pause_change = 1;
+				pause_time(timing, level);
 				rc = pausefunc(renderer, graphics->imgs->texTarget, level->currentlevel, &status);
-				timing->endpause = SDL_GetTicks();
-				level->pauselevel = 0;
-				timing->pause_change = 1;
+				unpause_time(timing, level);
 				SDL_SetRenderTarget(renderer, NULL);
 
 				if (rc != R_SUCCESS) {
@@ -1166,8 +1167,14 @@ int level_loop(struct status_struct status) {
 		/* The real business */
 		struct std_list *current_obj = level->object_list_stack;
 		while (current_obj) {
-			current_obj->std->object_logic(current_obj->std, current_obj->std->object_data);
-			current_obj = current_obj->next;
+			struct std_list *new_obj = current_obj->prev;
+			if (current_obj->std->object_logic) {
+				// NOTE: This crashes after level reset because for some reason the
+				// object stack gets corrupted the second time?
+				current_obj->std->object_logic(current_obj->std, current_obj->std->object_data);
+			}
+			current_obj = new_obj; /* Do this so an object can delete itself and 
+									  this loop still works */
 		}
 
 		moveme(lanes, &player->direction, player->animation);
@@ -1195,16 +1202,24 @@ int level_loop(struct status_struct status) {
 		if (status.program->python_interpreter_enable) {
 			if (status.program->python_interpreter_activate) {
 				if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
-					printf("Python interpreter activated!\n");
+					//printf("Python interpreter activated!\n");
 				
-					status.program->python_interpreter_activate = 0;
+					/* Pause the timer to resume correctly */
+					pause_time(timing, level);
 
 					/* Build the input arguments */
-					printf("Calling function\n");
-					PyRun_SimpleString("print('Calling (python)')");
-					PyObject *status_python_capsule = PyCapsule_New(&status, NULL, NULL);
-					PyObject *pResult = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
-					printf("Called function that returned %p\n", pResult);
+					//printf("Calling function\n");
+					//PyRun_SimpleString("print('Calling (python)')");
+					//PyObject *status_python_capsule = PyCapsule_New(&status, NULL, NULL);
+					//PyObject *pResult = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
+					//PyObject *pResult = PyObject_CallMethod(status.program->python_helper_function_generator,"send", "O", status.program->status_python_capsule);
+					PyObject *pResult = PyObject_CallMethod(status.program->python_helper_function_generator,"send", "s", NULL);
+					//printf("Called function that yielded %p\n", pResult);
+					if (!pResult) {
+						PyErr_Print();
+					}
+
+					unpause_time(timing, level);
 
 				} else {
 					printf ("Some error with the function\n") ;

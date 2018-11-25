@@ -103,6 +103,3 @@ void vec_free(void *vector) {
 }
 
 
-/*	Example of usage:
- *	struct test *testarray = (struct test *)vector((sizeof(struct test)), 5);
- */

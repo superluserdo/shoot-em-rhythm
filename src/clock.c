@@ -149,9 +149,9 @@ void update_time(struct time_struct *timing) {
 		if (timing->pauselevel) {
 			if (!(*timing->pauselevel)) {
 				timing->pausetime_completed += (timing->endpause - timing->startpause);
-	printf("pausetime = %d\n", timing->startpause);
-	printf("pausetime = %d\n", timing->endpause);
-	printf("\n");
+	//printf("pausetime = %d\n", timing->startpause);
+	//printf("pausetime = %d\n", timing->endpause);
+	//printf("\n");
 				timing->pausetime_ongoing = 0;
 				timing->pausetime = timing->pausetime_completed;
 				*timing->pauselevel = 0;
@@ -171,4 +171,15 @@ void update_time(struct time_struct *timing) {
 			timing->pausetime = timing->pausetime_completed + timing->pausetime_ongoing;
 		}
 	}
+}
+
+void pause_time(struct time_struct *timing, struct level_struct *level) {
+	timing->startpause = SDL_GetTicks();
+	level->pauselevel = 1;
+	timing->pause_change = 1;
+}
+void unpause_time(struct time_struct *timing, struct level_struct *level) {
+		timing->endpause = SDL_GetTicks();
+		level->pauselevel = 0;
+		timing->pause_change = 1;
 }

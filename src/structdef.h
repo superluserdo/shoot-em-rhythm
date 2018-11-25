@@ -31,6 +31,7 @@ struct size_ratio_struct {
 	struct animate_specific *animation; \
 	int (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
+	struct std_list *object_stack_location; \
 	void *self; \
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
@@ -45,6 +46,7 @@ struct std {
 /* Generic Struct For Living Object */
 
 struct living {
+	int alive;
 	int HP, power;
 	float defence;
 	int max_HP;
@@ -53,6 +55,7 @@ struct living {
 	int invincibility_toggle;
 	void *self;
 };
+
 
 
 struct std_list {
@@ -74,8 +77,8 @@ struct sword_struct {
 	int count;
 	int down;
 	int swing;
-	SDL_Rect rect_in;
-	SDL_Rect rect_out;
+	//SDL_Rect rect_in;
+	//SDL_Rect rect_out;
 	union {
 		struct {
 			STD_MEMBERS
@@ -206,6 +209,7 @@ struct hooktypes_struct {
 struct program_struct {
 	struct hooktypes_struct hooks;
 	void *python_helper_function;
+	void *python_helper_function_generator;
 	void *status_python_capsule;
 	int python_interpreter_activate;
 	int python_interpreter_enable;

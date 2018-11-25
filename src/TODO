@@ -47,3 +47,36 @@
 	>	In the main loop, maybe change from a return code system to having some kind of "program->func_ptr" that tells the loop what to do next. func_ptr could be level_init/level_loop/pausefunc/etc...
 
 	>	Merkle tree for finding box position/size alterations each frame from just the screen box? Could be overkill unless you have extremely deeply nested boxes. Could just perform necessary updates on structs the moment you make the change.
+
+------ 2018-11-18 ---------
+
+>	Have recursive free functions with callbacks. Eg:
+
+struct a {
+	int *a1;
+	struct b *a2;
+} A;
+
+struct b {
+	float b1;
+	char *b2;
+	struct a *b3;
+} B;
+
+void free_a(void *ptr) {
+	struct a *A = (struct a *)ptr;
+	free(A->a1);
+	free_b(A->a2);
+	free(A);
+}
+
+void free_b(void *ptr) {
+	struct b *B = (struct b *)ptr;
+	free(B->b2);
+	// DON'T free the pointer back to struct a
+	free(B);
+}
+
+------ 2018-11-23 ---------
+
+	>	Was thinking about having function in python part that can break and resume where it left off. Just realised that this sounds like "yield". Try this out.

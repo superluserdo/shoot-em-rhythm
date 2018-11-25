@@ -2,37 +2,47 @@ print("Began importing ",__file__)
 
 import ctypes
 import pdb
+import IPython
+import inspect
 import structdef
 
-def launch_interpreter_with_state(capsule):
-    print("You are in python right now")
+
+def skip_frames(n):
+    for i in range(n):
+        yield
+
+def skip_frame():
+    yield
+
+def while_ipython(capsule):
+
+    # Get game state from caller in C:
     ctypes.pythonapi.PyCapsule_GetPointer.argtypes=[ctypes.py_object, ctypes.c_char_p]
     ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.POINTER(structdef.struct_status_struct)
-    ptr=ctypes.pythonapi.PyCapsule_GetPointer(capsule,ctypes.c_char_p(None))
-    print("Handing control to the python interpreter, reading from the pipe pypipe")
-    while_exec(ptr)
-    print("Returning to the C program (main loop)")
-    return capsule
+    state_ptr=ctypes.pythonapi.PyCapsule_GetPointer(capsule,ctypes.c_char_p(None))
 
-def once_exec():
-    try:
-        exec(open('pypipe').readline(),globals())
-    except Exception as e: print(e)
+    do_break = yield
 
-def while_exec(ptr):
-    try:
-        pipe = open('pypipe')
-    except Exception as e:
-        print(e)
-        return
+    def noreturn():
+        # Reset python_interpreter_activate to False
+        state_ptr[0].program[0].python_interpreter_activate = 0
+
+    print("Handing control to the ipython interpreter:")
 
     while True:
+        
+        if do_break:
+            print("Ending all Python code")
+            exit()
         try:
-            instr = pipe.readline()
-            if instr == 'break\n':
-                print("Leaving exec loop")
-                break
-            else:
-                exec(instr,locals())
+            funcs = []
+            IPython.terminal.embed.embed()
+            for func in funcs:
+                #if inspect.isgeneratorfunction(func):
+                if inspect.isgenerator(func):
+                    do_break = yield from func
+                else:
+                    func()
+            print("Leaving exec loop")
+            do_break = yield
         except Exception as e: print(e)
-print("Finished importing ",__file__)

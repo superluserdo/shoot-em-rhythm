@@ -213,20 +213,18 @@ int node_insert_z_over(struct graphics_struct *graphics, struct render_node *nod
 }
 
 int node_rm(struct graphics_struct *graphics, struct render_node *node_ptr) {
-	struct render_node *render_node_head = graphics->render_node_head;
-	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_ptr->prev) {
 		node_ptr->prev->next = node_ptr->next;
 	}
 	else {
-		render_node_head = node_ptr;
+		graphics->render_node_head = node_ptr->next;
 	}
 
 	if (node_ptr->next) {
 		node_ptr->next->prev = node_ptr->prev;
 	}
 	else {
-		render_node_tail = node_ptr;
+		graphics->render_node_tail = node_ptr->prev;
 	}
 	free(node_ptr);
 	return 0;
@@ -709,7 +707,7 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 
 	specific->parent = std;
 	
-	specific->anchors_exposed = malloc(sizeof(struct size_ratio_struct)); //Temporary until I get anchors properly implemented
+	specific->anchors_exposed = malloc(sizeof(*specific->anchors_exposed)); //Temporary until I get anchors properly implemented
 	/* By default, make the animation's main exposed anchor in the middle */
 	specific->anchors_exposed[0] = (struct anchor_struct) {
 		.pos_anim_internal = (struct size_ratio_struct) { 0.5, 0.5 },
@@ -760,6 +758,8 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 		.next = NULL,
 		.prev = *object_list_stack_ptr
 	};
+	std->object_stack_location = list_node;
+
 	if (*object_list_stack_ptr) {
 		(*object_list_stack_ptr)->next = list_node;
 	}
