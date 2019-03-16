@@ -77,8 +77,8 @@ struct sword_struct {
 	int count;
 	int down;
 	int swing;
-	//SDL_Rect rect_in;
-	//SDL_Rect rect_out;
+	SDL_Rect rect_in;
+	SDL_Rect rect_out;
 	union {
 		struct {
 			STD_MEMBERS

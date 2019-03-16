@@ -98,7 +98,7 @@ int main() {
 	}
 	graphics.renderer = renderer;
 
-	program.python_interpreter_enable = 0;
+	program.python_interpreter_enable = 1;
 	PyObject    *pModule ; 
 	PyObject    *pDict ;
 	PyObject    *python_func;

@@ -33,27 +33,27 @@
 //	*hp_ptr = hp;
 //}
 
-int spawn_sword(struct status_struct *status) {
-	struct level_struct *level = status->level;
-	struct sword_struct *sword = &level->sword;
-	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
-	sword->count = 0;
-	sword->down = 0;
-	sword->swing = 0;
-	sword->rect_in.w = SWORD_WIDTH;
-	sword->rect_in.h = SWORD_HEIGHT;
-	sword->rect_in.x = 0;
-	sword->rect_in.y = 0;
-
-	sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
-	sword->rect_out.y = level->lanes->laneheight[level->lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
-	sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
-	sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
-
-	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
-	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
-	//SDL_Rect rcSword, rcSwordSrc;
-}
+//int spawn_sword(struct status_struct *status) {
+//	struct level_struct *level = status->level;
+//	struct sword_struct *sword = &level->sword;
+//	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
+//	sword->count = 0;
+//	sword->down = 0;
+//	sword->swing = 0;
+//	sword->rect_in.w = SWORD_WIDTH;
+//	sword->rect_in.h = SWORD_HEIGHT;
+//	sword->rect_in.x = 0;
+//	sword->rect_in.y = 0;
+//
+//	sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
+//	sword->rect_out.y = level->lanes->laneheight[level->lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
+//	sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
+//	sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
+//
+//	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
+//	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
+//	//SDL_Rect rcSword, rcSwordSrc;
+//}
 
 int spawn_flying_hamster(struct status_struct *status) {
 	struct graphics_struct *graphics = status->graphics;
