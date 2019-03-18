@@ -569,7 +569,7 @@ int level_init (struct status_struct status) {
 
 	// TODO: Finish making the sword just a regular object
 	struct sword_struct *sword = &level->sword;
-	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
+	//graphic_spawn(&sword->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){SWORD}, 1);
 	sword->count = 0;
 	sword->down = 0;
 	sword->swing = 0;
@@ -1216,6 +1216,7 @@ int level_loop(struct status_struct status) {
 					PyObject *pResult = PyObject_CallMethod(status.program->python_helper_function_generator,"send", "s", NULL);
 					//printf("Called function that yielded %p\n", pResult);
 					if (!pResult) {
+						fprintf(stderr, "Error in Python interpreter:	");
 						PyErr_Print();
 					}
 

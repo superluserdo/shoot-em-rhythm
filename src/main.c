@@ -71,6 +71,8 @@ int main() {
 	timing_init(&timing);
 	graphics.width = NATIVE_RES_X * ZOOM_MULT;
 	graphics.height = NATIVE_RES_Y * ZOOM_MULT;
+	graphics.debug_anchors = &program.debug.show_anchors;
+	graphics.debug_containers = &program.debug.show_containers;
 
 	/* NOTE: I've moved timing out of its own thread into the main thread.
 	 * frametimer() is no longer used */

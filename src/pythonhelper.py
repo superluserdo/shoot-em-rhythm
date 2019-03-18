@@ -14,14 +14,24 @@ def skip_frames(n):
 def skip_frame():
     yield
 
+def print_hi():
+    print('hi')
+
 def while_ipython(capsule):
 
-    # Get game state from caller in C:
-    ctypes.pythonapi.PyCapsule_GetPointer.argtypes=[ctypes.py_object, ctypes.c_char_p]
-    ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.POINTER(structdef.struct_status_struct)
-    state_ptr=ctypes.pythonapi.PyCapsule_GetPointer(capsule,ctypes.c_char_p(None))
+    try:
+        # Get game state from caller in C:
+        ctypes.pythonapi.PyCapsule_GetPointer.argtypes=[ctypes.py_object, ctypes.c_char_p]
+        ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.POINTER(structdef.struct_status_struct)
+        state_ptr=ctypes.pythonapi.PyCapsule_GetPointer(capsule,ctypes.c_char_p(None))
+    except Exception as e: print(e)
 
     do_break = yield
+
+    def toggle_show_debug(state_ptr):
+        debug_struct = state_ptr[0].program[0].debug
+        debug_struct.show_anchors = not debug_struct.show_anchors
+        debug_struct.show_containers = not debug_struct.show_containers
 
     def noreturn():
         # Reset python_interpreter_activate to False

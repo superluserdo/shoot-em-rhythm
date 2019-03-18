@@ -204,9 +204,18 @@ struct hooktypes_struct {
 	struct hooks_list_struct *level_loop;
 };
 
+/* Debug Stuff */
+
+struct debug_struct {
+	int show_anchors;
+	int show_containers;
+	int print_render_nodes;
+};
+
 /* Whole Program */
 
 struct program_struct {
+	struct debug_struct debug;
 	struct hooktypes_struct hooks;
 	void *python_helper_function;
 	void *python_helper_function_generator;
@@ -288,8 +297,8 @@ struct graphics_struct {
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
 	SDL_Texture **image_bank;
-	int debug_anchors;
-	int debug_containers;
+	int *debug_anchors;
+	int *debug_containers;
 };
 
 struct texture_struct {

@@ -47,8 +47,6 @@ void render_process(struct std_list *object_list_stack, struct graphics_struct *
 }
 
 int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
-	graphics->debug_anchors = 1;
-	graphics->debug_containers = 1;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
@@ -59,7 +57,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
-		if (graphics->debug_anchors) {
+		if (*graphics->debug_anchors) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
 			int anchor_width = 6;
 			SDL_Rect anchor_rect = {
@@ -75,7 +73,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
 		}
-		if (graphics->debug_containers) {
+		if (*graphics->debug_containers) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
 			int line_width = 6;
 			SDL_Rect abs_container = visual_container_to_pixels(node_ptr->animation->parent->container,
