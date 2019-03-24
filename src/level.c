@@ -297,7 +297,6 @@ int level_init (struct status_struct status) {
 	hp->pos.y = 10 * ZOOM_MULT * 2;
 	hp->size_ratio.w = 1.0;
 	hp->size_ratio.h = 1.0;
-	hp->size_ratio.h = 1.0;
 	hp->self = hp;
 	graphic_spawn(&hp->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
 
@@ -994,15 +993,8 @@ int level_loop(struct status_struct status) {
 				return R_QUIT_TO_DESKTOP;
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-				pause_time(timing, level);
-				rc = pausefunc(renderer, graphics->imgs->texTarget, level->currentlevel, &status);
-				unpause_time(timing, level);
-				SDL_SetRenderTarget(renderer, NULL);
 
-				if (rc != R_SUCCESS) {
-					quitlevel(status);
-					return rc;
-				}
+				return R_PAUSE_LEVEL;
 			}
 
 			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_m) {
@@ -1205,7 +1197,7 @@ int level_loop(struct status_struct status) {
 					//printf("Python interpreter activated!\n");
 				
 					/* Pause the timer to resume correctly */
-					pause_time(timing, level);
+					pause_time(timing);
 
 					/* Build the input arguments */
 					//printf("Calling function\n");
@@ -1220,7 +1212,7 @@ int level_loop(struct status_struct status) {
 						PyErr_Print();
 					}
 
-					unpause_time(timing, level);
+					unpause_time(timing);
 
 				} else {
 					printf ("Some error with the function\n") ;
@@ -1279,6 +1271,7 @@ int level_loop(struct status_struct status) {
 		}
 
 		int beatarray[SCORE_DIGITS];
+		printf("%f\n", timing->currentbeat);
 		int2array(timing->currentbeat, beatarray, SCORE_DIGITS);
 		for ( int i = 0; i < 5; i++ ) {
 			rects->rcBeatSrc[i].x = beatarray[i] * 5;

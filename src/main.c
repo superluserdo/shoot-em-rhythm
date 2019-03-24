@@ -180,6 +180,9 @@ int main() {
 		else if ( returncode == R_STARTSCREEN ) {
 			returncode = startscreen(win, renderer, &status);
 		}
+		else if ( returncode == R_PAUSE_LEVEL) {
+			returncode = pausefunc(renderer, graphics.imgs->texTarget, level.currentlevel, &status);
+		}
 		else if ( returncode == R_LOOP_LEVEL) {
 			returncode = level_loop(status);
 		}

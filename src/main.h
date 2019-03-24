@@ -4,6 +4,7 @@
 #define NATIVE_RES_Y 360
 
 int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status);
+int pausefunc_bkp(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status);
 
 int level_init(struct status_struct status);
 int level_loop(struct status_struct status);
