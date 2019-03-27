@@ -14,6 +14,107 @@
 #include "transform.h" // Can hopefully get rid of this soon
 #include "spawn.h"
 
+struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
+							struct animate_generic **generic_bank,
+							struct graphics_struct *graphics,
+							int *bar_amount_ptr, int *bar_max_ptr,
+							struct visual_container_struct *container, const char *name) {
+
+	struct ui_bar *bar = malloc(sizeof(*bar));
+	*bar = (struct ui_bar) {0};
+	bar->container = container;
+	bar->amount = bar_amount_ptr;
+	bar->max = bar_max_ptr;
+	bar->name = name;
+	bar->self = bar;
+	graphic_spawn(&bar->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
+
+	bar->animation->container = *container;
+	bar->animation->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
+	bar->animation->container.num_anchors_exposed = 1;
+	bar->animation->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
+	bar->animation->next->container.inherit = &bar->animation->container;
+	bar->animation->next->container.anchor_grabbed = &bar->animation->container.anchors_exposed[0];
+	//bar->animation->next->container.anchor_grabbed_offset_internal_scale = (struct size_ratio_struct) {-0.2, 0};
+
+	bar->animation->next->container.aspctr_lock = WH_INDEPENDENT;
+	bar->animation->next->container.rect_out_parent_scale.w = 0.425;
+	bar->animation->next->container.rect_out_parent_scale.h = 0.40;
+
+	//TODO
+	//bar->animation->next->rules_list->data = bar->animation->next;
+	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
+	//*tmp_data = *(struct tr_bump_data *)bar->animation->next->rules_list->next->data;
+	//tmp_data->centre = malloc(sizeof(struct xy_struct));
+	//tmp_data->centre->w = bar->animation->container.rect_out_parent_scale.x + bar->animation->container.rect_out_parent_scale.w/2;
+	//tmp_data->centre->h = bar->animation->container.rect_out_parent_scale.y + bar->animation->container.rect_out_parent_scale.h/2;
+	//bar->animation->next->rules_list->next->data = tmp_data;
+	//bar->animation->next->transform_list->data = tmp_data;
+
+	return bar;
+}
+
+struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
+									struct animate_generic **generic_bank,
+									struct graphics_struct *graphics,
+									int *counter_value_ptr, int digits,
+									struct visual_container_struct *container, const char *name,
+									float *currentbeat_ptr) {
+
+
+
+
+	struct ui_counter *counter = malloc(sizeof(*counter));
+	*counter = (struct ui_counter) {0};
+	counter->container = container;
+	counter->value = counter_value_ptr;
+	counter->digits = digits;
+	counter->array = calloc(digits, sizeof(int));
+	counter->name = name;
+	counter->self = counter;
+
+	enum graphic_type_e graphic_types[digits];
+	for (int i = 0; i < digits; i++) {
+		graphic_types[i] = NUMBERS;
+	}
+	graphic_spawn(&counter->std, object_list_stack_ptr, generic_bank, graphics, graphic_types, digits);
+
+	//counter->animation->rules_list->next = malloc(sizeof(struct rule_node));
+	//counter->animation->rules_list->next->rule = rules_ui_counter;
+	//counter->animation->rules_list->next->data = counter->animation;
+	//counter->animation->rules_list->next->next = NULL;
+	
+	//TODO
+	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
+
+	//tmp_data->freq_perbeat = 1;
+	//tmp_data->ampl = 2;
+	//tmp_data->peak_offset = 0.0;
+	//tmp_data->bump_width = 0.25;
+
+	//tmp_data->centre = malloc(sizeof(struct xy_struct));
+	//tmp_data->centre->w = counter->animation->container.rect_out_parent_scale.x + counter->animation->container.rect_out_parent_scale.w/2;
+	//tmp_data->centre->h = counter->animation->container.rect_out_parent_scale.y + counter->animation->container.rect_out_parent_scale.h/2;
+	//tmp_data->currentbeat = currentbeat_ptr;
+	//tmp_data->score = score_ptr;
+
+	struct animate_specific *anim = counter->animation;
+	anim->rules_list->data = anim;
+	for (int i = 0; i < counter->digits; i++) {
+		struct visual_container_struct digit_container = (struct visual_container_struct) {
+			.inherit = container,
+			.rect_out_parent_scale = (struct float_rect) { .x = 0.2 * i, .y = 0.6, .w = 0.2, .h = 0.2},
+			.aspctr_lock = WH_INDEPENDENT,
+		};
+		anim->container = digit_container;
+		//anim->container.anchors_exposed = 
+		//anim->rules_list->data = tmp_data;
+		//anim->transform_list->data = tmp_data;
+		anim = anim->next;
+	}
+
+	return counter;
+}
 //int spawn_hp(struct ui_bar *hp_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer) {
 //
 //	struct ui_bar hp = *hp_ptr;
@@ -72,23 +173,39 @@ int spawn_flying_hamster(struct status_struct *status) {
 	//	.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
 	//	.aspctr_lock = WH_INDEPENDENT,
 	//};
-	new_flyinghamster->container = &lanes->containers[lanes->currentlane];
+
+	new_flyinghamster->name = "new_flyinghamster";
 
 	new_flyinghamster->living.HP = 1;
 	new_flyinghamster->living.power = 10;
 	new_flyinghamster->living.defence = 10;
 
-	new_flyinghamster->name = "new_flyinghamster";
-	new_flyinghamster->container_pos.w = 1;
-	new_flyinghamster->container_pos.h = 0.5;
-
 	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
-	//animation->anchor_hook = (struct size_ratio_struct) {0, 0.5};
-	set_anchor_hook(&new_flyinghamster->std, 0, 0.5);
-	new_flyinghamster->container_pos.w = 0.1;
+
+	struct visual_container_struct hamster_container = {
+		.inherit = &lanes->containers[lanes->currentlane],
+		.rect_out_parent_scale = (struct float_rect) {.x = 0.5, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = H_DOMINANT,
+	};
+
+	new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
+	*new_flyinghamster->container = hamster_container;
 	
+	struct visual_container_struct hamster_sub_container = {
+		.inherit = new_flyinghamster->container,
+		.rect_out_parent_scale = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = H_DOMINANT,
+	};
+
+	animation->container = hamster_sub_container;
+	animation->next->container = hamster_sub_container;
+	animation->next->container.anchor_grabbed = &new_flyinghamster->animation->container.anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	//animation->anchor_hook = (struct size_ratio_struct) {0, 0.5};
+	set_anchor_hook(new_flyinghamster->std.container, 0, 0.5);
+	//set_anchor_hook(&animation->next->container, 0, 0.5);
+
 	animation->rules_list = malloc(sizeof(struct rule_node));
 	animation->rules_list->rule = &rules_player;
 	animation->rules_list->data = NULL;
@@ -97,7 +214,7 @@ int spawn_flying_hamster(struct status_struct *status) {
 	struct func_node *tr_node = malloc(sizeof(struct func_node));
 	animation->transform_list = tr_node;
 	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-	teststruct->status = status;
+	teststruct->currentbeat = &status->timing->currentbeat;
 	teststruct->rect_bitmask = 2;
 	teststruct->freq_perbeat = 0.5;
 	teststruct->ampl = 0.2;
@@ -124,19 +241,18 @@ int spawn_flying_hamster(struct status_struct *status) {
 	};
 	struct tr_blink_data *blink_data = malloc(sizeof(*blink_data));
 	*blink_data = (struct tr_blink_data) {
-		.status = status,
+		.framecount = &status->timing->framecount,
 		.frames_on = 10,
 		.frames_off = 10,
 	};
 
 
-	//new_flyinghamster->animation->next->anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	//new_flyinghamster->animation->next->container.anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
 	//new_flyinghamster->animation->next->transform_list->next = malloc(sizeof(struct rule_node));
 	//
 	//new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_orbit_xyz;
 	//new_flyinghamster->animation->next->transform_list->next->data = (void *)orbit_data;
 
-	new_flyinghamster->animation->next->anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
 	new_flyinghamster->animation->next->transform_list = malloc(sizeof(struct rule_node));
 	
 	new_flyinghamster->animation->next->transform_list->func = (void *)tr_orbit_xyz;
@@ -158,7 +274,7 @@ int spawn_flying_hamster(struct status_struct *status) {
 
 int object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
-	monster_std->container_pos.w -= 0.001;
+	monster_std->container->rect_out_parent_scale.x -= 0.001;
 	struct monster_new *monster = monster_std->self;
 
 	if (monster->living.alive == 123123123 /*start-dying code or something */ ) {
@@ -169,41 +285,37 @@ int object_logic_monster(struct std *monster_std, void *data) {
 	}
 
 
-	if (pos_at_custom_anchor_hook(monster_std, 0, 0.5).w < 0) {
+	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5).w < 0) {
 		// TODO: Destroy monster
+		printf("Destroyed\n");
 		monster_new_rm((struct monster_new *)monster_std->self, status);
 	}
 
 	return 0;
 }
 
-void set_anchor_hook(struct std *std, float x, float y) {
+void set_anchor_hook(struct visual_container_struct *container, float x, float y) {
 	struct size_ratio_struct new_anchor_hook = {.w = x, .h = y};
-	struct size_ratio_struct old_anchor_hook = std->animation->anchor_hook;
+	struct size_ratio_struct old_anchor_hook = container->anchor_hook;
 	/* Set the new anchor hook: */
-	std->animation->anchor_hook = new_anchor_hook;
+	container->anchor_hook = new_anchor_hook;
 
 	/* Preserve the real position: */
-	struct size_ratio_struct old_pos = std->container_pos;
-
-	struct float_rect rect_out = std->animation->rect_out_container_scale;
-	std->container_pos = (struct size_ratio_struct) {
-		.w = old_pos.w + (new_anchor_hook.w - old_anchor_hook.w) * rect_out.w,
-		.h = old_pos.h + (new_anchor_hook.h - old_anchor_hook.h) * rect_out.h,
-	};
+	struct float_rect rect_out = container->rect_out_parent_scale;
+	container->rect_out_parent_scale.x += (new_anchor_hook.w - old_anchor_hook.w) * container->rect_out_parent_scale.w;
+	container->rect_out_parent_scale.y += (new_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h;
 }
 
-struct size_ratio_struct pos_at_custom_anchor_hook(struct std *std, float x, float y) {
+struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struct *container, float x, float y) {
 	struct size_ratio_struct custom_anchor_hook = {.w = x, .h = y};
-	struct size_ratio_struct old_anchor_hook = std->animation->anchor_hook;
+	struct size_ratio_struct old_anchor_hook = container->anchor_hook;
 
 	/* Preserve the real position: */
-	struct size_ratio_struct old_pos = std->container_pos;
+	struct size_ratio_struct old_pos = {container->rect_out_parent_scale.x, container->rect_out_parent_scale.y};
 
-	struct float_rect rect_out = std->animation->rect_out_container_scale;
 	struct size_ratio_struct custom_pos = {
-		.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) * rect_out.w,
-		.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) * rect_out.h,
+		.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) * container->rect_out_parent_scale.w,
+		.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h,
 	};
 
 	return custom_pos;
@@ -249,9 +361,11 @@ void animate_specific_rm(struct animate_specific *animation, struct status_struc
 		transform = transform->next;
 		free(transform_to_free);
 	}
-	node_rm(status->graphics,animation->render_node);
+	if (animation->render_node) {
+		render_node_rm(status->graphics,animation->render_node);
+	}
 
-	free(animation->anchors_exposed);
+	free(animation->container.anchors_exposed);
 
 }
 

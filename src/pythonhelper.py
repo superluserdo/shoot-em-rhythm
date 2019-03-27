@@ -14,8 +14,12 @@ def skip_frames(n):
 def skip_frame():
     yield
 
-def print_hi():
-    print('hi')
+def print_var(var):
+    for i in range(100):
+        #beat = state_ptr[0].timing[0].currentbeat
+        print(var)
+        yield
+    
 
 def while_ipython(capsule):
 

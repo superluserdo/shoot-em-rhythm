@@ -23,11 +23,8 @@ struct size_ratio_struct {
 
 
 #define STD_MEMBERS \
-	char *name; \
-	struct xy_struct pos; /* TODO: Get rid of this */\
-	struct size_ratio_struct container_pos; /* Object's relative position within its container */\
-	struct size_ratio_struct size_ratio; \
-	struct visual_container_struct *container; \
+	const char *name; \
+	struct visual_container_struct *container; /* Container structure of the entire object. Use container.pos_relative to control the object's position relative to parent at runtime. */\
 	struct animate_specific *animation; \
 	int (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
@@ -209,7 +206,7 @@ struct hooktypes_struct {
 struct debug_struct {
 	int show_anchors;
 	int show_containers;
-	int print_render_nodes;
+	int test_render_list_robustness;
 };
 
 /* Whole Program */
@@ -275,9 +272,26 @@ enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
 enum aspctr_lock_e {WH_INDEPENDENT, W_DOMINANT, H_DOMINANT};
 
 struct visual_container_struct {
+	struct visual_container_struct *inherit;
+	int num_anchors_exposed;
+	struct size_ratio_struct *anchor_grabbed; /* Pointer to the container-scale anchor 
+												 this animation is locked to. Can be
+												 defined by the animation, or point to
+												 another animation's exposed anchor */
+	struct size_ratio_struct *anchors_exposed; /* List of "exposed anchors" for a single texture/layer
+										  animation. Other animations can lock onto these */
+	struct size_ratio_struct anchor_hook; /* Sprite-relative position of anchor hook.
+											 Default is the one specified by generic animation */
+	enum aspctr_lock_e aspctr_lock; /* Should both w and h be inherited, or just one (locked aspect ratio) */
+	struct float_rect rect_out_parent_scale;
+	struct float_rect rect_out_screen_scale;
+	int screen_scale_uptodate;
+};
+
+struct visual_container_struct_old {
 	//enum visual_structure_name_e name;
 	//enum visual_structure_name_e inherit;
-	struct visual_container_struct *inherit;
+	struct visual_container_struct_old *inherit;
 	struct float_rect rect;
 	float aspctr; /* Aspect ratio of container = w/h
 				   * Don't use if aspctr_lock == WH_INDEPENDENT */
@@ -299,6 +313,7 @@ struct graphics_struct {
 	SDL_Texture **image_bank;
 	int *debug_anchors;
 	int *debug_containers;
+	int *debug_test_render_list_robustness;
 };
 
 struct texture_struct {
@@ -421,10 +436,10 @@ struct ui_counter {
 };
 
 struct ui_struct {
-	struct ui_bar power;
-	struct ui_bar hp;
-	struct ui_counter score;
-	struct ui_counter beat;
+	struct ui_bar *power;
+	struct ui_bar *hp;
+	struct ui_counter *score;
+	struct ui_counter *beat;
 };
 
 /* ANIMATION */
@@ -439,14 +454,12 @@ struct frame {
 	float duration;
 };
 
-enum scale_mode_e {WIDTH, HEIGHT};
-
 struct clip {
 	SDL_Texture *img;
 	int num_frames;
 	struct frame *frames;
 	float container_scale_factor;
-	enum scale_mode_e container_scale_mode;
+	enum aspctr_lock_e aspctr_lock;
 };
 
 struct animate_generic {
@@ -460,25 +473,31 @@ struct anchor_struct {
 	struct animate_specific *anim;
 };
 	
-struct animate_specific {
+struct animate_specific_old {
 	struct animate_generic *generic;
 
-	struct rule_node *rules_list;
 	int clip;
 	int frame;
 	float speed;
 	int loops;
 	int return_clip;
 	float lastFrameBeat;
-	struct xy_struct native_offset;
-	struct std *parent;
+
+	struct rule_node *rules_list;
+
+	struct std *object;
 	//struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
 	//struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
 	//struct animate_specific *list_head;
 
 	/* Container-related - experimental! */
-	float container_scale_factor; /* Animation layer's size as fraction of container */
-	enum scale_mode_e container_scale_mode; /*	Whether to scale based on container's width or height */
+	enum aspctr_lock_e aspctr_lock; /*	Whether to scale based on container's width or height,
+										or both */
+	union {
+		float container_scale_factor; /* Animation layer's size as fraction of container */
+		struct size_ratio_struct container_scale_factor_wh; /* Same but with independent w and h */
+	};
+
 	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
 								  // or all animations (I think? Can't remember)
 	float z;
@@ -492,17 +511,46 @@ struct animate_specific {
 												 defined by the animation, or point to
 												 another animation's exposed anchor */
 	//struct size_ratio_struct *anchors_exposed;
+	int num_anchors_exposed;
 	struct anchor_struct *anchors_exposed; /* List of "exposed anchors" for a single texture/layer
 										  animation. Other animations can lock onto these */
 	struct size_ratio_struct anchor_hook; /* Sprite-relative position of anchor hook.
 											 Default is the one specified by generic animation */
+	struct size_ratio_struct anchor_grabbed_offset_internal_scale; /* Offset in grabbed animation's
+																	  scale of the anchor hook from
+																	  the target's grabbed anchor */
+
+	struct size_ratio_struct offset_container_scale; /* Offset in container scale of the 
+													 object, after everything else is applied */
 
 	struct func_node *transform_list;
 
 	struct render_node *render_node;
-	SDL_Rect rect_out;
 	struct float_rect rect_out_container_scale;
 	struct animate_specific *next;
+};
+
+struct animate_specific {
+	struct animate_generic *generic;
+
+	int clip;
+	int frame;
+	float speed;
+	int loops;
+	int return_clip;
+	float lastFrameBeat;
+	struct rule_node *rules_list;
+	struct std *object;
+
+	/* Container-related */
+
+	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
+								  // or all animations (I think? Can't remember)
+	float z;
+	struct func_node *transform_list;
+	struct render_node *render_node;
+	struct animate_specific *next;
+	struct visual_container_struct container;
 };
 
 struct rule_node {

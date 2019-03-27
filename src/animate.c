@@ -34,7 +34,7 @@ int print_render_list(struct render_node *render_node_head) {
 	struct render_node *node = render_node_head;
 	printf("render_node_head:	%p\n", render_node_head);
 	while (node) {
-		printf("%s->", node->animation->parent->name);
+		printf("%s->", node->animation->object->name);
 		node = node->next;
 	}
 	printf("\n");
@@ -96,19 +96,22 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
 		if (*graphics->debug_anchors) {
+			int rc;
 			int anchor_width = 6;
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
-			SDL_Rect anchor_exposed_rect = {
-				.x = node_ptr->rect_out.x + node_ptr->animation->anchors_exposed[0].pos_anim_internal.w * node_ptr->rect_out.w - anchor_width/2,
-				.y = node_ptr->rect_out.y + node_ptr->animation->anchors_exposed[0].pos_anim_internal.h * node_ptr->rect_out.h - anchor_width/2,
-				.w = anchor_width,
-				.h = anchor_width,
-			};
-			int rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_exposed_rect);
+			if (node_ptr->animation->container.anchors_exposed) {
+				SDL_Rect anchor_exposed_rect = {
+					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
+					.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
+					.w = anchor_width,
+					.h = anchor_width,
+				};
+				rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_exposed_rect);
+			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 255, 0, 0, 255);
 			SDL_Rect anchor_hook_rect = {
-				.x = node_ptr->rect_out.x + node_ptr->animation->anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
-				.y = node_ptr->rect_out.y + node_ptr->animation->anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
+				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
+				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
 				.w = anchor_width,
 				.h = anchor_width,
 			};
@@ -121,19 +124,24 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 		if (*graphics->debug_containers) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
 			int line_width = 6;
-			SDL_Rect abs_container = visual_container_to_pixels(node_ptr->animation->parent->container,
-									(struct xy_struct){graphics->width, graphics->height});
-			SDL_Point points[5] = {
-				{abs_container.x, abs_container.y},
-				{abs_container.x + abs_container.w, abs_container.y},
-				{abs_container.x + abs_container.w, abs_container.y + abs_container.h},
-				{abs_container.x, abs_container.y + abs_container.h},
-				{abs_container.x, abs_container.y},
-			};
-			//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
-			int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
-			if (rc != 0) {
-				printf("%s\n", SDL_GetError());
+			struct visual_container_struct *container = &node_ptr->animation->container;
+
+			while (container) {
+				SDL_Rect abs_container = visual_container_to_pixels(container,
+										(struct xy_struct){graphics->width, graphics->height});
+				SDL_Point points[5] = {
+					{abs_container.x, abs_container.y},
+					{abs_container.x + abs_container.w, abs_container.y},
+					{abs_container.x + abs_container.w, abs_container.y + abs_container.h},
+					{abs_container.x, abs_container.y + abs_container.h},
+					{abs_container.x, abs_container.y},
+				};
+				//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
+				int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
+				if (rc != 0) {
+					printf("%s\n", SDL_GetError());
+				}
+				container = container->inherit;
 			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
 		}
@@ -339,13 +347,13 @@ int advanceFrames_deprecated(struct render_node *render_node_head, float current
 		struct animate_generic *generic = animation->generic;
 
 		/* set sprite position from parent object again in case of manual changes during program:	*/
-		animation->rect_out.x = animation->parent->pos.x + animation->native_offset.x * ZOOM_MULT * 2;
-		animation->rect_out.y = animation->parent->pos.y + animation->native_offset.y * ZOOM_MULT * 2;
+		animation->rect_out.x = animation->object->pos.x + animation->native_offset.x * ZOOM_MULT * 2;
+		animation->rect_out.y = animation->object->pos.y + animation->native_offset.y * ZOOM_MULT * 2;
 	
 		animation->rect_out.w = generic->clips[animation->clip]->frames[animation->frame].rect.w
-								*animation->parent->size_ratio.w*ZOOM_MULT*2;
+								*animation->object->size_ratio.w*ZOOM_MULT*2;
 		animation->rect_out.h = generic->clips[animation->clip]->frames[animation->frame].rect.h
-								*animation->parent->size_ratio.h*ZOOM_MULT*2;
+								*animation->object->size_ratio.h*ZOOM_MULT*2;
 
 		struct rule_node *rule_node = animation->rules_list;
 		while (rule_node) {
@@ -389,7 +397,8 @@ int advanceFrames_deprecated(struct render_node *render_node_head, float current
 #endif
 }
 
-void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
+void advance_frames_and_create_render_list_old(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
+#if 0
 
 	struct std_list *std_list_node = object_list_stack;
 	int std_list_node_count = 0;
@@ -424,13 +433,13 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			}
 
 			struct size_ratio_struct anchor_grabbed_container_scale;
-			if (animation->anchor_grabbed) { /* anchor_grabbed_container_scale.w, h are the relative position in the exposing animation */
-				struct anchor_struct anchor_grabbed = *animation->anchor_grabbed;
+			if (animation->container.anchor_grabbed) { /* anchor_grabbed_container_scale.w, h are the relative position in the exposing animation */
+				struct anchor_struct anchor_grabbed = *animation->container.anchor_grabbed;
 				
-				anchor_grabbed_container_scale.w = (anchor_grabbed.pos_anim_internal.w + animation->anchor_grabbed_offset_internal_scale.w) * anchor_grabbed.anim->rect_out_container_scale.w
-					 + anchor_grabbed.anim->rect_out_container_scale.x;
-				anchor_grabbed_container_scale.h = (anchor_grabbed.pos_anim_internal.h + animation->anchor_grabbed_offset_internal_scale.h) * anchor_grabbed.anim->rect_out_container_scale.h
-					 + anchor_grabbed.anim->rect_out_container_scale.y;
+				anchor_grabbed_container_scale.w = (anchor_grabbed.pos_anim_internal.w + animation->container.anchor_grabbed_offset_internal_scale.w) * anchor_grabbed.anim->container->rect_out_parent_scale.w
+					 + anchor_grabbed.anim->container->rect_out_parent_scale.x;
+				anchor_grabbed_container_scale.h = (anchor_grabbed.pos_anim_internal.h + animation->container.anchor_grabbed_offset_internal_scale.h) * anchor_grabbed.anim->container->rect_out_parent_scale.h
+					 + anchor_grabbed.anim->container->rect_out_parent_scale.y;
 			} else { /* anchor_grabbed_container_scale.w, h are the relative position in the container */
 				//anchor_grabbed_container_scale.w = anchor_grabbed.pos_anim_internal.w;
 				//anchor_grabbed_container_scale.h = anchor_grabbed.pos_anim_internal.h;
@@ -508,15 +517,15 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			}
 
 			/* Convert from hook pos to rect pos: */
-			animation->rect_out_container_scale.w = size_and_hook_pos_container_scale.w;
-			animation->rect_out_container_scale.h = size_and_hook_pos_container_scale.h;
+			animation->container->rect_out_parent_scale.w = size_and_hook_pos_container_scale.w;
+			animation->container->rect_out_parent_scale.h = size_and_hook_pos_container_scale.h;
 
-			animation->rect_out_container_scale.x = size_and_hook_pos_container_scale.x
-			- animation->rect_out_container_scale.w * animation->anchor_hook.w
+			animation->container->rect_out_parent_scale.x = size_and_hook_pos_container_scale.x
+			- animation->container->rect_out_parent_scale.w * animation->container.anchor_hook.w
 			+ animation->offset_container_scale.w;
 
-			animation->rect_out_container_scale.y = size_and_hook_pos_container_scale.y
-			- animation->rect_out_container_scale.h * animation->anchor_hook.h
+			animation->container->rect_out_parent_scale.y = size_and_hook_pos_container_scale.y
+			- animation->container->rect_out_parent_scale.h * animation->container.anchor_hook.h
 			+ animation->offset_container_scale.h;
 
 			struct rule_node *rule_node = animation->rules_list;
@@ -529,10 +538,10 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			/* Convert from container-scale relative width to global scale absolute width */
 			SDL_Rect abs_rect = {
-				.x = abs_container.x + animation->rect_out_container_scale.x * abs_container.w,
-				.y = abs_container.y + animation->rect_out_container_scale.y * abs_container.h,
-				.w = animation->rect_out_container_scale.w * abs_container.w,
-				.h = animation->rect_out_container_scale.h * abs_container.h,
+				.x = abs_container.x + animation->container->rect_out_parent_scale.x * abs_container.w,
+				.y = abs_container.y + animation->container->rect_out_parent_scale.y * abs_container.h,
+				.w = animation->container->rect_out_parent_scale.w * abs_container.w,
+				.h = animation->container->rect_out_parent_scale.h * abs_container.h,
 			};
 
 			struct render_node *render_node = animation->render_node;
@@ -566,6 +575,118 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 		std_list_node = std_list_node->prev;
 		std_list_node_count++;
 	}		
+#endif
+}
+
+void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
+
+	struct std_list *std_list_node = object_list_stack;
+	int std_list_node_count = 0;
+	int render_node_count = 0;
+	while (std_list_node) {
+		struct std *object = std_list_node->std;
+
+		struct animate_specific *animation = object->animation;
+		
+		while (animation) {
+			struct animate_generic *generic = animation->generic;
+
+			if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
+				if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
+					animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
+					animation->frame++;
+				}
+			}
+			if (animation->frame >= generic->clips[animation->clip]->num_frames) {
+				if (animation->loops == 0) {
+					animation->clip = animation->return_clip;	
+					animation->frame = 0;
+					animation->loops = -1;
+				}
+				else {
+					animation->frame = 0;
+					if (animation->loops > 0)
+						animation->loops--;
+				}
+			}
+
+			struct visual_container_struct *container = &animation->container;
+
+			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
+
+			//SDL_Rect rect_trans = animation->rect_out;
+			struct func_node *transform_node = animation->transform_list;
+			while (transform_node) {
+				//transform_node->func((void *)&abs_rect, transform_node->data);
+				//transform_node->func((void *)&container->rect_out_parent_scale, transform_node->data);
+				transform_node = transform_node->next;
+				transform_node_count++;
+			}
+
+			struct rule_node *rule_node = animation->rules_list;
+
+			while (rule_node) {
+				//(rule_node->rule)(rule_node->data);
+				rule_node = rule_node->next;
+				rule_node_count++;
+			}
+
+			/* Convert from container-scale relative width to global scale absolute width */
+			SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->width, graphics->height});
+			container->screen_scale_uptodate = 1;
+
+			struct render_node *render_node = animation->render_node;
+			if (!render_node) {
+				generate_render_node(animation, graphics);
+				render_node = animation->render_node;
+			}
+			render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
+			if (render_node->z != animation->z) {
+				/* Take render node out of the list */
+				if (render_node->prev) {
+					render_node->prev->next = render_node->next;
+				} else {
+					graphics->render_node_head = render_node->next;
+				}
+				if (render_node->next) {
+					render_node->next->prev = render_node->prev;
+				} else {
+					graphics->render_node_tail = render_node->prev;
+				}
+				/* Put render node back in the list in the right place */
+				node_insert_z_over(graphics, render_node, animation->z);
+			}
+
+			render_node->rect_out = abs_rect;
+			//render_node = render_node->next;
+			render_node_count++;
+
+			animation = animation->next;
+		}
+		std_list_node = std_list_node->prev;
+		std_list_node_count++;
+	}		
+
+	de_update_containers(object_list_stack);
+}
+
+void de_update_containers(struct std_list *std_list_node) {
+	while (std_list_node) {
+		struct animate_specific *animation = std_list_node->std->animation;
+		
+		while (animation) {
+			struct visual_container_struct *container = &animation->container;
+			while (container) {
+				if (!container->screen_scale_uptodate) {
+					break;
+				}
+				container->screen_scale_uptodate = 0;
+				container = container->inherit;
+			}
+			animation = animation->next;
+		}
+		std_list_node = std_list_node->prev;
+	}
 }
 
 /* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
@@ -678,7 +799,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 		default_specific_anim->transform_list = tr_node;
 		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-		teststruct->status = status;
+		teststruct->currentbeat = &status->timing->currentbeat;
 		teststruct->rect_bitmask = 2;
 		teststruct->freq_perbeat = 0.5;
 		teststruct->ampl = 0.2;
@@ -695,7 +816,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 
 		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
-		teststruct2->status = status;
+		teststruct2->score = &status->level->score;
 		teststruct2->freq_perbeat = 1;
 		teststruct2->ampl = 2;
 		teststruct2->peak_offset = 0.0;
@@ -718,7 +839,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		struct func_node *tr_node = malloc(sizeof(struct func_node));
 
 		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
-		teststruct2->status = status;
+		teststruct2->score = &status->level->score;
 		teststruct2->freq_perbeat = 1;
 		teststruct2->ampl = 2;
 		teststruct2->peak_offset = 0.0;
@@ -736,12 +857,14 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic **generic_bank, int index) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
+	*specific = (struct animate_specific) {0};
 
 	*specific = *generic_bank[index]->default_specific;
 	specific->generic = generic_bank[index];
 	struct animate_generic *generic = specific->generic;
-	specific->aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
-	specific->container_scale_factor = generic->clips[specific->clip]->container_scale_factor;
+	specific->container.aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
+	specific->container.rect_out_parent_scale.w = generic->clips[specific->clip]->container_scale_factor;
+	specific->container.rect_out_parent_scale.h = generic->clips[specific->clip]->container_scale_factor;
 	
 	struct rule_node *rule_tmp;
 	struct rule_node **rule_ptr = &specific->rules_list;
@@ -773,12 +896,12 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	}
 	/*	Fetch object-type default values for the specific-animation struct.	*/
 
-	specific->parent = std;
+	specific->object = std;
 	
 	make_anchors_exposed(specific, 1);
 	/* By default, make the animation's position in the container be determined
 	 * not by an anchor but by its std object's "pos" */
-	specific->anchor_grabbed = NULL;
+	specific->container.anchor_grabbed = NULL;
 
 	/* By default, make the animation's internal relative anchor hook
 	 * the same as the one specified by the generic animation */
@@ -788,7 +911,7 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 		.w = (float)frame.anchor_hook.x / (float)frame.rect.w,
 		.h = (float)frame.anchor_hook.y / (float)frame.rect.h,
 	};
-	specific->anchor_hook = anchor_hook_pos_internal;
+	specific->container.anchor_hook = anchor_hook_pos_internal;
 
 	specific->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
 	return specific;
@@ -837,6 +960,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	}
 	// Make final "next" ptr NULL to prevent segfaults
 	*a_ptr = NULL;
+	std->container = &std->animation->container;
 
 	return 0;
 }
@@ -1076,7 +1200,7 @@ void rules_player(void *status_void) {
 			struct tr_blink_data *data = malloc(sizeof(struct tr_blink_data));
 			data->frames_on = 4;
 			data->frames_off = 4;
-			data->status = status;
+			data->framecount = &status->timing->framecount;
 			transform_add_check(player->animation, data, &tr_blink);
 		}
 		else {
@@ -1086,19 +1210,19 @@ void rules_player(void *status_void) {
 }
 void rules_ui(void *data) {
 	struct tr_bump_data *str = (struct tr_bump_data *)data;
-	if (str->status->level->score > 300)
-		str->ampl = 1.2;
+	if (*str->score > 300)
+		str->ampl = 1.5;
 	else
-		str->ampl = 1 + (float)(str->status->level->score)/1000.0;
-	//printf("%f\n", animation->rect_out_container_scale.w);
+		str->ampl = 1.2 + (float)(*str->score)/1000.0;
+	//printf("%f\n", animation->container->rect_out_parent_scale.w);
 }
 void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
-	//struct ui_bar *bar = animation->parent->self_ui_bar;
-	struct ui_bar *bar = animation->parent->self;
+	//struct ui_bar *bar = animation->object->self_ui_bar;
+	struct ui_bar *bar = animation->object->self;
 	float ratio = (float) *bar->amount / *bar->max;
-	//animation->rect_out.w = 50 * ZOOM_MULT * 2 * ratio * animation->parent->size_ratio.w;
-	animation->rect_out_container_scale.w *= ratio;
+	//animation->rect_out.w = 50 * ZOOM_MULT * 2 * ratio * animation->object->size_ratio.w;
+	animation->container.rect_out_parent_scale.w *= ratio;
 	if ( ratio <= 0.5 ) {
 		if ( ratio <= 0.2 ) {
 			animation->frame = 2;
@@ -1113,8 +1237,8 @@ void rules_ui_bar(void *animvoid) {
 }
 void rules_ui_counter(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
-	//struct ui_counter *counter = animation->parent->self_ui_counter;
-	struct ui_counter *counter = animation->parent->self;
+	//struct ui_counter *counter = animation->object->self_ui_counter;
+	struct ui_counter *counter = animation->object->self;
 	int2array(*counter->value, counter->array, counter->digits);
 	for (int i = 0; i < counter->digits; i++) {
 		if (animation) {
@@ -1134,18 +1258,15 @@ void rules_ui_counter(void *animvoid) {
 
 struct anchor_struct *make_anchors_exposed(struct animate_specific *anim, int n) {
 
-	struct anchor_struct *anchors_exposed = malloc(n * sizeof(*anchors_exposed));
+	struct size_ratio_struct *anchors_exposed = malloc(n * sizeof(*anchors_exposed));
 
 	/* By default, make the animation's exposed anchors in the middle */
 	   
 	for (int i = 0; i < n; i++) {
-		anchors_exposed[i] = (struct anchor_struct) {
-			.pos_anim_internal = (struct size_ratio_struct) { 0.5, 0.5 },
-			.anim = anim,
-		};
+		anchors_exposed[i] = (struct size_ratio_struct) { 0.5, 0.5 };
 	}
 
-	anim->anchors_exposed = anchors_exposed;
-	anim->num_anchors_exposed = n;
+	anim->container.anchors_exposed = anchors_exposed;
+	anim->container.num_anchors_exposed = n;
 }
 

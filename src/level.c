@@ -143,7 +143,7 @@ int level_init (struct status_struct status) {
 	struct visual_container_struct *container_level_play_area = malloc(sizeof(struct visual_container_struct));
 	*container_level_play_area = (struct visual_container_struct) {
 		.inherit = &graphics->screen,
-		.rect = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7},
+		.rect_out_parent_scale = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
@@ -211,14 +211,14 @@ int level_init (struct status_struct status) {
 	/* set sprite position */
 	graphics->screen = (struct visual_container_struct) {
 		.inherit = NULL,
-		.rect = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
+		.rect_out_parent_scale = (struct float_rect) { .x = 1, .y = 1, .w = 1, .h = 1},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
 	for (int lane = 0; lane < lanes->total; lane++) {
 		lanes->containers[lane] = (struct visual_container_struct) {
 			.inherit = container_level_play_area,
-			.rect = (struct float_rect) { .x = 0, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
+			.rect_out_parent_scale = (struct float_rect) { .x = 0, .y = lanes->laneheight[lane], .w = 1, .h = lanes->lanewidth},
 			.aspctr_lock = WH_INDEPENDENT,
 		};
 	}
@@ -226,17 +226,14 @@ int level_init (struct status_struct status) {
 	player->container = malloc(sizeof(struct visual_container_struct));
 	*player->container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
-		.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
-		//.rect = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
+		//.rect_relative = { .x = 0.2, .y = lanes->lanewidth/2, .w = 16, .h = 22}
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 	player->name = "player";
-	player->pos.x = 0;//0.2 * graphics->width;
-	player->pos.y = 0;//lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
-	player->size_ratio.w = 1.0;
-	player->size_ratio.h = 1.0;
 	//graphic_spawn(&player->std, generic_bank, graphics, (enum graphic_type_e[]){PLAYER}, 1);
 	graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
+	player->animation->container = *player->container;
 	player->animation->rules_list->data = (void *)&status;
 
 	/*		Tiles		*/
@@ -270,48 +267,26 @@ int level_init (struct status_struct status) {
 
 	/*		HUD		*/
 
-	/*	HP	*/
-
 	struct ui_struct *ui = malloc(sizeof(struct ui_struct));
 	graphics->ui = ui;
-
-	struct ui_bar *hp = &ui->hp;
-	*hp = (struct ui_bar) {0};
 
 	struct visual_container_struct *container_level_ui_top = malloc(sizeof(struct visual_container_struct));
 	*container_level_ui_top = (struct visual_container_struct) {
 		.inherit = &graphics->screen,
-		.rect = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3},
+		.rect_out_parent_scale = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	hp->container = malloc(sizeof(struct visual_container_struct));
-	*hp->container = (struct visual_container_struct) {
+
+	/*	HP	*/
+
+	struct visual_container_struct *hp_container = malloc(sizeof(struct visual_container_struct));
+	*hp_container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	hp->amount = &player->living.HP;
-	hp->max = &player->living.max_HP;
-	hp->name = "hp";
-	hp->pos.x = 10 * ZOOM_MULT * 2;
-	hp->pos.y = 10 * ZOOM_MULT * 2;
-	hp->size_ratio.w = 1.0;
-	hp->size_ratio.h = 1.0;
-	hp->self = hp;
-	graphic_spawn(&hp->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
 
-	hp->animation->next->native_offset.x = 29;
-	hp->animation->next->native_offset.y = 6;
-
-	hp->animation->next->rules_list->data = hp->animation->next;
-	struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
-	*tmp_data = *(struct tr_bump_data *)hp->animation->next->rules_list->next->data;
-	tmp_data->centre = malloc(sizeof(struct xy_struct));
-	tmp_data->centre->x = hp->animation->rect_out.x + hp->animation->rect_out.w/2;
-	tmp_data->centre->y = hp->animation->rect_out.y + hp->animation->rect_out.h/2;
-	hp->animation->next->rules_list->next->data = tmp_data;
-	hp->animation->next->transform_list->data = tmp_data;
-
+	ui->hp = spawn_ui_bar(object_list_stack_ptr, generic_bank, graphics, &player->living.HP, &player->living.max_HP, hp_container, "hp");
 
 	config_setting_t *player_setting = config_setting_lookup(thislevel_setting, "player");
 
@@ -325,177 +300,41 @@ int level_init (struct status_struct status) {
 
 	/*	Power	*/
 
-	struct ui_bar *power = &ui->power;
-	*power = (struct ui_bar) {0};
-
-	power->container = malloc(sizeof(struct visual_container_struct));
-	*power->container = (struct visual_container_struct) {
+	struct visual_container_struct *power_container = malloc(sizeof(struct visual_container_struct));
+	*power_container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	power->amount = &player->living.power;
-	power->max = &player->living.max_PP;
-	power->name = "power";
-	power->pos.x = 10 * ZOOM_MULT * 2;
-	power->pos.y = 10 * ZOOM_MULT * 2;
-	power->size_ratio.w = 1.0;
-	power->size_ratio.h = 1.0;
-	power->self = power;
-	graphic_spawn(&power->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){POWER, COLOURED_BAR}, 2);
-	power->pos.x = (NATIVE_RES_X - 20) * ZOOM_MULT - power->animation->rect_out.w;
-	//printf("%d\n", power.animation->rect_out.w);
 
-	power->animation->next->native_offset.x = 48;
-	power->animation->next->native_offset.y = 6;
-
-	power->animation->next->rules_list->data = power->animation->next;
-	tmp_data = malloc(sizeof(struct tr_bump_data));
-	*tmp_data = *(struct tr_bump_data *)power->animation->next->rules_list->next->data;
-	tmp_data->centre = malloc(sizeof(struct xy_struct));
-	tmp_data->centre->x = power->pos.x + power->animation->rect_out.w/2;
-	tmp_data->centre->y = power->pos.y + power->animation->rect_out.h/2;
-	power->animation->next->rules_list->next->data = tmp_data;
-	power->animation->next->transform_list->data = tmp_data;
+	ui->power = spawn_ui_bar(object_list_stack_ptr, generic_bank, graphics, &player->living.power, &player->living.max_PP, power_container, "power");
 
 	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
 	player->living.power = player->living.max_PP;
 
 	/*	Score	*/
 
-	Scoreimg = IMG_LoadTexture(renderer, "../art/numbers.png");
-	SDL_QueryTexture(Scoreimg, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	//SDL_Rect rcScore[5], rcScoreSrc[5];
-
-	for (int i = 0; i < 5; i++ ) {
-		rects->rcScoreSrc[i].x = 5 * i;
-		rects->rcScoreSrc[i].y = 0;
-		rects->rcScoreSrc[i].w = 5;
-		rects->rcScoreSrc[i].h = 8;
-
-		rects->rcScore[i].x = (48 + rects->rcScoreSrc[i].w * i) * ZOOM_MULT * 2;
-		rects->rcScore[i].y = 6 * ZOOM_MULT * 2;
-		rects->rcScore[i].w = rects->rcScoreSrc[i].w * ZOOM_MULT * 2;
-		rects->rcScore[i].h = rects->rcScoreSrc[i].h * ZOOM_MULT * 2;
-
-	}
-
 	level->score = 0;
 
-	struct ui_counter *score = &ui->score;
-	*score = (struct ui_counter) {0};
-
-	score->container = malloc(sizeof(struct visual_container_struct));
-	*score->container = (struct visual_container_struct) {
+	struct visual_container_struct *score_container = malloc(sizeof(struct visual_container_struct));
+	*score_container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	score->value = &level->score;
-	score->digits = 5;
-	score->array = calloc(5, sizeof(int));//(int[5]){0};
-	score->name = "score";
-	score->pos.x = 48 * ZOOM_MULT * 2;
-	score->pos.y = 6 * ZOOM_MULT * 2;
-	score->size_ratio.w = 1.0;
-	score->size_ratio.h = 1.0;
-	score->self = score;
 
-	graphic_spawn(&score->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
-	//printf("%d\n", power.animation->rect_out.w);
-
-	score->animation->rules_list->next = malloc(sizeof(struct rule_node));
-	tmp_data = malloc(sizeof(struct tr_bump_data));
-	//*tmp_data = *(struct tr_bump_data *)score.animation->rules_list->next->data;
-	tmp_data->freq_perbeat = 1;
-	tmp_data->ampl = 2;
-	tmp_data->peak_offset = 0.0;
-	tmp_data->bump_width = 0.25;
-	tmp_data->centre = malloc(sizeof(struct xy_struct));
-	tmp_data->centre->x = score->pos.x + score->animation->rect_out.w * score->digits/2;
-	tmp_data->centre->y = score->pos.y + score->animation->rect_out.h/2;
-	tmp_data->status = &status;
-
-	struct animate_specific *anim = score->animation;
-	anim->rules_list->data = anim;
-	for (int i = 0; i < score->digits; i++) {
-		anim->native_offset.x = anim->generic->clips[anim->clip]->frames[anim->frame].rect.w * i;
-		anim->native_offset.y = 0;
-		anim->rules_list->data = tmp_data;
-		anim->transform_list->data = tmp_data;
-		anim = anim->next;
-	}
-	score->animation->rules_list->next->rule = rules_ui_counter;
-	score->animation->rules_list->next->data = score->animation;
-	score->animation->rules_list->next->next = NULL;
+	ui->score = spawn_ui_counter(object_list_stack_ptr, generic_bank, graphics, &level->score, 5, score_container, "score", &timing->currentbeat);
 
 	/*	Beat Counter	*/
 
-	struct ui_counter *beat = &ui->beat;
-	*beat = (struct ui_counter) {0};
-
-	beat->container = malloc(sizeof(struct visual_container_struct));
-	*beat->container = (struct visual_container_struct) {
+	struct visual_container_struct *beat_container = malloc(sizeof(struct visual_container_struct));
+	*beat_container = (struct visual_container_struct) {
 		.inherit = container_level_ui_top,
-		.rect = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	beat->value = &timing->currentbeat_int;
-	beat->digits = 5;
-	beat->array = calloc(5, sizeof(int));//(int[5]){0};
-	beat->name = "beat";
-	beat->pos.x = 100 * ZOOM_MULT * 2;
-	beat->pos.y = 6 * ZOOM_MULT * 2;
-	beat->size_ratio.w = 2.0;
-	beat->size_ratio.h = 2.0;
-	beat->self = beat;
 
-	graphic_spawn(&beat->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){NUMBERS,NUMBERS,NUMBERS,NUMBERS,NUMBERS}, 5);
-	//printf("%d\n", power.animation->rect_out.w);
-
-	beat->animation->rules_list->next = malloc(sizeof(struct rule_node));
-	tmp_data = malloc(sizeof(struct tr_bump_data));
-	//*tmp_data = *(struct tr_bump_data *)beat.animation->rules_list->next->data;
-	tmp_data->freq_perbeat = 1;
-	tmp_data->ampl = 2;
-	tmp_data->peak_offset = 0.0;
-	tmp_data->bump_width = 0.25;
-	tmp_data->centre = malloc(sizeof(struct xy_struct));
-	tmp_data->centre->x = beat->pos.x + beat->animation->rect_out.w * beat->digits/2;
-	tmp_data->centre->y = beat->pos.y + beat->animation->rect_out.h/2;
-	tmp_data->status = &status;
-
-	anim = beat->animation;
-	anim->rules_list->data = anim;
-	for (int i = 0; i < beat->digits; i++) {
-		anim->native_offset.x = anim->generic->clips[anim->clip]->frames[anim->frame].rect.w * beat->size_ratio.w * i;
-		anim->native_offset.y = 0;
-		anim->rules_list->data = tmp_data;
-		anim->transform_list->data = tmp_data;
-		anim = anim->next;
-	}
-	beat->animation->rules_list->next->rule = rules_ui_counter;
-	beat->animation->rules_list->next->data = beat->animation;
-	beat->animation->rules_list->next->next = NULL;
-
-	Beatimg = IMG_LoadTexture(renderer, "../art/numbers.png");
-	SDL_QueryTexture(Scoreimg, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	//SDL_Rect rcBeat[5], rcBeatSrc[5];
-
-	for (int i = 0; i < 5; i++ ) {
-		rects->rcBeatSrc[i].x = 5 * i;
-		rects->rcBeatSrc[i].y = 0;
-		rects->rcBeatSrc[i].w = 5;
-		rects->rcBeatSrc[i].h = 8;
-
-		rects->rcBeat[i].x = (50 + rects->rcBeatSrc[i].w * i) * ZOOM_MULT * 2 * 2;
-		rects->rcBeat[i].y = 6 * ZOOM_MULT * 2;
-		rects->rcBeat[i].w = rects->rcBeatSrc[i].w * ZOOM_MULT * 2 * 2;
-		rects->rcBeat[i].h = rects->rcBeatSrc[i].h * ZOOM_MULT * 2 * 2;
-
-	}
+	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_bank, graphics, &timing->currentbeat_int, 5, score_container, "score", &timing->currentbeat);
 
 	/*		Items		*/
 
@@ -577,10 +416,10 @@ int level_init (struct status_struct status) {
 	sword->rect_in.x = 0;
 	sword->rect_in.y = 0;
 
-	sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
-	sword->rect_out.y = lanes->laneheight[lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
-	sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
-	sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
+	//sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
+	//sword->rect_out.y = lanes->laneheight[lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
+	//sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
+	//sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
 
 	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
 	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
@@ -1174,20 +1013,19 @@ int level_loop(struct status_struct status) {
 
 		//movemap(&level, player, grid, rects->rcTile, rects->rcTilemid, rects->rcTSrc, rects->rcTSrcmid, lanes->total, screenstrip, monsterscreenstrip, itemscreenstrip, &monsterpokedex, &itempokedex);
 
-		movemon(lanes->total, level->speedmultmon, *timing, linkptrs_start, linkptrs_end, monsterlanenum, level->remainder, player->animation->rect_out, sword->rect_out, graphics->width);
+		//movemon(lanes->total, level->speedmultmon, *timing, linkptrs_start, linkptrs_end, monsterlanenum, level->remainder, player->animation->rect_out, sword->rect_out, graphics->width);
 		if (laser->on) {
-			laserfire(level, lanes->total, laser, player, rects->rcLaser, rects->rcLaserSrc, player->animation->rect_out, lanes->laneheight, lanes->currentlane, timing->framecount, level->currentscreen, level->effects->hue, audio->soundchecklist);
+			//laserfire(level, lanes->total, laser, player, rects->rcLaser, rects->rcLaserSrc, player->animation->rect_out, lanes->laneheight, lanes->currentlane, timing->framecount, level->currentscreen, level->effects->hue, audio->soundchecklist);
 		}
 
 		if ( player->sword )
-			swordfunc(level, sword, player->animation->rect_out, timing->framecount, linkptrs_start, *audio);
-			//swordfunc(lanes->total, sword, &rects->rcSword, &rects->rcSwordSrc, player->animation->rect_out, lanes->laneheight, lanes->currentlane, timing->framecount, linkptrs_start, *audio);
+			//swordfunc(level, sword, player->animation->rect_out, timing->framecount, linkptrs_start, *audio);
 
 		invinciblefunc(player);
 
-		amihurt(lanes->total, status, linkptrs_start, player->animation->rect_out, (*bestiary));
+		//amihurt(lanes->total, status, linkptrs_start, player->animation->rect_out, (*bestiary));
 
-		touchitem(lanes, lanes->currentlane, level->currentscreen, player->animation->rect_out, (*itempokedex), level->itemscreenstrip, &level->levelover, audio->soundchecklist);
+		//touchitem(lanes, lanes->currentlane, level->currentscreen, player->animation->rect_out, (*itempokedex), level->itemscreenstrip, &level->levelover, audio->soundchecklist);
 
 		/*	Drop into python interpreter */
 
@@ -1271,7 +1109,7 @@ int level_loop(struct status_struct status) {
 		}
 
 		int beatarray[SCORE_DIGITS];
-		printf("%f\n", timing->currentbeat);
+		//printf("%f\n", timing->currentbeat);
 		int2array(timing->currentbeat, beatarray, SCORE_DIGITS);
 		for ( int i = 0; i < 5; i++ ) {
 			rects->rcBeatSrc[i].x = beatarray[i] * 5;
@@ -1349,8 +1187,8 @@ void moveme(struct lane_struct *lanes, int *direction, struct animate_specific *
 		*direction = 4;
 	}
 	/* set sprite position */
-	//anim->parent->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
-	anim->parent->container->inherit = &lanes->containers[lanes->currentlane];
+	//anim->object->pos.y = lanes->laneheight[lanes->currentlane] - POKESPRITE_SIZEX*ZOOM_MULT*2;
+	anim->object->container->inherit = &lanes->containers[lanes->currentlane];
 
 }
 
@@ -1670,7 +1508,7 @@ void quitlevel(struct status_struct status) {
 	//	SDL_DestroyTexture(texTarget);
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
-	list_rm(graphics->render_node_head);
+	render_list_rm(&graphics->render_node_head);
 }
 
 

@@ -13,8 +13,8 @@ int node_insert_z_over(struct graphics_struct *graphics, struct render_node *nod
 int node_insert_z_under(struct graphics_struct *graphics, struct render_node *node_src, float z);
 struct render_node *create_render_node();
 
-int node_rm(struct graphics_struct *graphics, struct render_node *node_ptr);
-int list_rm(struct render_node *node_ptr);
+int render_node_rm(struct graphics_struct *graphics, struct render_node *node_ptr);
+int render_list_rm(struct render_node **node_ptr_ptr);
 
 int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer);
 int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank, struct status_struct *status);
@@ -36,3 +36,6 @@ void rules_ui_counter(void *animvoid);
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
 int transform_rm(struct animate_specific *animation, void (*func)());
+
+struct anchor_struct *make_anchors_exposed(struct animate_specific *anim, int n);
+void de_update_containers(struct std_list *std_list_node);

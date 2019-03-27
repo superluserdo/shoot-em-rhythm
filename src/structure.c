@@ -42,29 +42,42 @@
 //}
 
 struct float_rect decascade_visual_container(struct visual_container_struct *container) {
-	struct float_rect rect = container->rect;
-
-	while (container->inherit) {
-		enum aspctr_lock_e aspctr_lock = container->aspctr_lock;
-		float aspctr = container->aspctr;
-		container = container->inherit;
-		struct float_rect parent_rect = container->rect;
-		rect.x = parent_rect.x + rect.x * parent_rect.w;
-		rect.y = parent_rect.y + rect.y * parent_rect.h;
-		if (aspctr_lock == WH_INDEPENDENT) {
-			rect.w *= parent_rect.w;
-			rect.h *= parent_rect.h;
-		} else if (aspctr_lock == W_DOMINANT) {
-			rect.w *= parent_rect.w;
-			rect.h *= parent_rect.w / aspctr;
-		} else if (aspctr_lock == H_DOMINANT) {
-			rect.w *= parent_rect.h;
-			rect.w *= parent_rect.h * aspctr;
-		}
-
+	if (!container->inherit) {
+		return (struct float_rect) {.x=0, .y=0, .w=1, .h=1};
+	} else if (container->screen_scale_uptodate) {
+		return container->rect_out_screen_scale;
 	}
-	return rect;
+	struct float_rect rect = container->rect_out_parent_scale;
+	struct float_rect parent_rect = decascade_visual_container(container->inherit);
 
+	/* Set width & height */
+	enum aspctr_lock_e aspctr_lock = container->aspctr_lock;
+
+	if (aspctr_lock == WH_INDEPENDENT) {
+		rect.w *= parent_rect.w;
+		rect.h *= parent_rect.h;
+	} else if (aspctr_lock == W_DOMINANT) {
+		float aspctr = rect.w/rect.h;
+		rect.w *= parent_rect.w;
+		rect.h *= parent_rect.w / aspctr;
+	} else if (aspctr_lock == H_DOMINANT) {
+		float aspctr = rect.w/rect.h;
+		rect.w *= parent_rect.h;
+		rect.h *= parent_rect.h * aspctr;
+	}
+
+	struct size_ratio_struct anchor_hook_pos = {
+		.w = container->anchor_hook.w * rect.w,
+		.h = container->anchor_hook.h * rect.h,
+	};
+
+	/* Set x and y position wrt whole window */
+	rect.x = parent_rect.x + rect.x * parent_rect.w - anchor_hook_pos.w;
+	rect.y = parent_rect.y + rect.y * parent_rect.h - anchor_hook_pos.h;
+
+	container->rect_out_screen_scale = rect;
+
+	return rect;
 }
 
 SDL_Rect float_rect_to_pixels(struct float_rect *float_rect, struct xy_struct screen_size) {

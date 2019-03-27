@@ -71,8 +71,11 @@ int main() {
 	timing_init(&timing);
 	graphics.width = NATIVE_RES_X * ZOOM_MULT;
 	graphics.height = NATIVE_RES_Y * ZOOM_MULT;
+	program.debug.show_anchors = 1;
+	program.debug.show_containers = 1;
 	graphics.debug_anchors = &program.debug.show_anchors;
 	graphics.debug_containers = &program.debug.show_containers;
+	graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
 
 	/* NOTE: I've moved timing out of its own thread into the main thread.
 	 * frametimer() is no longer used */
@@ -100,7 +103,7 @@ int main() {
 	}
 	graphics.renderer = renderer;
 
-	program.python_interpreter_enable = 1;
+	program.python_interpreter_enable = 0;
 	PyObject    *pModule ; 
 	PyObject    *pDict ;
 	PyObject    *python_func;

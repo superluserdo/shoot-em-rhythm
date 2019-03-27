@@ -1,18 +1,20 @@
 struct tr_resize_data {
-	struct status_struct *status;
 	float w;
 	float h;
-	struct xy_struct *centre;
+	//struct xy_struct *centre;
+	struct size_ratio_struct *centre;
 };
 void tr_resize(void *rect_trans, void *data);
 
 struct tr_bump_data {
-	struct status_struct *status;
+	int *score;
+	float *currentbeat;
 	float freq_perbeat;
 	float ampl;
 	float peak_offset;
 	float bump_width;
-	struct xy_struct *centre;
+	//struct xy_struct *centre;
+	struct size_ratio_struct *centre;
 };
 void tr_bump(void *rect_trans, void *data);
 
@@ -23,7 +25,7 @@ struct cycle_struct {
 };
 
 struct tr_sine_data {
-	struct status_struct *status;
+	float *currentbeat;
 	int rect_bitmask;
 	//struct cycle_struct cycle;
 	float freq_perbeat;
@@ -38,7 +40,7 @@ void tr_sine_sq(void *rect_trans, void *data);
 void tr_sine_abs(void *rect_trans, void *data);
 
 struct tr_blink_data {
-	struct status_struct *status;
+	int *framecount;
 	int frames_on;
 	int frames_off;
 };
