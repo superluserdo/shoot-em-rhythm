@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o myfunc.mod.so structdef.py
-	gcc -g3 main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o newstruct.o structure.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
+output: main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o rdtsc.o myfunc.mod.so structdef.py
+	gcc -g3 main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c `pkg-config --cflags --libs python3` main.c
@@ -13,7 +13,7 @@ clock.o: clock.c structdef.h clock.h
 startscreen.o: startscreen.c structdef.h music.h
 	gcc -g3 -c startscreen.c
 
-level.o: level.c structdef.h main.h level.h helpers.h music.h clock.h animate.h
+level.o: level.c structdef.h main.h level.h helpers.h music.h clock.h animate.h deprecated_funcs.h
 	gcc -g3 -c `pkg-config --cflags --libs python3` level.c
 
 spawn.o: spawn.c spawn.h structdef.h main.h level.h helpers.h music.h clock.h animate.h
@@ -31,11 +31,11 @@ animate.o: animate.c structdef.h animate.h
 transform.o: transform.c structdef.h transform.h
 	gcc -g3 -c transform.c
 
-newstruct.o: newstruct.c structdef.h newstruct.h
-	gcc -g3 -c newstruct.c
-
 structure.o: structure.c
 	gcc -g3 -c structure.c
+
+deprecated_funcs.o: deprecated_funcs.c deprecated_funcs.h
+	gcc -g3 -c deprecated_funcs.c
 
 structdef.py: structdef.h
 	echo '#include <SDL2/SDL.h>\n#include <SDL2/SDL_image.h>' > sdl-incl.h

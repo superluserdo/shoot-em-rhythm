@@ -178,7 +178,6 @@ struct player_struct {
 	};
 	int invinciblecounter[2];
 	int sword;
-	int direction;
 	int flydir;
 	struct living living;
 };

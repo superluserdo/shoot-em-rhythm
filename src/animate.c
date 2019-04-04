@@ -766,7 +766,7 @@ int render_node_populate(struct graphics_struct *graphics, struct render_node *r
 
 
 	r_node = malloc(sizeof(struct render_node));
-	*r_node = new_render_node();
+	*r_node = (struct render_node) {0};
 	r_node->rect_in = &rcSrc;
 	r_node->rect_out = (SDL_Rect) {0};//testspecific->rect_out;
 	r_node->renderer = renderer;
@@ -923,7 +923,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	struct animate_generic *generic = specific->generic;
 
 	struct render_node *r_node = malloc(sizeof(struct render_node));
-	*r_node = new_render_node();
+	*r_node = (struct render_node) {0};
 	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
 	r_node->renderer = graphics->renderer;
 	r_node->img = generic->clips[specific->clip]->img;
