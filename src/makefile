@@ -1,5 +1,5 @@
-output: main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o rdtsc.o myfunc.mod.so structdef.py
-	gcc -g3 main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
+output: main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o dict.o rdtsc.o myfunc.mod.so structdef.py
+	gcc -g3 main.o music.o clock.o startscreen.o level.o spawn.o pause.o helpers.o animate.o transform.o structure.o deprecated_funcs.o dict.o rdtsc.o `pkg-config --cflags --libs python3` -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lpthread -lconfig -lm -ldl -o ../bin/shoot-em-rhythm -Wall -rdynamic
 
 main.o: main.c structdef.h main.h music.h
 	gcc -g3 -c `pkg-config --cflags --libs python3` main.c
@@ -36,6 +36,9 @@ structure.o: structure.c
 
 deprecated_funcs.o: deprecated_funcs.c deprecated_funcs.h
 	gcc -g3 -c deprecated_funcs.c
+
+dict.o: dict.c dict.h
+	gcc -g3 -c dict.c
 
 structdef.py: structdef.h
 	echo '#include <SDL2/SDL.h>\n#include <SDL2/SDL_image.h>' > sdl-incl.h

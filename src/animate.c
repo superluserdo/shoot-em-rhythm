@@ -5,7 +5,6 @@
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
 #include "structdef.h"
-#include "newstruct.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"
@@ -14,6 +13,7 @@
 #include "animate.h"
 #include "transform.h"
 #include "structure.h"
+#include "dict.h"
 
 /* For debugging */
 
@@ -780,7 +780,7 @@ int render_node_populate(struct graphics_struct *graphics, struct render_node *r
 	return 0;
 }
 
-struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graphic_category, struct status_struct *status) {
+struct animate_specific *generate_default_specific_anim(const char *graphic_category, struct status_struct *status) {
 
 	struct animate_specific *default_specific_anim = malloc(sizeof(struct animate_specific));
 
@@ -790,7 +790,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 	/*	Trying out some transformation defaults here temporarily.
 	 *	Will get it into some kind of loadable animation_default config file eventually.
 	 */
-	if (graphic_category == CHARACTER) {
+	if (strcmp(graphic_category, "character") == 0) {
 		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
 		default_specific_anim->rules_list->rule = &rules_player;
 		default_specific_anim->rules_list->data = NULL;
@@ -807,7 +807,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		tr_node->data = (void *)teststruct;
 		tr_node->func = &tr_sine_abs;
 		tr_node->next = NULL;
-	}else if (graphic_category == UI) {
+	}else if (strcmp(graphic_category, "ui") == 0) {
 		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
 		default_specific_anim->rules_list->rule = &rules_ui;
 		default_specific_anim->rules_list->data = NULL;
@@ -827,7 +827,7 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 		tr_node->next = NULL;
 		default_specific_anim->transform_list = tr_node;
 		default_specific_anim->rules_list->data = (void *)teststruct2;
-	}else if (graphic_category == UI_BAR) {
+	}else if (strcmp(graphic_category, "ui_bar") == 0) {
 		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
 		default_specific_anim->rules_list->rule = &rules_ui_bar;
 		default_specific_anim->rules_list->data = default_specific_anim;
@@ -854,14 +854,12 @@ struct animate_specific *generate_default_specific_anim(enum graphic_cat_e graph
 	return default_specific_anim;
 }
 
-struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic **generic_bank, int index) {
+struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic *generic) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
-	*specific = (struct animate_specific) {0};
 
-	*specific = *generic_bank[index]->default_specific;
-	specific->generic = generic_bank[index];
-	struct animate_generic *generic = specific->generic;
+	*specific = *generic->default_specific;
+	specific->generic = generic;
 	specific->container.aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
 	specific->container.rect_out_parent_scale.w = generic->clips[specific->clip]->container_scale_factor;
 	specific->container.rect_out_parent_scale.h = generic->clips[specific->clip]->container_scale_factor;
@@ -876,7 +874,7 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 		rule_tmp = malloc(sizeof(struct rule_node));
 		*rule_tmp = **rule_ptr;
 		if (rule_tmp->data) {
-			if (rule_tmp->data == generic_bank[index]->default_specific) {
+			if (rule_tmp->data == specific) {
 				rule_tmp->data = (void *)specific;
 			}
 		}
@@ -887,7 +885,7 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 		tr_tmp = malloc(sizeof(struct rule_node));
 		*tr_tmp = **tr_ptr;
 		if (tr_tmp->data) {
-			if (tr_tmp->data == generic_bank[index]->default_specific) {
+			if (tr_tmp->data == specific) {
 				tr_tmp->data = (void *)specific;
 			}
 		}
@@ -935,7 +933,8 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	return 0;
 }
 
-int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
+//int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
 	struct std_list *list_node = malloc(sizeof(struct std_list));
 	*list_node = (struct std_list) {
@@ -952,15 +951,28 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;
-	for (int i = 0; i < num_index; i++) {
-		anim = generate_specific_anim(std, generic_bank, index_array[i]);
+	for (int i = 0; i < num_specific_anims; i++) {
+		struct animate_generic *generic = dict_get_val(generic_anim_dict, specific_type_array[i]);
+		if (!generic) {
+			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
+			abort();
+		}
+		anim = generate_specific_anim(std, generic);
 		*a_ptr = anim;
 		generate_render_node(anim, graphics);
 		a_ptr = (&(*a_ptr)->next);
 	}
 	// Make final "next" ptr NULL to prevent segfaults
 	*a_ptr = NULL;
-	std->container = &std->animation->container;
+
+	/* If the object didn't specify its own container, just the first
+	   animation's container as the object's container */
+	if (!std->container) {
+		std->container = &std->animation->container;
+	} else {
+	/* Otherwise, have the animation inherit from the object: */
+		anim->container.inherit = std->container;
+	}
 
 	return 0;
 }
@@ -1006,9 +1018,7 @@ int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
 	return R_SUCCESS;
 }	
 
-int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Texture **image_bank, struct status_struct *status) {
-
-	struct animate_generic **generic_bank;
+struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struct status_struct *status) {
 
 	config_t cfg;
 	config_init(&cfg);
@@ -1019,16 +1029,18 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 		config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
-		return(R_FAILURE);
+		return NULL;
 	}
 
 	config_setting_t *generics_setting = config_lookup(&cfg, "generics");
 	if (generics_setting == NULL) {
 		printf("Error looking up setting for 'generics'\n");
-		return(R_FAILURE);
+		return NULL;
 	}
 	int num_generics = config_setting_length(generics_setting); 
-	generic_bank = malloc(num_generics * sizeof(struct animate_generic *));
+	struct dict_str_void *generic_anim_dict = malloc(num_generics * sizeof(*generic_anim_dict));
+
+	*generic_anim_dict = (struct dict_str_void) {0};
 
 	struct animate_generic *generic_ptr;
 	config_setting_t *generic_setting;
@@ -1054,25 +1066,40 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		generic_setting = config_setting_get_elem(generics_setting, i);
 		if (generic_setting == NULL) {
 			printf("Error looking up setting for 'generic'\n");
-			return(R_FAILURE);
+			return NULL;
 		}
+
 		generic_ptr = malloc(sizeof(struct animate_generic));
 
-		generic_bank[i] = generic_ptr;
-
-		int graphic_cat_int;
-		if (config_setting_lookup_int(generic_setting, "graphic_category", &graphic_cat_int) == CONFIG_FALSE) {
+		const char *graphic_type_dummy;
+		if (config_setting_lookup_string(generic_setting, "name", &graphic_type_dummy) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
-			return(R_FAILURE);
+			return NULL;
 		}
-		enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
+		int len = strlen(graphic_type_dummy);
+		char *graphic_type = malloc(len+1);
+		strncpy(graphic_type, graphic_type_dummy, len+1);
 
-		generic_ptr->default_specific = generate_default_specific_anim(graphic_cat, status);
+		int dict_index = dict_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
+
+		//printf("Dict after %d steps:\n", generic_anim_dict->num_entries);
+		//for (int j = 0; j < generic_anim_dict->num_entries; j++) {
+		//	printf("%s\n", generic_anim_dict->entries[j]);
+		//}
+
+		const char *graphic_category;
+		if (config_setting_lookup_string(generic_setting, "graphic_category", &graphic_category) == CONFIG_FALSE) {
+			printf("Error looking up value for 'graphic_category'\n");
+			return NULL;
+		}
+		//enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
+
+		generic_ptr->default_specific = generate_default_specific_anim(graphic_category, status);
 
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
 			printf("Error looking up setting for 'clips' %d\n", i);
-			return(R_FAILURE);
+			return NULL;
 		}
 		num_clips = config_setting_length(clips_setting); 
 		generic_ptr->num_clips = num_clips;
@@ -1087,11 +1114,11 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 			clip_setting = config_setting_get_elem(clips_setting, j);
 			if (clip_setting == NULL) {
 				printf("Error looking up setting for 'clip'\n");
-				return(R_FAILURE);
+				return NULL;
 			}
 			if (config_setting_lookup_int(clip_setting, "img", &img_index) == CONFIG_FALSE) {
 				printf("Error looking up value for 'img'\n");
-				return(R_FAILURE);
+				return NULL;
 			}
 
 			if (config_setting_lookup_float(clip_setting, "container_scale_factor", &container_scale_factor) == CONFIG_FALSE) {
@@ -1108,7 +1135,7 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 			frames_setting = config_setting_lookup(clip_setting, "frames");
 			if (frames_setting == NULL) {
 				printf("Error looking up setting for 'frames'\n");
-				return(R_FAILURE);
+				return NULL;
 			}
 			num_frames = config_setting_length(frames_setting);
 			clip_ptr->num_frames = num_frames;
@@ -1120,12 +1147,12 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 				frame_setting = config_setting_get_elem(frames_setting, k);
 				if (frame_setting == NULL) {
 					printf("Error looking up setting for 'frame'\n");
-					return(R_FAILURE);
+					return NULL;
 				}
 				rect_setting = config_setting_lookup(frame_setting, "rect");
 				if (rect_setting == NULL) {
 					printf("Error looking up setting for 'rect'\n");
-					return(R_FAILURE);
+					return NULL;
 				}
 				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);
 				frame_array[k].rect.y = config_setting_get_int_elem(rect_setting, 1);
@@ -1141,9 +1168,13 @@ int generic_bank_populate(struct animate_generic ***generic_bank_ptr, SDL_Textur
 		}
 	}
 
-	*generic_bank_ptr = generic_bank;
+	printf("Dict at %p with %d entries:\n", generic_anim_dict, generic_anim_dict->num_entries);
+	printf("Entries starting at %p\n", generic_anim_dict->entries);
+	for (int j = 0; j < generic_anim_dict->num_entries; j++) {
+		printf("%s\n", generic_anim_dict->entries[j].key);
+	}
 	config_destroy(&cfg);
-	return R_SUCCESS;
+	return generic_anim_dict;
 }
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {

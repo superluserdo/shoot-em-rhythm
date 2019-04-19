@@ -129,7 +129,7 @@ struct level_struct {
 	struct item *itempokedex[10];
 	int (**itemscreenstrip)[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
 	double *remainder;
-	struct animate_generic **generic_bank;
+	struct dict_str_void *generic_anim_dict;
 };
 
 struct level_effects_struct {
@@ -564,8 +564,20 @@ struct func_node {
 	struct func_node *next;
 };
 
-enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
-enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD, SMILEY};
+//enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
+//enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD, SMILEY};
+/* Dict types for generic_anim_dict (replacement of crappier generic_bank) */
+struct dict_str_void {
+	int num_entries;
+	int max_entries;
+	struct keyval_str_void *entries;
+};
+
+struct keyval_str_void {
+	const char *key;
+	void *val;
+};
+
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_PAUSE_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 

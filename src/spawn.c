@@ -15,7 +15,7 @@
 #include "spawn.h"
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
-							struct animate_generic **generic_bank,
+							struct dict_str_void *generic_anim_dict,
 							struct graphics_struct *graphics,
 							int *bar_amount_ptr, int *bar_max_ptr,
 							struct visual_container_struct *container, const char *name) {
@@ -27,7 +27,8 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	bar->max = bar_max_ptr;
 	bar->name = name;
 	bar->self = bar;
-	graphic_spawn(&bar->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
+	//graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
+	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "coloured bar"}, 2);
 
 	bar->animation->container = *container;
 	bar->animation->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
@@ -55,7 +56,7 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 }
 
 struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
-									struct animate_generic **generic_bank,
+									struct dict_str_void *generic_anim_dict,
 									struct graphics_struct *graphics,
 									int *counter_value_ptr, int digits,
 									struct visual_container_struct *container, const char *name,
@@ -73,11 +74,13 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	counter->name = name;
 	counter->self = counter;
 
-	enum graphic_type_e graphic_types[digits];
+	//enum graphic_type_e graphic_types[digits];
+	const char *graphic_types[digits];
 	for (int i = 0; i < digits; i++) {
-		graphic_types[i] = NUMBERS;
+		//graphic_types[i] = NUMBERS;
+		graphic_types[i] = "numbers";
 	}
-	graphic_spawn(&counter->std, object_list_stack_ptr, generic_bank, graphics, graphic_types, digits);
+	graphic_spawn(&counter->std, object_list_stack_ptr, generic_anim_dict, graphics, graphic_types, digits);
 
 	//counter->animation->rules_list->next = malloc(sizeof(struct rule_node));
 	//counter->animation->rules_list->next->rule = rules_ui_counter;
@@ -115,10 +118,10 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 
 	return counter;
 }
-//int spawn_hp(struct ui_bar *hp_ptr, struct animate_generic **generic_bank, SDL_Renderer *renderer) {
+//int spawn_hp(struct ui_bar *hp_ptr, struct animate_generic **generic_anim_dict, SDL_Renderer *renderer) {
 //
 //	struct ui_bar hp = *hp_ptr;
-//	graphic_spawn(&hp.std, generic_bank, renderer, (int[]){2,4}, 2);
+//	graphic_spawn(&hp.std, generic_anim_dict, renderer, (int[]){2,4}, 2);
 //
 //	hp.animation->next->native_offset.x = 29;
 //	hp.animation->next->native_offset.y = 6;
@@ -137,7 +140,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //int spawn_sword(struct status_struct *status) {
 //	struct level_struct *level = status->level;
 //	struct sword_struct *sword = &level->sword;
-//	//graphic_spawn(&sword->std, generic_bank, graphics, (enum graphic_type_e[]){OBJECT}, 5);
+//	//graphic_spawn(&sword->std, generic_anim_dict, graphics, (enum graphic_type_e[]){OBJECT}, 5);
 //	sword->count = 0;
 //	sword->down = 0;
 //	sword->swing = 0;
@@ -165,7 +168,7 @@ int spawn_flying_hamster(struct status_struct *status) {
 	new_flyinghamster->std.self = new_flyinghamster;
 	struct lane_struct *lanes = &level->lanes;
 	struct std_list **object_list_stack_ptr = &level->object_list_stack;
-	struct animate_generic **generic_bank = level->generic_bank;
+	struct dict_str_void *generic_anim_dict = level->generic_anim_dict;
 
 	//new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
 	//*new_flyinghamster->container = (struct visual_container_struct) {
@@ -180,7 +183,8 @@ int spawn_flying_hamster(struct status_struct *status) {
 	new_flyinghamster->living.power = 10;
 	new_flyinghamster->living.defence = 10;
 
-	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
+	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
+	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"flying hamster", "smiley"}, 2);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
 
@@ -263,7 +267,7 @@ int spawn_flying_hamster(struct status_struct *status) {
 	//new_flyinghamster->animation->next->transform_list->next->data = (void *)blink_data;
 	//new_flyinghamster->animation->next->transform_list->next->next = NULL;
 
-	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
+	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
 	//new_flyinghamster->animation->rules_list->data = (void *)&status;
 	
 	new_flyinghamster->object_logic = object_logic_monster;

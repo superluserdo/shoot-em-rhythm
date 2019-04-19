@@ -8,7 +8,6 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include "structdef.h"
-#include "newstruct.h"
 #include "main.h"
 #include "level.h"
 #include "music.h"

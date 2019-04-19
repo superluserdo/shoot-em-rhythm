@@ -183,12 +183,18 @@ int level_init (struct status_struct status) {
 	if (rc != R_SUCCESS)
 		return R_FAILURE;
 
-	struct animate_generic **generic_bank;
-	rc = generic_bank_populate(&generic_bank, graphics->image_bank, &status); //EXPERIMENTAL
-	level->generic_bank = generic_bank;
+	struct dict_str_void *generic_anim_dict = generic_anim_dict_populate(graphics->image_bank, &status);
+	printf("Dict at %p with %d entries:\n", generic_anim_dict, generic_anim_dict->num_entries);
+	printf("Entries starting at %p\n", generic_anim_dict->entries);
+	for (int j = 0; j < generic_anim_dict->num_entries; j++) {
+		printf("%s\n", generic_anim_dict->entries[j].key);
+	}
+	//rc = generic_bank_populate(&generic_bank, graphics->image_bank, &status); //EXPERIMENTAL
+	level->generic_anim_dict = generic_anim_dict;
 
-	if (rc != R_SUCCESS)
+	if (!level->generic_anim_dict) {
 		return R_FAILURE;
+	}
 
 	/* set sprite position */
 	graphics->screen = (struct visual_container_struct) {
@@ -205,15 +211,14 @@ int level_init (struct status_struct status) {
 		};
 	}
 
-	player->container = malloc(sizeof(struct visual_container_struct));
+	player->name = "player";
+	//graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
+	graphic_spawn(&player->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"player"}, 1);
 	*player->container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
-	player->name = "player";
-	graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
-	player->animation->container = *player->container;
 	player->animation->rules_list->data = (void *)&status;
 
 	config_setting_t *player_setting = config_setting_lookup(thislevel_setting, "player");
@@ -277,7 +282,7 @@ int level_init (struct status_struct status) {
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
-	ui->hp = spawn_ui_bar(object_list_stack_ptr, generic_bank, graphics, &player->living.HP, &player->living.max_HP, hp_container, "hp");
+	ui->hp = spawn_ui_bar(object_list_stack_ptr, generic_anim_dict, graphics, &player->living.HP, &player->living.max_HP, hp_container, "hp");
 
 	/*	Power	*/
 
@@ -288,7 +293,7 @@ int level_init (struct status_struct status) {
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
-	ui->power = spawn_ui_bar(object_list_stack_ptr, generic_bank, graphics, &player->living.power, &player->living.max_PP, power_container, "power");
+	ui->power = spawn_ui_bar(object_list_stack_ptr, generic_anim_dict, graphics, &player->living.power, &player->living.max_PP, power_container, "power");
 
 	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
 	player->living.power = player->living.max_PP;
@@ -304,7 +309,7 @@ int level_init (struct status_struct status) {
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
-	ui->score = spawn_ui_counter(object_list_stack_ptr, generic_bank, graphics, &level->score, 5, score_container, "score", &timing->currentbeat);
+	ui->score = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &level->score, 5, score_container, "score", &timing->currentbeat);
 
 	/*	Beat Counter	*/
 
@@ -315,7 +320,7 @@ int level_init (struct status_struct status) {
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 
-	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_bank, graphics, &timing->currentbeat_int, 5, score_container, "score", &timing->currentbeat);
+	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &timing->currentbeat_int, 5, score_container, "score", &timing->currentbeat);
 
 	/*		Items		*/
 
