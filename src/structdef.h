@@ -464,7 +464,8 @@ struct clip {
 struct animate_generic {
 	int num_clips;
 	struct clip **clips;
-	struct animate_specific *default_specific;
+	//struct animate_specific *default_specific;
+	// Deprecated
 };
 
 struct anchor_struct {

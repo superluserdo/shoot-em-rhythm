@@ -14,11 +14,86 @@
 #include "transform.h" // Can hopefully get rid of this soon
 #include "spawn.h"
 
+void prepare_anim_character(struct animate_specific *anim, struct status_struct *status) {
+		anim->rules_list = malloc(sizeof(struct rule_node));
+		anim->rules_list->rule = &rules_player;
+		anim->rules_list->data = (void *)status;
+		anim->rules_list->next = NULL;
+
+		struct func_node *tr_node = malloc(sizeof(struct func_node));
+		anim->transform_list = tr_node;
+		struct tr_sine_data *sine_data = malloc(sizeof(struct tr_sine_data));
+		sine_data->currentbeat = &status->timing->currentbeat;
+		sine_data->rect_bitmask = 2;
+		sine_data->freq_perbeat = 0.5;
+		sine_data->ampl = 0.2;
+		sine_data->offset = 0.0;
+		tr_node->data = (void *)sine_data;
+		tr_node->func = &tr_sine_abs;
+		tr_node->next = NULL;
+}
+
+void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status) {
+
+	anim->rules_list = malloc(sizeof(struct rule_node));
+	anim->rules_list->rule = &rules_ui_bar;
+	anim->rules_list->data = anim;
+	anim->rules_list->next = malloc(sizeof(struct rule_node));
+	anim->rules_list->next->rule = &rules_ui;
+	anim->rules_list->next->data = NULL;
+	anim->rules_list->next->next = NULL;
+
+	struct func_node *tr_node = malloc(sizeof(struct func_node));
+
+	struct tr_bump_data *bumpdata = malloc(sizeof(struct tr_bump_data));
+	bumpdata->score = &status->level->score;
+	bumpdata->freq_perbeat = 1;
+	bumpdata->ampl = 2;
+	bumpdata->peak_offset = 0.0;
+	bumpdata->bump_width = 0.25;
+	bumpdata->centre = NULL;
+	tr_node->data = (void *)bumpdata;
+	tr_node->func = &tr_bump;
+	tr_node->next = NULL;
+	anim->transform_list = tr_node;
+	anim->rules_list->next->data = (void *)bumpdata;
+}
+
+void spawn_player(struct std_list **object_list_stack_ptr,
+					struct dict_str_void *generic_anim_dict,
+					struct graphics_struct *graphics,
+					struct player_struct *player,
+					struct visual_container_struct *container, 
+					struct status_struct *status, 
+					config_setting_t *player_setting,
+				   	const char *name) {
+
+	player->sword = 1;
+	player->flydir = 1;
+	player->self = player;
+
+	player->name = "player";
+	//graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
+	graphic_spawn(&player->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"player"}, 1);
+
+	*player->container = *container;
+
+	prepare_anim_character(player->animation, status);
+
+	config_setting_lookup_int(player_setting, "max_HP", &player->living.max_HP);
+	player->living.HP = player->living.max_HP;
+
+	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
+	player->living.power = player->living.max_PP;
+
+}
+
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 							struct dict_str_void *generic_anim_dict,
 							struct graphics_struct *graphics,
 							int *bar_amount_ptr, int *bar_max_ptr,
-							struct visual_container_struct *container, const char *name) {
+							struct visual_container_struct *container, 
+							struct status_struct *status, const char *name) {
 
 	struct ui_bar *bar = malloc(sizeof(*bar));
 	*bar = (struct ui_bar) {0};
@@ -30,27 +105,31 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	//graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
 	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "coloured bar"}, 2);
 
-	bar->animation->container = *container;
-	bar->animation->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
-	bar->animation->container.num_anchors_exposed = 1;
-	bar->animation->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
-	bar->animation->next->container.inherit = &bar->animation->container;
-	bar->animation->next->container.anchor_grabbed = &bar->animation->container.anchors_exposed[0];
-	//bar->animation->next->container.anchor_grabbed_offset_internal_scale = (struct size_ratio_struct) {-0.2, 0};
+	struct animate_specific *anim = bar->animation;
 
-	bar->animation->next->container.aspctr_lock = WH_INDEPENDENT;
-	bar->animation->next->container.rect_out_parent_scale.w = 0.425;
-	bar->animation->next->container.rect_out_parent_scale.h = 0.40;
+	prepare_anim_ui(anim, status);
+
+	anim->container = *container;
+	anim->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
+	anim->container.num_anchors_exposed = 1;
+	anim->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
+	anim->next->container.inherit = &bar->animation->container;
+	anim->next->container.anchor_grabbed = &bar->animation->container.anchors_exposed[0];
+	//anim->next->container.anchor_grabbed_offset_internal_scale = (struct size_ratio_struct) {-0.2, 0};
+
+	anim->next->container.aspctr_lock = WH_INDEPENDENT;
+	anim->next->container.rect_out_parent_scale.w = 0.425;
+	anim->next->container.rect_out_parent_scale.h = 0.40;
 
 	//TODO
-	//bar->animation->next->rules_list->data = bar->animation->next;
+	//anim->next->rules_list->data = bar->animation->next;
 	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
-	//*tmp_data = *(struct tr_bump_data *)bar->animation->next->rules_list->next->data;
+	//*tmp_data = *(struct tr_bump_data *)anim->next->rules_list->next->data;
 	//tmp_data->centre = malloc(sizeof(struct xy_struct));
-	//tmp_data->centre->w = bar->animation->container.rect_out_parent_scale.x + bar->animation->container.rect_out_parent_scale.w/2;
-	//tmp_data->centre->h = bar->animation->container.rect_out_parent_scale.y + bar->animation->container.rect_out_parent_scale.h/2;
-	//bar->animation->next->rules_list->next->data = tmp_data;
-	//bar->animation->next->transform_list->data = tmp_data;
+	//tmp_data->centre->w = anim->container.rect_out_parent_scale.x + anim->container.rect_out_parent_scale.w/2;
+	//tmp_data->centre->h = anim->container.rect_out_parent_scale.y + anim->container.rect_out_parent_scale.h/2;
+	//anim->next->rules_list->next->data = tmp_data;
+	//anim->next->transform_list->data = tmp_data;
 
 	return bar;
 }
@@ -59,7 +138,8 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 									struct dict_str_void *generic_anim_dict,
 									struct graphics_struct *graphics,
 									int *counter_value_ptr, int digits,
-									struct visual_container_struct *container, const char *name,
+									struct visual_container_struct *container, 
+									struct status_struct *status, const char *name,
 									float *currentbeat_ptr) {
 
 
@@ -82,11 +162,10 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	}
 	graphic_spawn(&counter->std, object_list_stack_ptr, generic_anim_dict, graphics, graphic_types, digits);
 
-	//counter->animation->rules_list->next = malloc(sizeof(struct rule_node));
-	//counter->animation->rules_list->next->rule = rules_ui_counter;
-	//counter->animation->rules_list->next->data = counter->animation;
-	//counter->animation->rules_list->next->next = NULL;
+	struct animate_specific *anim = counter->animation;
 	
+	prepare_anim_ui(anim, status);
+
 	//TODO
 	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
 
@@ -101,7 +180,6 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	//tmp_data->currentbeat = currentbeat_ptr;
 	//tmp_data->score = score_ptr;
 
-	struct animate_specific *anim = counter->animation;
 	anim->rules_list->data = anim;
 	for (int i = 0; i < counter->digits; i++) {
 		struct visual_container_struct digit_container = (struct visual_container_struct) {

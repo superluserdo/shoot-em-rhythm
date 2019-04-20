@@ -335,249 +335,6 @@ struct render_node *create_render_node() {
 
 /* ANIMATE */
 
-
-int advanceFrames_deprecated(struct render_node *render_node_head, float currentbeat) {
-#if 0
-	struct render_node *node_ptr = render_node_head;
-	node_ptr_count = 0;
-	while (node_ptr) {
-		rule_node_count = 0;
-		transform_node_count = 0;
-		struct animate_specific *animation = node_ptr->animation;
-		struct animate_generic *generic = animation->generic;
-
-		/* set sprite position from parent object again in case of manual changes during program:	*/
-		animation->rect_out.x = animation->object->pos.x + animation->native_offset.x * ZOOM_MULT * 2;
-		animation->rect_out.y = animation->object->pos.y + animation->native_offset.y * ZOOM_MULT * 2;
-	
-		animation->rect_out.w = generic->clips[animation->clip]->frames[animation->frame].rect.w
-								*animation->object->size_ratio.w*ZOOM_MULT*2;
-		animation->rect_out.h = generic->clips[animation->clip]->frames[animation->frame].rect.h
-								*animation->object->size_ratio.h*ZOOM_MULT*2;
-
-		struct rule_node *rule_node = animation->rules_list;
-		while (rule_node) {
-			(rule_node->rule)(rule_node->data);
-			rule_node = rule_node->next;
-			rule_node_count++;
-		}
-
-		if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
-			if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-				animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
-				animation->frame++;
-			}
-		}
-		if (animation->frame >= generic->clips[animation->clip]->num_frames) {
-			if (animation->loops == 0) {
-				animation->clip = animation->return_clip;	
-				animation->frame = 0;
-				animation->loops = -1;
-			}
-			else {
-				animation->frame = 0;
-				if (animation->loops > 0)
-					animation->loops--;
-			}
-		}
-		node_ptr->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
-		SDL_Rect rect_trans = animation->rect_out;
-		struct func_node *transform_node = animation->transform_list;
-		while (transform_node) {
-			transform_node->func((void *)&rect_trans, transform_node->data);
-			transform_node = transform_node->next;
-			transform_node_count++;
-		}
-		node_ptr->rect_out = rect_trans;
-		node_ptr = node_ptr->next;
-		node_ptr_count++;
-	}		
-
-	return 0;
-#endif
-}
-
-void advance_frames_and_create_render_list_old(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
-#if 0
-
-	struct std_list *std_list_node = object_list_stack;
-	int std_list_node_count = 0;
-	int render_node_count = 0;
-	while (std_list_node) {
-		struct std *object = std_list_node->std;
-		struct visual_container_struct *container = object->container;
-		SDL_Rect abs_container = visual_container_to_pixels(container, (struct xy_struct) 
-															{graphics->width, graphics->height});
-		
-		struct animate_specific *animation = object->animation;
-		while (animation) {
-			struct animate_generic *generic = animation->generic;
-
-			if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
-				if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-					animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
-					animation->frame++;
-				}
-			}
-			if (animation->frame >= generic->clips[animation->clip]->num_frames) {
-				if (animation->loops == 0) {
-					animation->clip = animation->return_clip;	
-					animation->frame = 0;
-					animation->loops = -1;
-				}
-				else {
-					animation->frame = 0;
-					if (animation->loops > 0)
-						animation->loops--;
-				}
-			}
-
-			struct size_ratio_struct anchor_grabbed_container_scale;
-			if (animation->container.anchor_grabbed) { /* anchor_grabbed_container_scale.w, h are the relative position in the exposing animation */
-				struct anchor_struct anchor_grabbed = *animation->container.anchor_grabbed;
-				
-				anchor_grabbed_container_scale.w = (anchor_grabbed.pos_anim_internal.w + animation->container.anchor_grabbed_offset_internal_scale.w) * anchor_grabbed.anim->container->rect_out_parent_scale.w
-					 + anchor_grabbed.anim->container->rect_out_parent_scale.x;
-				anchor_grabbed_container_scale.h = (anchor_grabbed.pos_anim_internal.h + animation->container.anchor_grabbed_offset_internal_scale.h) * anchor_grabbed.anim->container->rect_out_parent_scale.h
-					 + anchor_grabbed.anim->container->rect_out_parent_scale.y;
-			} else { /* anchor_grabbed_container_scale.w, h are the relative position in the container */
-				//anchor_grabbed_container_scale.w = anchor_grabbed.pos_anim_internal.w;
-				//anchor_grabbed_container_scale.h = anchor_grabbed.pos_anim_internal.h;
-				anchor_grabbed_container_scale.w = object->container_pos.w;
-				anchor_grabbed_container_scale.h = object->container_pos.h;
-			}
-
-			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
-
-			struct float_rect size_and_hook_pos_dominant_scale;
-		   	/*  x, y = container-scale anchor hook position.
-				w, h = container-scale rect size, 
-				scaled in units of container size in direction of aspctr_lock */
-
-			float internal_aspect_ratio = (float)frame.rect.w / (float)frame.rect.h;
-			float container_size_aspect_ratio = (float)abs_container.w / (float)abs_container.h;
-
-			if (animation->aspctr_lock == W_DOMINANT) {
-				size_and_hook_pos_dominant_scale.x = anchor_grabbed_container_scale.w;
-				size_and_hook_pos_dominant_scale.y = anchor_grabbed_container_scale.h / container_size_aspect_ratio;
-				size_and_hook_pos_dominant_scale.w = animation->container_scale_factor;
-				size_and_hook_pos_dominant_scale.h = animation->container_scale_factor / internal_aspect_ratio;
-			} else if (animation->aspctr_lock == H_DOMINANT) {
-				size_and_hook_pos_dominant_scale.y = anchor_grabbed_container_scale.h;
-				size_and_hook_pos_dominant_scale.x = anchor_grabbed_container_scale.w * container_size_aspect_ratio;
-				size_and_hook_pos_dominant_scale.h = animation->container_scale_factor;
-				size_and_hook_pos_dominant_scale.w = animation->container_scale_factor * internal_aspect_ratio;
-			} else if (animation->aspctr_lock == WH_INDEPENDENT) {
-				size_and_hook_pos_dominant_scale.x = anchor_grabbed_container_scale.w;
-				size_and_hook_pos_dominant_scale.y = anchor_grabbed_container_scale.h;
-				size_and_hook_pos_dominant_scale.w = animation->container_scale_factor_wh.w;
-				size_and_hook_pos_dominant_scale.h = animation->container_scale_factor_wh.h;
-			}
-
-			//SDL_Rect rect_trans = animation->rect_out;
-			struct func_node *transform_node = animation->transform_list;
-			while (transform_node) {
-				//transform_node->func((void *)&abs_rect, transform_node->data);
-				transform_node->func((void *)&size_and_hook_pos_dominant_scale, transform_node->data);
-				transform_node = transform_node->next;
-				transform_node_count++;
-			}
-
-			struct float_rect size_and_hook_pos_container_scale;
-
-			/* Convert back into separate container-scaled dimensions (x and y decoupled): */
-			if (animation->aspctr_lock == W_DOMINANT) {
-
-				size_and_hook_pos_container_scale.w = size_and_hook_pos_dominant_scale.w;
-				size_and_hook_pos_container_scale.h = size_and_hook_pos_dominant_scale.h
-													* container_size_aspect_ratio;
-
-				size_and_hook_pos_container_scale.x = size_and_hook_pos_dominant_scale.x;
-
-				size_and_hook_pos_container_scale.y = size_and_hook_pos_dominant_scale.y 
-													* container_size_aspect_ratio;
-
-			} else if (animation->aspctr_lock == H_DOMINANT) {
-
-				size_and_hook_pos_container_scale.h = size_and_hook_pos_dominant_scale.h;
-				size_and_hook_pos_container_scale.w = size_and_hook_pos_dominant_scale.w
-													/ container_size_aspect_ratio;
-
-				size_and_hook_pos_container_scale.y = size_and_hook_pos_dominant_scale.y;
-				size_and_hook_pos_container_scale.x = size_and_hook_pos_dominant_scale.x
-													/ container_size_aspect_ratio;
-
-			} else if (animation->aspctr_lock == WH_INDEPENDENT) {
-				size_and_hook_pos_container_scale.w = size_and_hook_pos_dominant_scale.w;
-				size_and_hook_pos_container_scale.h = size_and_hook_pos_dominant_scale.h;
-
-				size_and_hook_pos_container_scale.x = size_and_hook_pos_dominant_scale.x;
-				size_and_hook_pos_container_scale.y = size_and_hook_pos_dominant_scale.y;
-
-			}
-
-			/* Convert from hook pos to rect pos: */
-			animation->container->rect_out_parent_scale.w = size_and_hook_pos_container_scale.w;
-			animation->container->rect_out_parent_scale.h = size_and_hook_pos_container_scale.h;
-
-			animation->container->rect_out_parent_scale.x = size_and_hook_pos_container_scale.x
-			- animation->container->rect_out_parent_scale.w * animation->container.anchor_hook.w
-			+ animation->offset_container_scale.w;
-
-			animation->container->rect_out_parent_scale.y = size_and_hook_pos_container_scale.y
-			- animation->container->rect_out_parent_scale.h * animation->container.anchor_hook.h
-			+ animation->offset_container_scale.h;
-
-			struct rule_node *rule_node = animation->rules_list;
-
-			while (rule_node) {
-				(rule_node->rule)(rule_node->data);
-				rule_node = rule_node->next;
-				rule_node_count++;
-			}
-
-			/* Convert from container-scale relative width to global scale absolute width */
-			SDL_Rect abs_rect = {
-				.x = abs_container.x + animation->container->rect_out_parent_scale.x * abs_container.w,
-				.y = abs_container.y + animation->container->rect_out_parent_scale.y * abs_container.h,
-				.w = animation->container->rect_out_parent_scale.w * abs_container.w,
-				.h = animation->container->rect_out_parent_scale.h * abs_container.h,
-			};
-
-			struct render_node *render_node = animation->render_node;
-			if (!render_node) {
-				generate_render_node(animation, graphics);
-				render_node = animation->render_node;
-			}
-			render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
-			if (render_node->z != animation->z) {
-				/* Take render node out of the list */
-				if (render_node->prev) {
-					render_node->prev->next = render_node->next;
-				} else {
-					graphics->render_node_head = render_node->next;
-				}
-				if (render_node->next) {
-					render_node->next->prev = render_node->prev;
-				} else {
-					graphics->render_node_tail = render_node->prev;
-				}
-				/* Put render node back in the list in the right place */
-				node_insert_z_over(graphics, render_node, animation->z);
-			}
-
-			render_node->rect_out = abs_rect;
-			//render_node = render_node->next;
-			render_node_count++;
-
-			animation = animation->next;
-		}
-		std_list_node = std_list_node->prev;
-		std_list_node_count++;
-	}		
-#endif
-}
-
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
 
 	struct std_list *std_list_node = object_list_stack;
@@ -614,7 +371,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
 
-			//SDL_Rect rect_trans = animation->rect_out;
 			struct func_node *transform_node = animation->transform_list;
 			while (transform_node) {
 				//transform_node->func((void *)&abs_rect, transform_node->data);
@@ -689,176 +445,11 @@ void de_update_containers(struct std_list *std_list_node) {
 	}
 }
 
-/* INITIALISE THE LEVEL (STORED HERE TEMPORARILY) */
-
-int render_node_populate(struct graphics_struct *graphics, struct render_node *r_node, struct player_struct *playerptr) {
-		
-	SDL_Renderer *renderer = graphics->renderer;
-	int w,h;
-	SDL_Texture *Spriteimg = IMG_LoadTexture(renderer, SPRITE_PATH);
-
-	SDL_QueryTexture(Spriteimg, NULL, NULL, &w, &h); // get the width and height of the texture
-	SDL_Rect rcSrc;
-
-	/* set animation frame */
-	rcSrc.x = 0;
-	rcSrc.y = 0;
-	rcSrc.w = POKESPRITE_SIZEX;
-	rcSrc.h = POKESPRITE_SIZEY;
-
-	struct frame *testframes = malloc(4 * sizeof(struct frame));
-	for (int i = 0; i < 4; i++) {
-		testframes[i].rect = rcSrc;
-		testframes[i].duration = 0.25;
-		testframes[i].rect.x = testframes[i].rect.w;// * i;
-	}
-
-	int testnumanimations = 1;
-
-	struct clip **testclips = malloc(sizeof(struct clip *)*testnumanimations);
-
-	struct clip *testclip = malloc(sizeof(struct clip));
-
-	testclip->img = Spriteimg;
-	testclip->num_frames = 4;
-	testclip->frames = testframes;
-
-	testclips[0] = testclip;
-
-	struct animate_generic *testgeneric = malloc(sizeof(struct animate_generic));
-	
-	testgeneric->num_clips = testnumanimations;
-	testgeneric->clips = testclips;
-
-
-	struct animate_specific *testspecific = malloc(sizeof(struct animate_specific));
-	
-	
-	testspecific->generic = testgeneric;
-	testspecific->clip = 0;
-	testspecific->frame = 0;
-	testspecific->speed = 1;
-	testspecific->loops = -1;
-	testspecific->return_clip = 0;
-	testspecific->lastFrameBeat = 0.0;
-	/* set sprite position */
-	testspecific->transform_list = malloc(sizeof(struct func_node));
-	
-	struct func_node *testfunc = testspecific->transform_list;
-
-	struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-	teststruct->rect_bitmask = 1;
-	teststruct->freq_perbeat = 1;
-	teststruct->ampl = 10.0;
-	teststruct->offset = 0.0;
-	testfunc->data = (void *)teststruct;
-	testfunc->func = &tr_sine;
-	testfunc->next = malloc(sizeof(struct func_node));
-
-	struct tr_sine_data *teststruct2 = malloc(sizeof(struct tr_sine_data));
-	teststruct2->rect_bitmask = 2;
-	teststruct2->freq_perbeat = 1;
-	teststruct2->ampl = 10.0;
-	teststruct2->offset = 0.25;
-	testfunc->next->data = (void *)teststruct2;
-	testfunc->next->func = &tr_sine;
-	testfunc->next->next = NULL;
-
-
-	r_node = malloc(sizeof(struct render_node));
-	*r_node = (struct render_node) {0};
-	r_node->rect_in = &rcSrc;
-	r_node->rect_out = (SDL_Rect) {0};//testspecific->rect_out;
-	r_node->renderer = renderer;
-	r_node->img = Spriteimg;
-	r_node->animation = testspecific;
-	r_node->customRenderFunc = NULL;
-	playerptr->animation = testspecific;
-	node_insert_z_over(graphics, r_node, 0);
-	testspecific->render_node = r_node;
-	graphics->render_node_head = r_node;
-	return 0;
-}
-
-struct animate_specific *generate_default_specific_anim(const char *graphic_category, struct status_struct *status) {
-
-	struct animate_specific *default_specific_anim = malloc(sizeof(struct animate_specific));
-
-	*default_specific_anim = (struct animate_specific) {0};
-	default_specific_anim->loops = -1;
-
-	/*	Trying out some transformation defaults here temporarily.
-	 *	Will get it into some kind of loadable animation_default config file eventually.
-	 */
-	if (strcmp(graphic_category, "character") == 0) {
-		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
-		default_specific_anim->rules_list->rule = &rules_player;
-		default_specific_anim->rules_list->data = NULL;
-		default_specific_anim->rules_list->next = NULL;
-
-		struct func_node *tr_node = malloc(sizeof(struct func_node));
-		default_specific_anim->transform_list = tr_node;
-		struct tr_sine_data *teststruct = malloc(sizeof(struct tr_sine_data));
-		teststruct->currentbeat = &status->timing->currentbeat;
-		teststruct->rect_bitmask = 2;
-		teststruct->freq_perbeat = 0.5;
-		teststruct->ampl = 0.2;
-		teststruct->offset = 0.0;
-		tr_node->data = (void *)teststruct;
-		tr_node->func = &tr_sine_abs;
-		tr_node->next = NULL;
-	}else if (strcmp(graphic_category, "ui") == 0) {
-		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
-		default_specific_anim->rules_list->rule = &rules_ui;
-		default_specific_anim->rules_list->data = NULL;
-		default_specific_anim->rules_list->next = NULL;
-
-		struct func_node *tr_node = malloc(sizeof(struct func_node));
-
-		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
-		teststruct2->score = &status->level->score;
-		teststruct2->freq_perbeat = 1;
-		teststruct2->ampl = 2;
-		teststruct2->peak_offset = 0.0;
-		teststruct2->bump_width = 0.25;
-		teststruct2->centre = NULL;
-		tr_node->data = (void *)teststruct2;
-		tr_node->func = &tr_bump;
-		tr_node->next = NULL;
-		default_specific_anim->transform_list = tr_node;
-		default_specific_anim->rules_list->data = (void *)teststruct2;
-	}else if (strcmp(graphic_category, "ui_bar") == 0) {
-		default_specific_anim->rules_list = malloc(sizeof(struct rule_node));
-		default_specific_anim->rules_list->rule = &rules_ui_bar;
-		default_specific_anim->rules_list->data = default_specific_anim;
-		default_specific_anim->rules_list->next = malloc(sizeof(struct rule_node));
-		default_specific_anim->rules_list->next->rule = &rules_ui;
-		default_specific_anim->rules_list->next->data = NULL;
-		default_specific_anim->rules_list->next->next = NULL;
-
-		struct func_node *tr_node = malloc(sizeof(struct func_node));
-
-		struct tr_bump_data *teststruct2 = malloc(sizeof(struct tr_bump_data));
-		teststruct2->score = &status->level->score;
-		teststruct2->freq_perbeat = 1;
-		teststruct2->ampl = 2;
-		teststruct2->peak_offset = 0.0;
-		teststruct2->bump_width = 0.25;
-		teststruct2->centre = NULL;
-		tr_node->data = (void *)teststruct2;
-		tr_node->func = &tr_bump;
-		tr_node->next = NULL;
-		default_specific_anim->transform_list = tr_node;
-		default_specific_anim->rules_list->next->data = (void *)teststruct2;
-	}
-	return default_specific_anim;
-}
-
-struct animate_specific *generate_specific_anim(struct std *std, struct animate_generic *generic) {
+struct animate_specific *new_specific_anim(struct std *std, struct animate_generic *generic) {
 		
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
 
-	*specific = *generic->default_specific;
+	*specific = (struct animate_specific) {0};
 	specific->generic = generic;
 	specific->container.aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
 	specific->container.rect_out_parent_scale.w = generic->clips[specific->clip]->container_scale_factor;
@@ -870,28 +461,6 @@ struct animate_specific *generate_specific_anim(struct std *std, struct animate_
 	struct func_node *tr_tmp;
 	struct func_node **tr_ptr = &specific->transform_list;
 
-	while (*rule_ptr) {
-		rule_tmp = malloc(sizeof(struct rule_node));
-		*rule_tmp = **rule_ptr;
-		if (rule_tmp->data) {
-			if (rule_tmp->data == specific) {
-				rule_tmp->data = (void *)specific;
-			}
-		}
-		*rule_ptr = rule_tmp;
-		rule_ptr = &(*rule_ptr)->next;
-	}
-	while (*tr_ptr) {
-		tr_tmp = malloc(sizeof(struct rule_node));
-		*tr_tmp = **tr_ptr;
-		if (tr_tmp->data) {
-			if (tr_tmp->data == specific) {
-				tr_tmp->data = (void *)specific;
-			}
-		}
-		*tr_ptr = tr_tmp;
-		tr_ptr = &(*tr_ptr)->next;
-	}
 	/*	Fetch object-type default values for the specific-animation struct.	*/
 
 	specific->object = std;
@@ -957,7 +526,8 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
 			abort();
 		}
-		anim = generate_specific_anim(std, generic);
+		//anim = generate_specific_anim(std, generic);
+		anim = new_specific_anim(std, generic);
 		*a_ptr = anim;
 		generate_render_node(anim, graphics);
 		a_ptr = (&(*a_ptr)->next);
@@ -1094,7 +664,11 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 		}
 		//enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
 
-		generic_ptr->default_specific = generate_default_specific_anim(graphic_category, status);
+		//generic_ptr->default_specific = generate_default_specific_anim(graphic_category, status);
+		//generic_ptr->default_specific = malloc(sizeof(struct animate_specific));
+
+		//*generic_ptr->default_specific = (struct animate_specific) {0};
+		//generic_ptr->default_specific->loops = -1;
 
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
