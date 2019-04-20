@@ -74,13 +74,13 @@ void render_process(struct std_list *object_list_stack, struct graphics_struct *
 						data->dstrect, data->angle, data->center, data->flip);
 	}
 	else {
-		SDL_RenderCopy(graphics->renderer, graphics->imgs->texTarget, NULL, NULL);
+		SDL_RenderCopy(graphics->renderer, graphics->texTarget, NULL, NULL);
 	}
 	SDL_Delay(wait_to_present(timing));
 	SDL_RenderPresent(graphics->renderer);
 	update_time(timing);
 
-	SDL_SetRenderTarget(graphics->renderer, graphics->imgs->texTarget);
+	SDL_SetRenderTarget(graphics->renderer, graphics->texTarget);
 }
 
 int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {

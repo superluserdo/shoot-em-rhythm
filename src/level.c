@@ -158,9 +158,6 @@ int level_init (struct status_struct status) {
 	SDL_Texture *Beatimg = NULL;
 	SDL_Texture *Itemimg = NULL;
 
-	struct texture_struct *imgs = malloc(sizeof(struct texture_struct));
-	status.graphics->imgs = imgs;
-
 	int w, h;
 
 	/*		Sprite		*/
@@ -484,15 +481,6 @@ int level_init (struct status_struct status) {
 			ptr2mon->next = NULL;
 		}
 	}
-	imgs->Spriteimg = Spriteimg;
-	imgs->Laserimg =  Laserimg;
-	imgs->Swordimg =  Swordimg;
-	imgs->Timg =      Timg;
-	imgs->Mon0img =   Mon0img;
-	imgs->Mon1img =   Mon1img;
-	imgs->Scoreimg =  Scoreimg;
-	imgs->Beatimg =   Beatimg;
-	imgs->Itemimg =   Itemimg;
 
 	/*		Maps & Mapstrips	*/
 
@@ -617,8 +605,8 @@ int level_init (struct status_struct status) {
 
 	/* Create a Master Render Target */
 
-	graphics->imgs->texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
-	SDL_SetRenderTarget(renderer, graphics->imgs->texTarget);
+	graphics->texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
+	SDL_SetRenderTarget(renderer, graphics->texTarget);
 	SDL_RenderClear(graphics->renderer);
 	SDL_SetRenderTarget(renderer, NULL);
 
@@ -639,7 +627,6 @@ int level_loop(struct status_struct status) {
 
 	struct graphics_struct *graphics = status.graphics;
 	struct audio_struct *audio = status.audio;
-	struct texture_struct *imgs = graphics->imgs;
 	struct level_struct *level = status.level;
 	struct level_var_struct *vars = level->vars;
 	struct player_struct *player = status.player;
@@ -957,12 +944,12 @@ int level_loop(struct status_struct status) {
 	}
 	if (laser->on){
 		for (int i = 0; i < 3; i++) {
-			SDL_RenderCopy(renderer, imgs->Laserimg, &rects->rcLaserSrc[i], &rects->rcLaser[i]);
+			//SDL_RenderCopy(renderer, imgs->Laserimg, &rects->rcLaserSrc[i], &rects->rcLaser[i]);
 		}
 	}
 
 	if ( player->sword ) {
-		SDL_RenderCopy(renderer, imgs->Swordimg, &sword->rect_in, &sword->rect_out);
+		//SDL_RenderCopy(renderer, imgs->Swordimg, &sword->rect_in, &sword->rect_out);
 	}
 
 	struct render_node *node_ptr = graphics->render_node_head;
@@ -973,10 +960,10 @@ int level_loop(struct status_struct status) {
 		int r = level->effects->colournum%255;
 		int g = (level->effects->colournum + 100)%255;
 		int b = (level->effects->colournum + 200)%255;
-		SDL_SetTextureColorMod(graphics->imgs->texTarget, r,g,b);
+		SDL_SetTextureColorMod(graphics->texTarget, r,g,b);
 		struct rendercopyex_struct rendercopyex_data = {
 			.renderer = renderer,
-			.texture = graphics->imgs->texTarget,
+			.texture = graphics->texTarget,
 			.srcrect = NULL,
 			.dstrect = NULL,
 			.angle = level->effects->angle * level->speedmult,
@@ -1006,7 +993,7 @@ void quitlevel(struct status_struct status) {
 	//	for ( int i = 0; i < MAX_SOUNDS_LIST; i++ )
 	//		soundchecklist[i] = 0;
 	SDL_RenderClear(graphics->renderer);
-	SDL_SetRenderTarget(graphics->renderer, graphics->imgs->texTarget);
+	SDL_SetRenderTarget(graphics->renderer, graphics->texTarget);
 	SDL_RenderClear(graphics->renderer);
 	SDL_SetRenderTarget(graphics->renderer, NULL);
 	//musicstop();
@@ -1017,10 +1004,6 @@ void quitlevel(struct status_struct status) {
 	//	pthread_cond_wait( &cond_end, &track_mutex);
 	//}
 	//pthread_mutex_unlock( &track_mutex );
-	SDL_DestroyTexture(graphics->imgs->Spriteimg);
-	SDL_DestroyTexture(graphics->imgs->Timg);
-	SDL_DestroyTexture(graphics->imgs->Laserimg);
-	SDL_DestroyTexture(graphics->imgs->Swordimg);
 	//	SDL_DestroyTexture(texTarget);
 	timing->countbeats = 0;
 	timing->currentbeat = 0;

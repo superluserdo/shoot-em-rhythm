@@ -306,25 +306,12 @@ struct graphics_struct {
 	struct render_node *render_node_head;
 	struct render_node *render_node_tail;
 	struct ui_struct *ui;
-	struct texture_struct *imgs; //temporary
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
 	struct dict_str_void *image_dict;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
-};
-
-struct texture_struct {
-	SDL_Texture *Spriteimg;
-	SDL_Texture *Laserimg;
-	SDL_Texture *Swordimg;
-	SDL_Texture *Timg;
-	SDL_Texture *Mon0img;
-	SDL_Texture *Mon1img;
-	SDL_Texture *Scoreimg;
-	SDL_Texture *Beatimg;
-	SDL_Texture *Itemimg;
 	SDL_Texture *texTarget;
 };
 
