@@ -16,8 +16,8 @@ struct render_node *create_render_node();
 int render_node_rm(struct graphics_struct *graphics, struct render_node *node_ptr);
 int render_list_rm(struct render_node **node_ptr_ptr);
 
-int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer);
-struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struct status_struct *status);
+struct dict_str_void *generic_anim_dict_populate(struct dict_str_void *image_dict, struct status_struct *status);
+int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer);
 
 struct animate_specific *new_specific_anim(struct std *std, struct animate_generic *generic);
 int generate_render_node(struct animate_specific *specific, struct graphics_struct *graphics);

@@ -47,6 +47,7 @@ void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status
 
 	struct tr_bump_data *bumpdata = malloc(sizeof(struct tr_bump_data));
 	bumpdata->score = &status->level->score;
+	bumpdata->currentbeat = &status->timing->currentbeat;
 	bumpdata->freq_perbeat = 1;
 	bumpdata->ampl = 2;
 	bumpdata->peak_offset = 0.0;
@@ -102,7 +103,6 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	bar->max = bar_max_ptr;
 	bar->name = name;
 	bar->self = bar;
-	//graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){HP, COLOURED_BAR}, 2);
 	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "coloured bar"}, 2);
 
 	struct animate_specific *anim = bar->animation;
@@ -113,23 +113,13 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	anim->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
 	anim->container.num_anchors_exposed = 1;
 	anim->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
-	anim->next->container.inherit = &bar->animation->container;
-	anim->next->container.anchor_grabbed = &bar->animation->container.anchors_exposed[0];
+	anim->next->container.inherit = &anim->container;
+	anim->next->container.anchor_grabbed = &anim->container.anchors_exposed[0];
 	//anim->next->container.anchor_grabbed_offset_internal_scale = (struct size_ratio_struct) {-0.2, 0};
 
 	anim->next->container.aspctr_lock = WH_INDEPENDENT;
 	anim->next->container.rect_out_parent_scale.w = 0.425;
 	anim->next->container.rect_out_parent_scale.h = 0.40;
-
-	//TODO
-	//anim->next->rules_list->data = bar->animation->next;
-	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
-	//*tmp_data = *(struct tr_bump_data *)anim->next->rules_list->next->data;
-	//tmp_data->centre = malloc(sizeof(struct xy_struct));
-	//tmp_data->centre->w = anim->container.rect_out_parent_scale.x + anim->container.rect_out_parent_scale.w/2;
-	//tmp_data->centre->h = anim->container.rect_out_parent_scale.y + anim->container.rect_out_parent_scale.h/2;
-	//anim->next->rules_list->next->data = tmp_data;
-	//anim->next->transform_list->data = tmp_data;
 
 	return bar;
 }
@@ -142,49 +132,42 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 									struct status_struct *status, const char *name,
 									float *currentbeat_ptr) {
 
-
-
-
 	struct ui_counter *counter = malloc(sizeof(*counter));
 	*counter = (struct ui_counter) {0};
 	counter->container = container;
 	counter->value = counter_value_ptr;
 	counter->digits = digits;
-	counter->array = calloc(digits, sizeof(int));
+	counter->array = calloc(digits+1, sizeof(int));
 	counter->name = name;
 	counter->self = counter;
 
-	//enum graphic_type_e graphic_types[digits];
-	const char *graphic_types[digits];
+	const char *graphic_types[digits+1];
+	/* Initialise the image dictionary and generic animation dictionary.
+	   Both are out-parameters here. */
+	graphic_types[0] = "none";
+
 	for (int i = 0; i < digits; i++) {
-		//graphic_types[i] = NUMBERS;
-		graphic_types[i] = "numbers";
+		graphic_types[i+1] = "numbers";
 	}
-	graphic_spawn(&counter->std, object_list_stack_ptr, generic_anim_dict, graphics, graphic_types, digits);
+	graphic_spawn(&counter->std, object_list_stack_ptr, generic_anim_dict, graphics, graphic_types, digits+1);
 
-	struct animate_specific *anim = counter->animation;
+	struct animate_specific *dummy_anim = counter->animation;
+	dummy_anim->container = (struct visual_container_struct) {0};
+	dummy_anim->container.inherit = container;
+	dummy_anim->container.rect_out_parent_scale = (struct float_rect) { .x = 0.5, .y = 0.5, .w = 1, .h = 1};
+	dummy_anim->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 	
-	prepare_anim_ui(anim, status);
+	prepare_anim_ui(dummy_anim, status);
 
-	//TODO
-	//struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
+	dummy_anim->rules_list->data = dummy_anim;
 
-	//tmp_data->freq_perbeat = 1;
-	//tmp_data->ampl = 2;
-	//tmp_data->peak_offset = 0.0;
-	//tmp_data->bump_width = 0.25;
+	struct animate_specific *anim = dummy_anim->next;
 
-	//tmp_data->centre = malloc(sizeof(struct xy_struct));
-	//tmp_data->centre->w = counter->animation->container.rect_out_parent_scale.x + counter->animation->container.rect_out_parent_scale.w/2;
-	//tmp_data->centre->h = counter->animation->container.rect_out_parent_scale.y + counter->animation->container.rect_out_parent_scale.h/2;
-	//tmp_data->currentbeat = currentbeat_ptr;
-	//tmp_data->score = score_ptr;
-
-	anim->rules_list->data = anim;
 	for (int i = 0; i < counter->digits; i++) {
 		struct visual_container_struct digit_container = (struct visual_container_struct) {
-			.inherit = container,
-			.rect_out_parent_scale = (struct float_rect) { .x = 0.2 * i, .y = 0.6, .w = 0.2, .h = 0.2},
+			.inherit = &dummy_anim->container,
+			//.inherit = container,
+			.rect_out_parent_scale = (struct float_rect) { .x = 0.2 * i, .y = 0, .w = 0.2, .h = 1.0},
 			.aspctr_lock = WH_INDEPENDENT,
 		};
 		anim->container = digit_container;
@@ -237,7 +220,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //	//SDL_Rect rcSword, rcSwordSrc;
 //}
 
-int spawn_flying_hamster(struct status_struct *status) {
+int spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container) {
 	struct graphics_struct *graphics = status->graphics;
 	struct level_struct *level = status->level;
 
@@ -248,32 +231,18 @@ int spawn_flying_hamster(struct status_struct *status) {
 	struct std_list **object_list_stack_ptr = &level->object_list_stack;
 	struct dict_str_void *generic_anim_dict = level->generic_anim_dict;
 
-	//new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
-	//*new_flyinghamster->container = (struct visual_container_struct) {
-	//	.inherit = &lanes->containers[lanes->currentlane],
-	//	.rect = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
-	//	.aspctr_lock = WH_INDEPENDENT,
-	//};
-
 	new_flyinghamster->name = "new_flyinghamster";
 
 	new_flyinghamster->living.HP = 1;
 	new_flyinghamster->living.power = 10;
 	new_flyinghamster->living.defence = 10;
 
-	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){FLYING_HAMSTER, SMILEY}, 2);
 	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"flying hamster", "smiley"}, 2);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
 
-	struct visual_container_struct hamster_container = {
-		.inherit = &lanes->containers[lanes->currentlane],
-		.rect_out_parent_scale = (struct float_rect) {.x = 0.5, .y = 0, .w = 1, .h = 1},
-		.aspctr_lock = H_DOMINANT,
-	};
-
 	new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
-	*new_flyinghamster->container = hamster_container;
+	*new_flyinghamster->container = *container;
 	
 	struct visual_container_struct hamster_sub_container = {
 		.inherit = new_flyinghamster->container,
@@ -284,7 +253,6 @@ int spawn_flying_hamster(struct status_struct *status) {
 	animation->container = hamster_sub_container;
 	animation->next->container = hamster_sub_container;
 	animation->next->container.anchor_grabbed = &new_flyinghamster->animation->container.anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
-	//animation->anchor_hook = (struct size_ratio_struct) {0, 0.5};
 	set_anchor_hook(new_flyinghamster->std.container, 0, 0.5);
 	//set_anchor_hook(&animation->next->container, 0, 0.5);
 
@@ -310,9 +278,6 @@ int spawn_flying_hamster(struct status_struct *status) {
 
 	struct tr_orbit_xyz_data *orbit_data = malloc(sizeof(*orbit_data));
 	*orbit_data = (struct tr_orbit_xyz_data) {
-		//.x = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
-		//.y = (struct cycle_struct) {.freq = 0.5, .ampl = 110, .phase = 0},
-		//.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0.5*PI},
 		.x = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0},
 		.y = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0},
 		.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0.5*PI},

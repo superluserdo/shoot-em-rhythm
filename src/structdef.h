@@ -309,7 +309,7 @@ struct graphics_struct {
 	struct texture_struct *imgs; //temporary
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
-	SDL_Texture **image_bank;
+	struct dict_str_void *image_dict;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;

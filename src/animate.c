@@ -56,7 +56,6 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 }
 
 /* RENDER */
-extern SDL_Texture **image_bank;
 
 void render_process(struct std_list *object_list_stack, struct graphics_struct *graphics, struct time_struct *timing) {
 	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
@@ -90,6 +89,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
+				FILEINFO
 			}
 		}
 		else {
@@ -372,9 +372,13 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
 
 			struct func_node *transform_node = animation->transform_list;
+
+			/* Tranformations only take effect within the context of this function.
+			   Make a backup of the container's coordinates in the container for after the transformation */
+			struct float_rect rect_out_parent_scale_pretransform = container->rect_out_parent_scale;
+
 			while (transform_node) {
-				//transform_node->func((void *)&abs_rect, transform_node->data);
-				//transform_node->func((void *)&container->rect_out_parent_scale, transform_node->data);
+				transform_node->func((void *)&container->rect_out_parent_scale, transform_node->data);
 				transform_node = transform_node->next;
 				transform_node_count++;
 			}
@@ -389,6 +393,9 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			/* Convert from container-scale relative width to global scale absolute width */
 			SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->width, graphics->height});
+
+			/*	Revert the container's rect_out_parent_scale back to the pretransform one for the next frame: */
+			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
 			container->screen_scale_uptodate = 1;
 
 			struct render_node *render_node = animation->render_node;
@@ -502,7 +509,6 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	return 0;
 }
 
-//int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct animate_generic **generic_bank, struct graphics_struct *graphics, enum graphic_type_e *index_array, int num_index) {
 int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
 	struct std_list *list_node = malloc(sizeof(struct std_list));
@@ -547,48 +553,9 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	return 0;
 }
 
-int image_bank_populate(SDL_Texture **image_bank, SDL_Renderer *renderer) {
-
-	const char *cfg_path = "imgs.cfg";
-	config_t cfg;
-	config_init(&cfg);
-
-	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, cfg_path))
-	{
-		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
-		config_error_line(&cfg), config_error_text(&cfg));
-		FILEINFO
-		config_destroy(&cfg);
-		return(R_FAILURE);
-	}
-
-
-	config_setting_t *image_list_setting = config_lookup(&cfg, "image_list");
-	if (image_list_setting == NULL) {
-		printf("Error looking up setting for 'image_list'\n");
-		return R_FAILURE;
-	}
-	int num_images = config_setting_length(image_list_setting); 
-	printf("num_images: %d\n", num_images);
-	for (int i = 0; i < num_images; i++) {
-		const char *path = config_setting_get_string_elem(image_list_setting, i);
-		if (path) {
-			image_bank[i] = IMG_LoadTexture(renderer, path);
-		}
-		else {
-			printf("Could not find valid image file path in entry %d of file %s\n", i, cfg_path);
-			return R_FAILURE;
-		}
-		if (image_bank[i] == NULL) {
-			printf("Error loading image file: %s\n", path);
-			return R_FAILURE;
-		}
-	}
-	return R_SUCCESS;
-}	
-
-struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struct status_struct *status) {
+int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
+	/* Allocates and initialises dicts for generic animations
+	   and image textures */
 
 	config_t cfg;
 	config_init(&cfg);
@@ -599,18 +566,24 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 		config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
-		return NULL;
+		return R_FAILURE;
 	}
 
 	config_setting_t *generics_setting = config_lookup(&cfg, "generics");
 	if (generics_setting == NULL) {
 		printf("Error looking up setting for 'generics'\n");
-		return NULL;
+		return R_FAILURE;
 	}
 	int num_generics = config_setting_length(generics_setting); 
-	struct dict_str_void *generic_anim_dict = malloc(num_generics * sizeof(*generic_anim_dict));
+
+	*generic_anim_dict_ptr = malloc(num_generics * sizeof(struct dict_str_void));
+	struct dict_str_void *generic_anim_dict = *generic_anim_dict_ptr;
+
+	*image_dict_ptr = malloc(num_generics * sizeof(struct dict_str_void));
+	struct dict_str_void *image_dict = *image_dict_ptr;
 
 	*generic_anim_dict = (struct dict_str_void) {0};
+	*image_dict = (struct dict_str_void) {0};
 
 	struct animate_generic *generic_ptr;
 	config_setting_t *generic_setting;
@@ -636,7 +609,7 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 		generic_setting = config_setting_get_elem(generics_setting, i);
 		if (generic_setting == NULL) {
 			printf("Error looking up setting for 'generic'\n");
-			return NULL;
+			return R_FAILURE;
 		}
 
 		generic_ptr = malloc(sizeof(struct animate_generic));
@@ -644,7 +617,7 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 		const char *graphic_type_dummy;
 		if (config_setting_lookup_string(generic_setting, "name", &graphic_type_dummy) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
-			return NULL;
+			return R_FAILURE;
 		}
 		int len = strlen(graphic_type_dummy);
 		char *graphic_type = malloc(len+1);
@@ -652,28 +625,16 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 
 		int dict_index = dict_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
 
-		//printf("Dict after %d steps:\n", generic_anim_dict->num_entries);
-		//for (int j = 0; j < generic_anim_dict->num_entries; j++) {
-		//	printf("%s\n", generic_anim_dict->entries[j]);
-		//}
-
 		const char *graphic_category;
 		if (config_setting_lookup_string(generic_setting, "graphic_category", &graphic_category) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
-			return NULL;
+			return R_FAILURE;
 		}
-		//enum graphic_cat_e graphic_cat = (enum graphic_cat_e)graphic_cat_int;
-
-		//generic_ptr->default_specific = generate_default_specific_anim(graphic_category, status);
-		//generic_ptr->default_specific = malloc(sizeof(struct animate_specific));
-
-		//*generic_ptr->default_specific = (struct animate_specific) {0};
-		//generic_ptr->default_specific->loops = -1;
 
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
 			printf("Error looking up setting for 'clips' %d\n", i);
-			return NULL;
+			return R_FAILURE;
 		}
 		num_clips = config_setting_length(clips_setting); 
 		generic_ptr->num_clips = num_clips;
@@ -688,11 +649,7 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 			clip_setting = config_setting_get_elem(clips_setting, j);
 			if (clip_setting == NULL) {
 				printf("Error looking up setting for 'clip'\n");
-				return NULL;
-			}
-			if (config_setting_lookup_int(clip_setting, "img", &img_index) == CONFIG_FALSE) {
-				printf("Error looking up value for 'img'\n");
-				return NULL;
+				return R_FAILURE;
 			}
 
 			if (config_setting_lookup_float(clip_setting, "container_scale_factor", &container_scale_factor) == CONFIG_FALSE) {
@@ -705,11 +662,44 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 			} else {
 				clip_ptr->aspctr_lock = aspctr_lock;
 			}
-			clip_ptr->img = image_bank[img_index];
+
+			const char *img_dummy;
+			if (config_setting_lookup_string(clip_setting, "img", &img_dummy) == CONFIG_FALSE) {
+				printf("Error looking up value for 'img'\n");
+				return R_FAILURE;
+			}
+			int len = strlen(img_dummy);
+			char *img_name = malloc(len+1);
+			strncpy(img_name, img_dummy, len+1);
+
+			SDL_Texture *texture = NULL;
+			char *path_prefix = "../art/";
+			int maxnamelen = 50;
+			char *path_prefix_long = malloc(sizeof(path_prefix) + maxnamelen);
+			strncpy(path_prefix_long, path_prefix, maxnamelen);
+			char *path = strncat(path_prefix_long, img_name, maxnamelen);
+			if (path) {
+				texture = IMG_LoadTexture(renderer, path);
+			}
+			else {
+				printf("Could not find valid image file \"%s\"\n", path);
+				FILEINFO
+				return R_FAILURE;
+			}
+			if (!texture) {
+				printf("Error loading image file: \"%s\"\n", path);
+				FILEINFO
+				return R_FAILURE;
+			}
+
+			int dict_index = dict_add_keyval(image_dict, img_name, texture);
+
+			clip_ptr->img = texture;
+
 			frames_setting = config_setting_lookup(clip_setting, "frames");
 			if (frames_setting == NULL) {
 				printf("Error looking up setting for 'frames'\n");
-				return NULL;
+				return R_FAILURE;
 			}
 			num_frames = config_setting_length(frames_setting);
 			clip_ptr->num_frames = num_frames;
@@ -721,12 +711,12 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 				frame_setting = config_setting_get_elem(frames_setting, k);
 				if (frame_setting == NULL) {
 					printf("Error looking up setting for 'frame'\n");
-					return NULL;
+					return R_FAILURE;
 				}
 				rect_setting = config_setting_lookup(frame_setting, "rect");
 				if (rect_setting == NULL) {
 					printf("Error looking up setting for 'rect'\n");
-					return NULL;
+					return R_FAILURE;
 				}
 				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);
 				frame_array[k].rect.y = config_setting_get_int_elem(rect_setting, 1);
@@ -742,13 +732,8 @@ struct dict_str_void *generic_anim_dict_populate(SDL_Texture **image_bank, struc
 		}
 	}
 
-	printf("Dict at %p with %d entries:\n", generic_anim_dict, generic_anim_dict->num_entries);
-	printf("Entries starting at %p\n", generic_anim_dict->entries);
-	for (int j = 0; j < generic_anim_dict->num_entries; j++) {
-		printf("%s\n", generic_anim_dict->entries[j].key);
-	}
 	config_destroy(&cfg);
-	return generic_anim_dict;
+	return R_SUCCESS;
 }
 
 int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {

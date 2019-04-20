@@ -167,26 +167,13 @@ int level_init (struct status_struct status) {
 
 	graphics->num_images = 100; //TODO
 
-	graphics->image_bank = malloc(sizeof(SDL_Texture *) * graphics->num_images);
-	/*	Initialise the image bank - a fixed array of (as of now hardcoded) pointers to SDL_Textures
-		that is used to copulate the "img" pointers in the clip sections of each generic struct
-	*/
-	rc = image_bank_populate(graphics->image_bank, renderer);
-	if (rc != R_SUCCESS)
-		return R_FAILURE;
-
-	struct dict_str_void *generic_anim_dict = generic_anim_dict_populate(graphics->image_bank, &status);
-	printf("Dict at %p with %d entries:\n", generic_anim_dict, generic_anim_dict->num_entries);
-	printf("Entries starting at %p\n", generic_anim_dict->entries);
-	for (int j = 0; j < generic_anim_dict->num_entries; j++) {
-		printf("%s\n", generic_anim_dict->entries[j].key);
-	}
-	//rc = generic_bank_populate(&generic_bank, graphics->image_bank, &status); //EXPERIMENTAL
-	level->generic_anim_dict = generic_anim_dict;
-
-	if (!level->generic_anim_dict) {
+	/* Initialise the image dictionary and generic animation dictionary.
+	   Both are out-parameters here. */
+	rc = dicts_populate(&level->generic_anim_dict, &graphics->image_dict, &status, graphics->renderer);
+	if (rc == R_FAILURE) {
 		return R_FAILURE;
 	}
+	struct dict_str_void *generic_anim_dict = level->generic_anim_dict;
 
 	/* set sprite position */
 	graphics->screen = (struct visual_container_struct) {
@@ -213,6 +200,7 @@ int level_init (struct status_struct status) {
 	}
 	
 	struct player_struct *player = status.player;
+	*player = (struct player_struct) {0};
 
 	struct visual_container_struct player_container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
@@ -221,6 +209,8 @@ int level_init (struct status_struct status) {
 	};
 
 	spawn_player(object_list_stack_ptr, generic_anim_dict, graphics, player, &player_container, &status, player_setting, "player");
+	player->living.invincibility_toggle = 1; //REMOVE
+
 
 	/*		Tiles		*/
 
@@ -270,6 +260,7 @@ int level_init (struct status_struct status) {
 		.inherit = container_level_ui_top,
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.15, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.5, .h = 0.5},
 	};
 
 	ui->hp = spawn_ui_bar(object_list_stack_ptr, generic_anim_dict, graphics, &player->living.HP, &player->living.max_HP, hp_container, &status, "hp");
@@ -281,6 +272,7 @@ int level_init (struct status_struct status) {
 		.inherit = container_level_ui_top,
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.85, .y = 0.6, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.5, .h = 0.5},
 	};
 
 	ui->power = spawn_ui_bar(object_list_stack_ptr, generic_anim_dict, graphics, &player->living.power, &player->living.max_PP, power_container, &status, "power");
@@ -294,6 +286,7 @@ int level_init (struct status_struct status) {
 		.inherit = container_level_ui_top,
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.15, .y = 0.2, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.5, .h = 0.5},
 	};
 
 	ui->score = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &level->score, 5, score_container, &status, "score", &timing->currentbeat);
@@ -305,6 +298,7 @@ int level_init (struct status_struct status) {
 		.inherit = container_level_ui_top,
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.85, .y = 0.2, .w = 0.2, .h = 0.2},
 		.aspctr_lock = WH_INDEPENDENT,
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.5, .h = 0.5},
 	};
 
 	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &timing->currentbeat_int, 5, score_container, &status, "score", &timing->currentbeat);
@@ -391,7 +385,13 @@ int level_init (struct status_struct status) {
 	SDL_QueryTexture(Mon0img, NULL, NULL, &w, &h); // get the width and height of the texture
 	SDL_QueryTexture(Mon1img, NULL, NULL, &w, &h); // get the width and height of the texture
 
-	spawn_flying_hamster(&status);
+	struct visual_container_struct hamster_container = {
+		.inherit = &lanes->containers[lanes->currentlane],
+		.rect_out_parent_scale = (struct float_rect) {.x = 0.9, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = H_DOMINANT,
+	};
+
+	spawn_flying_hamster(&status, &hamster_container);
 	struct monster *flyinghamster = malloc(sizeof(struct monster));
 
 	flyinghamster->health = 1;

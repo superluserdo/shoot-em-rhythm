@@ -66,14 +66,21 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 		rect.h *= parent_rect.h * aspctr;
 	}
 
+	struct size_ratio_struct anchor_grabbed;
+	if (container->anchor_grabbed) {
+		anchor_grabbed = *container->anchor_grabbed;
+	} else {
+		anchor_grabbed = (struct size_ratio_struct) {0};
+	}
+
 	struct size_ratio_struct anchor_hook_pos = {
 		.w = container->anchor_hook.w * rect.w,
 		.h = container->anchor_hook.h * rect.h,
 	};
 
 	/* Set x and y position wrt whole window */
-	rect.x = parent_rect.x + rect.x * parent_rect.w - anchor_hook_pos.w;
-	rect.y = parent_rect.y + rect.y * parent_rect.h - anchor_hook_pos.h;
+	rect.x = parent_rect.x + rect.x * parent_rect.w + parent_rect.w * anchor_grabbed.w - anchor_hook_pos.w;
+	rect.y = parent_rect.y + rect.y * parent_rect.h + parent_rect.h * anchor_grabbed.h - anchor_hook_pos.h;
 
 	container->rect_out_screen_scale = rect;
 
