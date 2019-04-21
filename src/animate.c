@@ -397,7 +397,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			/*	Revert the container's rect_out_parent_scale back to the pretransform one for the next frame: */
 			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
-			container->screen_scale_uptodate = 1;
 
 			if (generic) {
 				struct render_node *render_node = animation->render_node;
@@ -513,7 +512,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 
 int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
-	std_stack_push(object_list_stack_ptr, std);
+	std_stack_push(object_list_stack_ptr, std, &std->object_stack_location);
 
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;

@@ -365,8 +365,7 @@ int level_init (struct status_struct status) {
 	// TODO: Finish making the sword just a regular object
 	struct sword_struct *sword = &level->sword;
 	//graphic_spawn(&sword->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){SWORD}, 1);
-	sword->rect_in.w = SWORD_WIDTH;
-	sword->rect_in.h = SWORD_HEIGHT;
+	spawn_sword(object_list_stack_ptr, generic_anim_dict, graphics, player, sword, &player_container, &status, "sword");
 
 	SDL_Texture *Swordimg = IMG_LoadTexture(renderer, SWORD_PATH); SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture 
 

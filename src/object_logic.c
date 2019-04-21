@@ -86,8 +86,8 @@ int object_logic_monster(struct std *monster_std, void *data) {
 
 	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5).w < 0) {
 		// TODO: Destroy monster
-		printf("Destroyed\n");
 		monster_new_rm((struct monster_new *)monster_std->self, status);
+		printf("Destroyed\n");
 	}
 
 	return 0;

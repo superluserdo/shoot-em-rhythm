@@ -12,6 +12,7 @@
 #include "helpers.h"
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
+#include "structure.h"
 #include "spawn.h"
 #include "object_logic.h"
 
@@ -111,6 +112,30 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 
 	player->object_logic = object_logic_player;
 	player->object_data = status;
+}
+
+void spawn_sword(struct std_list **object_list_stack_ptr,
+					struct dict_str_void *generic_anim_dict,
+					struct graphics_struct *graphics,
+					struct player_struct *player,
+					struct sword_struct *sword,
+					struct visual_container_struct *container, 
+					struct status_struct *status, 
+				   	const char *name) {
+
+	sword->power = 100;
+	sword->down = 0;
+	sword->swing = 0;
+	sword->swing_up_duration = 0.5;
+	sword->swing_down_duration = 0.5;
+
+	sword->name = "sword";
+	graphic_spawn(&sword->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"sword"}, 1);
+
+	*sword->container = *container;
+
+	sword->object_logic = NULL;//object_logic_player;
+	sword->object_data = NULL;//status;
 }
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
@@ -272,7 +297,7 @@ struct monster_new *spawn_flying_hamster(struct status_struct *status, struct vi
 	/* Insert the monster into the lane's list of active monsters: */
 
 	struct std_list **monster_list_stack_ptr = &level->monster_list_stacks[lane];
-	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std);
+	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std, &new_flyinghamster->std.special_object_stack_location);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
 
@@ -368,21 +393,6 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 	container->rect_out_parent_scale.y += (new_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h;
 }
 
-struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struct *container, float x, float y) {
-	struct size_ratio_struct custom_anchor_hook = {.w = x, .h = y};
-	struct size_ratio_struct old_anchor_hook = container->anchor_hook;
-
-	/* Preserve the real position: */
-	struct size_ratio_struct old_pos = {container->rect_out_parent_scale.x, container->rect_out_parent_scale.y};
-
-	struct size_ratio_struct custom_pos = {
-		.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) * container->rect_out_parent_scale.w,
-		.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h,
-	};
-
-	return custom_pos;
-}
-
 //TODO: Freeing functions (still working on these):
 
 void monster_new_rm(struct monster_new *monster, struct status_struct *status) {
@@ -396,6 +406,7 @@ void std_rm(struct std *std, struct status_struct *status) {
 	//	or pointer to status struct
 	
 	struct std_list *stack_pos = std->object_stack_location;
+	struct std_list *monster_stack_pos = std->special_object_stack_location;
 
 	/* Remove from object_list_stack */
 	std_stack_rm(&status->level->object_list_stack, stack_pos, std);
@@ -404,8 +415,9 @@ void std_rm(struct std *std, struct status_struct *status) {
 	/* Remove from active monster list */
 	std_stack_rm(
 		&status->level->monster_list_stacks[status->level->lanes.currentlane], 
-		stack_pos, std);
+		monster_stack_pos, std);
 	std->special_object_stack_location = NULL;
+
 }
 
 void animate_specific_rm(struct animate_specific *animation, struct status_struct *status) {

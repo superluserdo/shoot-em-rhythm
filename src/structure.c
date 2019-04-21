@@ -83,6 +83,7 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 	rect.y = parent_rect.y + rect.y * parent_rect.h + parent_rect.h * anchor_grabbed.h - anchor_hook_pos.h;
 
 	container->rect_out_screen_scale = rect;
+	container->screen_scale_uptodate = 1;
 
 	return rect;
 }
@@ -131,5 +132,48 @@ int container_test_overlap(struct visual_container_struct *container_1, struct v
 	}
 
 	return overlap;
+}
+
+struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struct *container, float x, float y) {
+	struct size_ratio_struct custom_anchor_hook = {.w = x, .h = y};
+	struct size_ratio_struct old_anchor_hook = container->anchor_hook;
+
+	/* Preserve the real position: */
+	struct size_ratio_struct old_pos = {container->rect_out_parent_scale.x, container->rect_out_parent_scale.y};
+
+	struct size_ratio_struct custom_pos;
+
+	/* Finding new position is trivial for independent axes: */
+	if (container->aspctr_lock == WH_INDEPENDENT) {
+		custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) * container->rect_out_parent_scale.w;
+		custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h;
+	} else {
+		/* Requires knowing the absolute dimensions when you have a fixed aspect ratio: */
+
+		/* Get up-to-date aspect ratios */
+		if (!container->screen_scale_uptodate) {
+			decascade_visual_container(container);
+		}
+		float aspctr = container->rect_out_screen_scale.w / container->rect_out_screen_scale.h;
+
+		if (!container->inherit->screen_scale_uptodate) {
+			decascade_visual_container(container->inherit);
+		}
+		float aspctr_inherit = container->inherit->rect_out_screen_scale.w / container->inherit->rect_out_screen_scale.h;
+
+		if (container->aspctr_lock == W_DOMINANT) {
+			custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
+				* container->rect_out_parent_scale.w;
+			custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) 
+				* container->rect_out_parent_scale.w / aspctr * aspctr_inherit;
+		} else if (container->aspctr_lock == H_DOMINANT) {
+			custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
+				* container->rect_out_parent_scale.h * aspctr / aspctr_inherit;
+			custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) 
+				* container->rect_out_parent_scale.h;
+		}
+	}
+
+	return custom_pos;
 }
 
