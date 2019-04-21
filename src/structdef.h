@@ -29,6 +29,7 @@ struct size_ratio_struct {
 	int (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
 	struct std_list *object_stack_location; \
+	struct std_list *special_object_stack_location; \
 	void *self; \
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
@@ -120,6 +121,7 @@ struct level_struct {
 	float *laneheight;
 	struct lane_struct lanes;
 	struct std_list *object_list_stack;
+	struct std_list **monster_list_stacks;
 	struct laser_struct laser;
 	struct sword_struct sword;
 	struct level_var_struct *vars;
@@ -130,6 +132,7 @@ struct level_struct {
 	int (**itemscreenstrip)[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
 	double *remainder;
 	struct dict_str_void *generic_anim_dict;
+	struct object_spawn_array_struct *object_spawn_arrays;
 };
 
 struct level_effects_struct {
@@ -352,6 +355,24 @@ struct render_node {
 
 /*	Level	*/
 
+/* Trying out new way to queue monsters and items: */
+
+struct object_spawn_elem_struct {
+	float spawn_beat;
+	void *ptr;
+};
+
+struct object_spawn_array_struct {
+	int next_index;
+	int num_objects;
+	struct object_spawn_elem_struct *objects;
+};
+
+struct object_n_lanes_arrays_struct {
+	int num_lanes;
+	struct object_spawn_array_struct *arrays;
+};
+/* ------- */
 struct monster_node {
 	char montype;
 	char status;

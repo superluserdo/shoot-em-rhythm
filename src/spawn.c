@@ -13,24 +13,38 @@
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
 #include "spawn.h"
+#include "object_logic.h"
 
 void prepare_anim_character(struct animate_specific *anim, struct status_struct *status) {
-		anim->rules_list = malloc(sizeof(struct rule_node));
-		anim->rules_list->rule = &rules_player;
-		anim->rules_list->data = (void *)status;
-		anim->rules_list->next = NULL;
+	anim->rules_list = malloc(sizeof(struct rule_node));
+	anim->rules_list->rule = &rules_player;
+	anim->rules_list->data = (void *)status;
+	anim->rules_list->next = NULL;
 
-		struct func_node *tr_node = malloc(sizeof(struct func_node));
-		anim->transform_list = tr_node;
-		struct tr_sine_data *sine_data = malloc(sizeof(struct tr_sine_data));
-		sine_data->currentbeat = &status->timing->currentbeat;
-		sine_data->rect_bitmask = 2;
-		sine_data->freq_perbeat = 0.5;
-		sine_data->ampl = 0.2;
-		sine_data->offset = 0.0;
-		tr_node->data = (void *)sine_data;
-		tr_node->func = &tr_sine_abs;
-		tr_node->next = NULL;
+	struct func_node *tr_node = malloc(sizeof(struct func_node));
+	anim->transform_list = tr_node;
+	struct tr_sine_data *sine_data = malloc(sizeof(struct tr_sine_data));
+	sine_data->currentbeat = &status->timing->currentbeat;
+	sine_data->rect_bitmask = 2;
+	sine_data->freq_perbeat = 0.5;
+	sine_data->ampl = 0.2;
+	sine_data->offset = 0.0;
+	tr_node->data = (void *)sine_data;
+	tr_node->func = &tr_sine_abs;
+	tr_node->next = NULL;
+
+	////test:
+	//tr_node->next = malloc(sizeof(struct func_node));
+	//*tr_node->next = (struct func_node) {0};
+	//tr_node->next->func = tr_blink;
+	//struct tr_blink_data *test_data = malloc(sizeof(*test_data));
+	//*test_data = (struct tr_blink_data) {
+	//	.framecount = &status->timing->framecount,
+	//	.frames_on = 5,
+	//	.frames_off = 5,
+	//};
+	//tr_node->next->data = (void *)test_data;
+
 }
 
 void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status) {
@@ -87,6 +101,8 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
 	player->living.power = player->living.max_PP;
 
+	player->object_logic = object_logic_player;
+	player->object_data = status->level;
 }
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
@@ -220,7 +236,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //	//SDL_Rect rcSword, rcSwordSrc;
 //}
 
-int spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container) {
+struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane) {
 	struct graphics_struct *graphics = status->graphics;
 	struct level_struct *level = status->level;
 
@@ -233,11 +249,17 @@ int spawn_flying_hamster(struct status_struct *status, struct visual_container_s
 
 	new_flyinghamster->name = "new_flyinghamster";
 
+	new_flyinghamster->living.alive = 1;
 	new_flyinghamster->living.HP = 1;
 	new_flyinghamster->living.power = 10;
 	new_flyinghamster->living.defence = 10;
 
 	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"flying hamster", "smiley"}, 2);
+
+	/* Insert the monster into the lane's list of active monsters: */
+
+	struct std_list **monster_list_stack_ptr = &level->monster_list_stacks[lane];
+	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
 
@@ -315,31 +337,11 @@ int spawn_flying_hamster(struct status_struct *status, struct visual_container_s
 	
 	new_flyinghamster->object_logic = object_logic_monster;
 	new_flyinghamster->object_data = status;
+
+	return new_flyinghamster;
 }
 
 //TODO	Write recursive destructors for each struct type
-
-int object_logic_monster(struct std *monster_std, void *data) {
-	struct status_struct *status = (struct status_struct *)data;
-	monster_std->container->rect_out_parent_scale.x -= 0.001;
-	struct monster_new *monster = monster_std->self;
-
-	if (monster->living.alive == 123123123 /*start-dying code or something */ ) {
-		// TODO: Append animation to animation list of explosion or something.
-		// This animation has rule where it calls function to destroy whole object at the end.
-		// Destroying object involves freeing everything, and taking the 
-		// object out of the std_list, removing the render node, etc.
-	}
-
-
-	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5).w < 0) {
-		// TODO: Destroy monster
-		printf("Destroyed\n");
-		monster_new_rm((struct monster_new *)monster_std->self, status);
-	}
-
-	return 0;
-}
 
 void set_anchor_hook(struct visual_container_struct *container, float x, float y) {
 	struct size_ratio_struct new_anchor_hook = {.w = x, .h = y};
@@ -380,18 +382,17 @@ void std_rm(struct std *std, struct status_struct *status) {
 	//free(std->object_data); //Need to think about how to do this. Data could be custom mallocd
 	//	or pointer to status struct
 	
-	/* Remove from object_list_stack */
 	struct std_list *stack_pos = std->object_stack_location;
-	if (stack_pos->prev) {
-		stack_pos->prev->next = stack_pos->next;
-	}
-	if (stack_pos->next) {
-		stack_pos->next->prev = stack_pos->prev;
-	} else {
-		status->level->object_list_stack = stack_pos->prev;
-	}
-	free(stack_pos);
+
+	/* Remove from object_list_stack */
+	std_stack_rm(&status->level->object_list_stack, stack_pos, std);
 	std->object_stack_location = NULL;
+
+	/* Remove from active monster list */
+	std_stack_rm(
+		&status->level->monster_list_stacks[status->level->lanes.currentlane], 
+		stack_pos, std);
+	std->special_object_stack_location = NULL;
 }
 
 void animate_specific_rm(struct animate_specific *animation, struct status_struct *status) {

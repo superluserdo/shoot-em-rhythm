@@ -511,18 +511,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 
 int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
-	struct std_list *list_node = malloc(sizeof(struct std_list));
-	*list_node = (struct std_list) {
-		.std = std,
-		.next = NULL,
-		.prev = *object_list_stack_ptr
-	};
-	std->object_stack_location = list_node;
-
-	if (*object_list_stack_ptr) {
-		(*object_list_stack_ptr)->next = list_node;
-	}
-	*object_list_stack_ptr = list_node;
+	std_stack_push(object_list_stack_ptr, std);
 
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;

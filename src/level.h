@@ -27,6 +27,7 @@ extern struct level_struct *level;
 
 /* Monsters */
 
+struct object_spawn_array_struct *level_init_object_spawn_arrays(void *level_setting_void, int num_lanes);
 int monsterlanenum[TOTAL_LANES];
 SDL_Rect rcMonster[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
 SDL_Rect rcMonsterSrc[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];

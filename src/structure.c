@@ -101,3 +101,35 @@ SDL_Rect visual_container_to_pixels(struct visual_container_struct *relative_con
 	struct float_rect float_rect = decascade_visual_container(relative_container);
 	return float_rect_to_pixels(&float_rect, screen_size);
 }
+
+int container_test_overlap(struct visual_container_struct *container_1, struct visual_container_struct *container_2) {
+	/* Compute whether there is any overlap between to containers.
+	   Only works for non-rotated containers */
+	struct float_rect decascade_1 = decascade_visual_container(container_1);
+	struct float_rect decascade_2 = decascade_visual_container(container_2);
+
+	int overlap = 0;
+	int overlap_x = 0;
+	int overlap_y = 0;
+
+	if (
+		((decascade_1.x > decascade_2.x) && (decascade_1.x < decascade_2.x + decascade_2.w)) ||
+		((decascade_2.x > decascade_1.x) && (decascade_2.x < decascade_1.x + decascade_1.w))
+	   ) {
+		overlap_x = 1;
+	}
+
+	if (
+		((decascade_1.y > decascade_2.y) && (decascade_1.y < decascade_2.y + decascade_2.h)) ||
+		((decascade_2.y > decascade_1.y) && (decascade_2.y < decascade_1.y + decascade_1.h))
+	   ) {
+		overlap_y = 1;
+	}
+
+	if (overlap_x && overlap_y) {
+		overlap = 1;
+	}
+
+	return overlap;
+}
+

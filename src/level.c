@@ -53,11 +53,16 @@ int level_init (struct status_struct status) {
 
 	struct level_struct *level = status.level;
 	*level = (struct level_struct) {0};
-	struct std_list **object_list_stack_ptr = &level->object_list_stack;
 	level->currentlevel = 1;
 	level->lanes.total = TOTAL_LANES;
 
 	struct lane_struct *lanes = &level->lanes;
+
+	struct std_list **object_list_stack_ptr = &level->object_list_stack;
+	level->monster_list_stacks = malloc(sizeof(*level->monster_list_stacks) * level->lanes.total);
+	for (int i = 0; i < level->lanes.total; i++) {
+		level->monster_list_stacks[i] = NULL;
+	}
 
 	timing_init(timing);
 
@@ -300,6 +305,13 @@ int level_init (struct status_struct status) {
 
 	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &timing->currentbeat_int, 5, score_container, &status, "score", &timing->currentbeat);
 
+	/* REDOING HOW OBJECTS ARE QUEUED */
+	/* Generate Monster Linked Lists */
+
+	struct object_spawn_array_struct *object_spawn_arrays = level_init_object_spawn_arrays(thislevel_setting, level->lanes.total);
+	level->object_spawn_arrays = object_spawn_arrays;
+
+
 	/*		Items		*/
 
 	Itemimg = IMG_LoadTexture(renderer, "../art/items.png");
@@ -388,7 +400,7 @@ int level_init (struct status_struct status) {
 		.aspctr_lock = H_DOMINANT,
 	};
 
-	spawn_flying_hamster(&status, &hamster_container);
+	spawn_flying_hamster(&status, &hamster_container, lanes->currentlane);
 	struct monster *flyinghamster = malloc(sizeof(struct monster));
 
 	flyinghamster->health = 1;
@@ -856,6 +868,31 @@ int level_loop(struct status_struct status) {
 	}
 
 	/* The real business */
+
+	/* Spawn in any objects that are ready */
+
+	float currentbeat = timing->currentbeat;
+	for (int lane = 0; lane < level->lanes.total; lane++) {
+		struct object_spawn_array_struct *lane_array = &level->object_spawn_arrays[lane];
+
+		while (lane_array->next_index < lane_array->num_objects) {
+			struct object_spawn_elem_struct *lane_elem = &lane_array->objects[lane_array->next_index];
+			if (currentbeat >= lane_elem->spawn_beat) {
+
+				struct visual_container_struct hamster_container = {
+					.inherit = &level->lanes.containers[lane],
+					.rect_out_parent_scale = (struct float_rect) {.x = 0.9, .y = 0, .w = 1, .h = 1},
+					.aspctr_lock = H_DOMINANT,
+				};
+
+				lane_elem->ptr = spawn_flying_hamster(&status, &hamster_container, lane);
+				lane_array->next_index++;
+			} else {
+				break;
+			}
+		}
+	}
+
 	struct std_list *current_obj = level->object_list_stack;
 	while (current_obj) {
 		struct std_list *new_obj = current_obj->prev;
@@ -1008,4 +1045,49 @@ void quitlevel(struct status_struct status) {
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
 	render_list_rm(&graphics->render_node_head);
+}
+struct object_spawn_array_struct *level_init_object_spawn_arrays(void *level_setting_void, int num_lanes) {
+
+	config_setting_t *level_setting = level_setting_void;
+	struct object_spawn_array_struct *object_spawn_arrays = malloc(sizeof(struct object_spawn_array_struct) * num_lanes);
+
+	/* Initially set all to NULL */
+	for (int lane = 0; lane < num_lanes; lane++) {
+		object_spawn_arrays[lane] = (struct object_spawn_array_struct) {0};
+	}
+
+	const config_setting_t *arrays_setting = config_setting_lookup(level_setting, "arrays");
+	
+	if (arrays_setting == NULL) {
+		printf("No settings found for 'arrays' in the config file\n");
+		return NULL;
+	}
+
+	int count = config_setting_length(arrays_setting);
+	config_setting_t *singlearray_setting;
+
+	for (int lane = 0; lane < count; lane++) {
+		singlearray_setting = config_setting_get_elem(arrays_setting, lane);
+		if ((singlearray_setting == NULL) || (config_setting_length(singlearray_setting) <= 0)) {
+			object_spawn_arrays[lane] = (struct object_spawn_array_struct) {0};
+		}
+		else {
+			int lane_count = config_setting_length(singlearray_setting);
+			object_spawn_arrays[lane] = (struct object_spawn_array_struct) {
+				.next_index = 0, /* Index of next item to load by spawn_beat */
+				.num_objects = lane_count,
+				.objects = malloc(sizeof(struct object_spawn_elem_struct) * lane_count),
+			};
+
+			struct object_spawn_elem_struct *lane_array = object_spawn_arrays[lane].objects;
+
+			for (int index = 0; index < lane_count; index++) {
+				lane_array[index] = (struct object_spawn_elem_struct) {
+					.spawn_beat = config_setting_get_float_elem(singlearray_setting, index),
+					.ptr = NULL,
+				};
+			}
+		}
+	}
+	return object_spawn_arrays;
 }

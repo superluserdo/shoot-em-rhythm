@@ -30,6 +30,33 @@ void int2array(int number, int *array, int array_digits) {
 
 }
 
+struct std_list *std_stack_push(struct std_list **stack_ptr, struct std *std) {
+	struct std_list *list_node = malloc(sizeof(*list_node));
+	*list_node = (struct std_list) {
+		.std = std,
+		.next = NULL,
+		.prev = *stack_ptr
+	};
+	std->object_stack_location = list_node;
+
+	if (*stack_ptr) {
+		(*stack_ptr)->next = list_node;
+	}
+	*stack_ptr = list_node;
+}
+
+void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos, struct std *std) {
+	if (stack_pos->prev) {
+		stack_pos->prev->next = stack_pos->next;
+	}
+	if (stack_pos->next) {
+		stack_pos->next->prev = stack_pos->prev;
+	} else {
+		*stack_ptr = stack_pos->prev;
+	}
+	free(stack_pos);
+}
+
 void deleteList(struct monster_node** head_ref) {
    struct monster_node* current = *head_ref;
    struct monster_node* next;
