@@ -54,3 +54,4 @@ extern pthread_cond_t display_cond;
 extern pthread_cond_t cond_end;
 extern pthread_mutex_t track_mutex; 
 
+void quitlevel(struct status_struct status);

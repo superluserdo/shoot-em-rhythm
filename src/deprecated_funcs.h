@@ -74,5 +74,3 @@ void PPup(int *max_PPptr, int PPuppts, void *nullptr);
 void multidrop();
 
 void dropin( char arg[], int map[100][100][2], int posx, int posy);
-
-void quitlevel(struct status_struct status);

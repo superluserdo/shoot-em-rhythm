@@ -10,10 +10,14 @@
 #include "object_logic.h"
 
 int object_logic_player(struct std *player_std, void *data) {
+
 	struct status_struct *status = data;
 	struct level_struct *level = status->level;
 	//struct object_spawn_array_struct *object_spawn_array = 
 	//		&level->object_spawn_arrays[level->lanes.currentlane];
+
+	/* Put character in correct lane */
+	player_std->animation->container.inherit = &level->lanes.containers[level->lanes.currentlane];
 
 	/* Get hurt by monster */
 	struct player_struct *player = player_std->self;

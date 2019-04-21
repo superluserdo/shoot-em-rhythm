@@ -16,7 +16,7 @@
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
 #include "spawn.h"
-#include "deprecated_funcs.h"
+//#include "deprecated_funcs.h"
 
 #define SWORD_WIDTH 32
 #define SWORD_HEIGHT 32 // Get rid of this, put it in animaions.cfg or something
@@ -148,21 +148,6 @@ int level_init (struct status_struct status) {
 	for (int lane = 0; lane < lanes->total; lane++)
 		remainder[lane] = 0.0;
 
-	/* Declare Textures */
-	struct rects_struct *rects = malloc(sizeof(struct rects_struct));
-	*rects = (struct rects_struct) {0};
-	level->rects = rects;
-
-	SDL_Texture *Spriteimg = NULL;
-	SDL_Texture *Laserimg = NULL;
-	SDL_Texture *Swordimg = NULL;
-	SDL_Texture *Timg = NULL;
-	SDL_Texture *Mon0img = NULL;
-	SDL_Texture *Mon1img = NULL;
-	SDL_Texture *Scoreimg = NULL;
-	SDL_Texture *Beatimg = NULL;
-	SDL_Texture *Itemimg = NULL;
-
 	int w, h;
 
 	/*		Sprite		*/
@@ -211,13 +196,12 @@ int level_init (struct status_struct status) {
 	};
 
 	spawn_player(object_list_stack_ptr, generic_anim_dict, graphics, player, &player_container, &status, player_setting, "player");
-	player->living.invincibility_toggle = 1; //REMOVE
 
 
 	/*		Tiles		*/
 
 	// set tile position
-	Timg = IMG_LoadTexture(renderer, TILE_PATH);
+	SDL_Texture *Timg = IMG_LoadTexture(renderer, TILE_PATH);
 		
 	SDL_QueryTexture(Timg, NULL, NULL, &w, &h); // get the width and height of the texture
 
@@ -314,7 +298,7 @@ int level_init (struct status_struct status) {
 
 	/*		Items		*/
 
-	Itemimg = IMG_LoadTexture(renderer, "../art/items.png");
+	SDL_Texture *Itemimg = IMG_LoadTexture(renderer, "../art/items.png");
 	SDL_QueryTexture(Itemimg, NULL, NULL, &w, &h); // get the width and height of the texture
 
 	struct item potion;
@@ -323,7 +307,7 @@ int level_init (struct status_struct status) {
 	potion.int1 = &player->living.HP;
 	potion.int2 = 50; //Amount of HP restored by potion
 	potion.otherdata = (void *)&player;
-	potion.functionptr = &restorehealth;
+	potion.functionptr = NULL;//&restorehealth;
 	memcpy(&potion.Src, &(int [2]){ 0, 0 }, sizeof potion.Src);
 	memcpy(&potion.wh, &(int [2]){ 20,20 }, sizeof potion.wh);
 	potion.image = &Itemimg;
@@ -334,7 +318,7 @@ int level_init (struct status_struct status) {
 	laserjuice.int1 = &player->living.power;
 	laserjuice.int2 = 200; //Amount of HP restored by laserjuice
 	laserjuice.otherdata = (void *)&player;
-	laserjuice.functionptr = &restorepower;
+	laserjuice.functionptr = NULL;//&restorepower;
 	memcpy(&laserjuice.Src, &(int [2]){ 0, 20 }, sizeof laserjuice.Src);
 	memcpy(&laserjuice.wh, &(int [2]){ 20,20 }, sizeof laserjuice.wh);
 	laserjuice.image = &Itemimg;
@@ -344,7 +328,7 @@ int level_init (struct status_struct status) {
 	fist.itemnumber = 2;
 	fist.int1 = &player->living.max_PP;
 	fist.int2 = 20; //Amount of PP increased
-	fist.functionptr = &PPup;
+	fist.functionptr = NULL;//&PPup;
 	memcpy(&fist.Src, &(int [2]){ 20, 0 }, sizeof fist.Src);
 	memcpy(&fist.wh, &(int [2]){ 20,20 }, sizeof fist.wh);
 	fist.image = &Itemimg;
@@ -357,8 +341,8 @@ int level_init (struct status_struct status) {
 	/* Item Functions */
 
 	void (*itemfunctionarray[10])(int *int1ptr, int int2, void *otherdata);
-	itemfunctionarray[0] = &restorehealth;
-	itemfunctionarray[1] = &restorepower;
+	itemfunctionarray[0] = NULL;//&restorehealth;
+	itemfunctionarray[1] = NULL;//&restorepower;
 	//	(*itemfunctionarray[0])(&player->living.HP, 3);
 
 
@@ -373,7 +357,7 @@ int level_init (struct status_struct status) {
 	laser->turnon = 0;
 	laser->turnoff = 0;
 
-	Laserimg = IMG_LoadTexture(renderer, LASER_PATH);
+	SDL_Texture *Laserimg = IMG_LoadTexture(renderer, LASER_PATH);
 	SDL_QueryTexture(Laserimg, NULL, NULL, &w, &h); // get the width and height of the texture
 
 	/* Sword */
@@ -384,115 +368,7 @@ int level_init (struct status_struct status) {
 	sword->rect_in.w = SWORD_WIDTH;
 	sword->rect_in.h = SWORD_HEIGHT;
 
-	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
-	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	/*		Monsters	*/
-
-	Mon0img = IMG_LoadTexture(renderer, "../art/flyinghamster.png");
-	Mon1img = IMG_LoadTexture(renderer, "../art/angrycircle.png");
-	SDL_QueryTexture(Mon0img, NULL, NULL, &w, &h); // get the width and height of the texture
-	SDL_QueryTexture(Mon1img, NULL, NULL, &w, &h); // get the width and height of the texture
-
-	struct visual_container_struct hamster_container = {
-		.inherit = &lanes->containers[lanes->currentlane],
-		.rect_out_parent_scale = (struct float_rect) {.x = 0.9, .y = 0, .w = 1, .h = 1},
-		.aspctr_lock = H_DOMINANT,
-	};
-
-	spawn_flying_hamster(&status, &hamster_container, lanes->currentlane);
-	struct monster *flyinghamster = malloc(sizeof(struct monster));
-
-	flyinghamster->health = 1;
-	flyinghamster->attack = 10;
-	flyinghamster->defence = 10;
-	memcpy(&flyinghamster->Src, &(int [2]){ 0, 0 }, sizeof flyinghamster->Src);
-	memcpy(&flyinghamster->wh, &(int [2]){ 20,20 }, sizeof flyinghamster->wh);
-	flyinghamster->image = Mon0img;
-	flyinghamster->generic_bank_index = 1;
-
-	struct monster *angrycircle = malloc(sizeof(struct monster));
-
-	angrycircle->health = 500;
-	angrycircle->attack = 10;
-	angrycircle->defence = 10;
-	memcpy(&angrycircle->Src, &(int [2]){ 0, 0 }, sizeof angrycircle->Src);
-	memcpy(&angrycircle->wh, &(int [2]){ 20,20 }, sizeof angrycircle->wh);
-	angrycircle->image = Mon1img;
-
-	struct monster *monsterpokedex[10];
-	monsterpokedex[0] = flyinghamster;
-	monsterpokedex[1] = angrycircle;
-	struct monster *(*bestiary)[10] = &level->bestiary;
-	(*bestiary)[0] = flyinghamster;
-	(*bestiary)[1] = angrycircle;
-
-
-	/* Generate Monster Linked Lists */
-
-	const config_setting_t *arrays_setting;
-	arrays_setting = config_setting_lookup(thislevel_setting, "arrays");
-	if (arrays_setting == NULL) {
-		printf("No settings found for 'arrays' in the config file\n");
-		return R_FAILURE;
-	}
-
-	int count = config_setting_length(arrays_setting);
-	config_setting_t *singlearray_setting;
-
-	struct monster_node *ptr2mon;
-	for (int lane = 0; lane < lanes->total; lane++) {
-		singlearray_setting = config_setting_get_elem(arrays_setting, lane);
-		if (singlearray_setting == NULL) {
-			linkptrs_start[lane] = NULL;
-		}
-		else if (config_setting_length(singlearray_setting) <= 0) {
-			linkptrs_start[lane] = NULL;
-		}
-
-		else {
-			int count = config_setting_length(singlearray_setting);
-
-			float lanearray[count];
-			/*   ^{entrybeat, montype}	*/
-			for (int index = 0; index < count; index++) {
-				lanearray[index] = config_setting_get_float_elem(singlearray_setting, index);
-			}
-
-			linkptrs_start[lane] = malloc( sizeof(struct monster_node));
-			if (linkptrs_start[lane] == NULL) {
-				return R_FAILURE;
-			}
-			linkptrs_end[lane] = linkptrs_start[lane];
-			monsterlanenum[lane] = 0;
-			ptr2mon = linkptrs_start[lane];
-
-			for (int index = 0; index < count; index++) {
-				ptr2mon->montype = 0;
-				ptr2mon->status = 0;
-				ptr2mon->health = (*bestiary)[ptr2mon->montype]->health;
-				ptr2mon->speed = 1;
-				ptr2mon->entrybeat = lanearray[index];
-				ptr2mon->remainder = 0;
-				ptr2mon->monster_rect.w = 32 * ZOOM_MULT;
-				ptr2mon->monster_rect.h = 32 * ZOOM_MULT;
-				ptr2mon->monster_rect.x = graphics->width;
-				ptr2mon->monster_rect.y = lanes->laneheight[lane] - ptr2mon->monster_rect.h/2;
-				ptr2mon->monster_src.x = (*bestiary)[ptr2mon->montype]->Src[0];
-				ptr2mon->monster_src.y = (*bestiary)[ptr2mon->montype]->Src[1];
-				ptr2mon->monster_src.w = (*bestiary)[ptr2mon->montype]->wh[0];
-				ptr2mon->monster_src.h = (*bestiary)[ptr2mon->montype]->wh[1];
-				if (index < count - 1) {
-					ptr2mon->next = malloc( sizeof(struct monster_node) );
-					if (ptr2mon->next == NULL) {
-						return R_FAILURE;
-					}
-					ptr2mon = ptr2mon->next;
-				}
-			}
-			ptr2mon->next = NULL;
-		}
-	}
+	SDL_Texture *Swordimg = IMG_LoadTexture(renderer, SWORD_PATH); SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture 
 
 	/*		Maps & Mapstrips	*/
 
@@ -571,11 +447,6 @@ int level_init (struct status_struct status) {
 
 
 
-	//	multidrop(); //	dropin( "house", sampletilemapmid, 20, 20);
-
-
-	//refreshtiles(screenstrip, monsterscreenstrip, itemscreenstrip, level->currentscreen, grid, rects->rcTile, rects->rcTilemid, rects->rcTSrc, rects->rcTSrcmid, 0, lanes.laneheight, monsterpokedex, (*itempokedex));
-
 	/*	Event Handling	*/
 
 	struct level_var_struct *vars = malloc(sizeof(struct level_var_struct));
@@ -603,9 +474,7 @@ int level_init (struct status_struct status) {
 	//}
 
 
-	//pthread_mutex_lock( &track_mutex );
 	audio->track = audio->newtrack;
-	//pthread_mutex_unlock( &track_mutex );
 
 	/* Snazzy Effects */
 
@@ -645,8 +514,6 @@ int level_loop(struct status_struct status) {
 	struct laser_struct *laser = &level->laser;
 	struct sword_struct *sword = &level->sword;
 	struct rects_struct *rects = level->rects;
-	struct monster *(*bestiary)[10] = &level->bestiary;
-	struct item *(*itempokedex)[10]	= &level->itempokedex;;
 	struct lane_struct *lanes = &level->lanes;
 	SDL_Renderer *renderer = graphics->renderer;
 	uint64_t cpustart, cpuend;
@@ -666,11 +533,6 @@ int level_loop(struct status_struct status) {
 		printf("%f\n", timing->currentbeat);
 		debugcount++;
 	}
-	if (timing->currentbeat >= 81) {
-		level->speedmult = 3;
-		level->speedmultmon = 3;
-	}
-
 
 	if (level->levelover) {
 		quitlevel(status);
@@ -688,8 +550,6 @@ int level_loop(struct status_struct status) {
 	}
 
 	/* Handle Events */
-
-	int direction;
 
 	SDL_Event e;
 	while ( SDL_PollEvent(&e) ) {
@@ -729,36 +589,17 @@ int level_loop(struct status_struct status) {
 		}
 
 
-		if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_RIGHT){
-			vars->directionbuttonlist[1] = 0;}
-		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RIGHT){
-			vars->directionbuttonlist[1] = 1;
-			vars->history[vars->histwrite] = 1;
-			direction = 1;
+		if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RIGHT) ||
+			(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN)) {
+			if (lanes->currentlane < lanes->total - 1) {
+				(lanes->currentlane)++;
+			}
 		}
-
-		else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_LEFT){
-			vars->directionbuttonlist[3] = 0;}
-		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_LEFT){
-			vars->directionbuttonlist[3] = 1;
-			vars->history[vars->histwrite] = 3;
-			direction = 3;
-		}
-
-		else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_DOWN){
-			vars->directionbuttonlist[2] = 0;}
-		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN){
-			vars->directionbuttonlist[2] = 1;
-			vars->history[vars->histwrite] = 2;
-			direction = 2;
-		}
-
-		else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_UP){
-			vars->directionbuttonlist[0] = 0;}
-		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP){
-			vars->directionbuttonlist[0] = 1;
-			vars->history[vars->histwrite] = 0;
-			direction = 0;
+		if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_LEFT) ||
+			(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP)) {
+			if (lanes->currentlane > 0) {
+				(lanes->currentlane)--;
+			}
 		}
 
 		if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_a){
@@ -903,24 +744,12 @@ int level_loop(struct status_struct status) {
 								  this loop still works */
 	}
 
-	moveme(lanes, &direction, player->animation);
-
-
-	//movemap(&level, player, grid, rects->rcTile, rects->rcTilemid, rects->rcTSrc, rects->rcTSrcmid, lanes->total, screenstrip, monsterscreenstrip, itemscreenstrip, &monsterpokedex, &itempokedex);
-
-	//movemon(lanes->total, level->speedmultmon, *timing, linkptrs_start, linkptrs_end, monsterlanenum, level->remainder, player->animation->rect_out, sword->rect_out, graphics->width);
 	if (laser->on) {
 		//laserfire(level, lanes->total, laser, player, rects->rcLaser, rects->rcLaserSrc, player->animation->rect_out, lanes->laneheight, lanes->currentlane, timing->framecount, level->currentscreen, level->effects->hue, audio->soundchecklist);
 	}
 
 	if ( player->sword )
 		//swordfunc(level, sword, player->animation->rect_out, timing->framecount, linkptrs_start, *audio);
-
-	//invinciblefunc(player);
-
-	//amihurt(lanes->total, status, linkptrs_start, player->animation->rect_out, (*bestiary));
-
-	//touchitem(lanes, lanes->currentlane, level->currentscreen, player->animation->rect_out, (*itempokedex), level->itemscreenstrip, &level->levelover, audio->soundchecklist);
 
 	/*	Drop into python interpreter */
 
@@ -960,25 +789,6 @@ int level_loop(struct status_struct status) {
 		}
 	}
 
-	for (int lane = 0; lane < lanes->total; lane++) {
-		struct monster_node *ptr2mon = linkptrs_start[lane];
-		for (int i = 0; i < monsterlanenum[lane]; i++ ) {
-			if ( ptr2mon->status != -1){
-				SDL_RenderCopy(renderer, (*(*bestiary)[ptr2mon->montype]).image, &(ptr2mon->monster_src), &(ptr2mon->monster_rect));
-			}
-			ptr2mon = ptr2mon->next;
-		}
-	}
-	for (int lane = 0; lane < lanes->total; lane++) {
-		for (int screen = 0; screen < 3; screen++) {
-			for (int i = 0; i < itemlanenum[screen][lane]; i++ ) {
-				if ( (*iteminfoptrs[screen])[lane][i] != -1){
-					SDL_RenderCopy(renderer, *(*(*itempokedex)[(*level->itemscreenstrip[level->currentscreen + screen])[lane][i][0]]).image, &rcItemSrc[screen][lane][i], &rcItem[screen][lane][i]);
-
-				}
-			}
-		}
-	}
 	if (laser->on){
 		for (int i = 0; i < 3; i++) {
 			//SDL_RenderCopy(renderer, imgs->Laserimg, &rects->rcLaserSrc[i], &rects->rcLaser[i]);
