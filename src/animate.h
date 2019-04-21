@@ -28,8 +28,5 @@ void rules_ui(void *data);
 void rules_ui_bar(void *data);
 void rules_ui_counter(void *animvoid);
 
-int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
-int transform_rm(struct animate_specific *animation, void (*func)());
-
 struct anchor_struct *make_anchors_exposed(struct animate_specific *anim, int n);
 void de_update_containers(struct std_list *std_list_node);

@@ -136,7 +136,6 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 					{abs_container.x, abs_container.y + abs_container.h},
 					{abs_container.x, abs_container.y},
 				};
-				//printf("{%d, %d, %d, %d}\n", anchor_rect.x, anchor_rect.y, anchor_rect.w, anchor_rect.h); 
 				int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
 				if (rc != 0) {
 					printf("%s\n", SDL_GetError());
@@ -348,28 +347,30 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 		while (animation) {
 			struct animate_generic *generic = animation->generic;
 
-			if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
-				if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-					animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
-					animation->frame++;
+			if (generic) { /* (Animation is not a dummy) */
+				if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
+					if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
+						animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
+						animation->frame++;
+					}
 				}
-			}
-			if (animation->frame >= generic->clips[animation->clip]->num_frames) {
-				if (animation->loops == 0) {
-					animation->clip = animation->return_clip;	
-					animation->frame = 0;
-					animation->loops = -1;
+				if (animation->frame >= generic->clips[animation->clip]->num_frames) {
+					if (animation->loops == 0) {
+						animation->clip = animation->return_clip;	
+						animation->frame = 0;
+						animation->loops = -1;
+					}
+					else {
+						animation->frame = 0;
+						if (animation->loops > 0)
+							animation->loops--;
+					}
 				}
-				else {
-					animation->frame = 0;
-					if (animation->loops > 0)
-						animation->loops--;
-				}
+			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
+
 			}
 
 			struct visual_container_struct *container = &animation->container;
-
-			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
 
 			struct func_node *transform_node = animation->transform_list;
 
@@ -386,7 +387,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			struct rule_node *rule_node = animation->rules_list;
 
 			while (rule_node) {
-				//(rule_node->rule)(rule_node->data);
+				(rule_node->rule)(rule_node->data);
 				rule_node = rule_node->next;
 				rule_node_count++;
 			}
@@ -398,31 +399,33 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
 			container->screen_scale_uptodate = 1;
 
-			struct render_node *render_node = animation->render_node;
-			if (!render_node) {
-				generate_render_node(animation, graphics);
-				render_node = animation->render_node;
-			}
-			render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
-			if (render_node->z != animation->z) {
-				/* Take render node out of the list */
-				if (render_node->prev) {
-					render_node->prev->next = render_node->next;
-				} else {
-					graphics->render_node_head = render_node->next;
+			if (generic) {
+				struct render_node *render_node = animation->render_node;
+				if (!render_node) {
+					generate_render_node(animation, graphics);
+					render_node = animation->render_node;
 				}
-				if (render_node->next) {
-					render_node->next->prev = render_node->prev;
-				} else {
-					graphics->render_node_tail = render_node->prev;
+				render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
+				if (render_node->z != animation->z) {
+					/* Take render node out of the list */
+					if (render_node->prev) {
+						render_node->prev->next = render_node->next;
+					} else {
+						graphics->render_node_head = render_node->next;
+					}
+					if (render_node->next) {
+						render_node->next->prev = render_node->prev;
+					} else {
+						graphics->render_node_tail = render_node->prev;
+					}
+					/* Put render node back in the list in the right place */
+					node_insert_z_over(graphics, render_node, animation->z);
 				}
-				/* Put render node back in the list in the right place */
-				node_insert_z_over(graphics, render_node, animation->z);
-			}
 
-			render_node->rect_out = abs_rect;
-			//render_node = render_node->next;
-			render_node_count++;
+				render_node->rect_out = abs_rect;
+				//render_node = render_node->next;
+				render_node_count++;
+			}
 
 			animation = animation->next;
 		}
@@ -457,35 +460,34 @@ struct animate_specific *new_specific_anim(struct std *std, struct animate_gener
 	struct animate_specific *specific = malloc(sizeof(struct animate_specific));
 
 	*specific = (struct animate_specific) {0};
-	specific->generic = generic;
-	specific->container.aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
-	specific->container.rect_out_parent_scale.w = generic->clips[specific->clip]->container_scale_factor;
-	specific->container.rect_out_parent_scale.h = generic->clips[specific->clip]->container_scale_factor;
-	
-	struct rule_node *rule_tmp;
-	struct rule_node **rule_ptr = &specific->rules_list;
-
-	struct func_node *tr_tmp;
-	struct func_node **tr_ptr = &specific->transform_list;
 
 	/*	Fetch object-type default values for the specific-animation struct.	*/
-
 	specific->object = std;
-	
+
 	make_anchors_exposed(specific, 1);
-	/* By default, make the animation's position in the container be determined
-	 * not by an anchor but by its std object's "pos" */
-	specific->container.anchor_grabbed = NULL;
+	specific->generic = generic;
 
-	/* By default, make the animation's internal relative anchor hook
-	 * the same as the one specified by the generic animation */
-	struct frame frame = generic->clips[specific->clip]->frames[specific->frame];
+	/* Generic animation (provided generic is not NULL (ie this isn't a dummy animation) */
+	if (generic) {
+		specific->container.aspctr_lock = generic->clips[specific->clip]->aspctr_lock;
+		specific->container.rect_out_parent_scale.w = generic->clips[specific->clip]->container_scale_factor;
+		specific->container.rect_out_parent_scale.h = generic->clips[specific->clip]->container_scale_factor;
+		
+		
+		/* By default, make the animation's position in the container be determined
+		 * not by an anchor but by its std object's "pos" */
+		specific->container.anchor_grabbed = NULL;
 
-	struct size_ratio_struct anchor_hook_pos_internal = {
-		.w = (float)frame.anchor_hook.x / (float)frame.rect.w,
-		.h = (float)frame.anchor_hook.y / (float)frame.rect.h,
-	};
-	specific->container.anchor_hook = anchor_hook_pos_internal;
+		/* By default, make the animation's internal relative anchor hook
+		 * the same as the one specified by the generic animation */
+		struct frame frame = generic->clips[specific->clip]->frames[specific->frame];
+
+		struct size_ratio_struct anchor_hook_pos_internal = {
+			.w = (float)frame.anchor_hook.x / (float)frame.rect.w,
+			.h = (float)frame.anchor_hook.y / (float)frame.rect.h,
+		};
+		specific->container.anchor_hook = anchor_hook_pos_internal;
+	}
 
 	specific->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
 	return specific;
@@ -516,15 +518,22 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	struct animate_specific **a_ptr = &std->animation;
 	struct animate_specific *anim = *a_ptr;
 	for (int i = 0; i < num_specific_anims; i++) {
-		struct animate_generic *generic = dict_get_val(generic_anim_dict, specific_type_array[i]);
-		if (!generic) {
-			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
-			abort();
+		struct animate_generic *generic = NULL;
+		/* Only get generic anim and make render node if
+		    animation type is not "none" (glorified container) */
+		if (strcmp(specific_type_array[i], "none") != 0) {
+			generic = dict_get_val(generic_anim_dict, specific_type_array[i]);
+			if (!generic) {
+				fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
+				abort();
+			}
+			//anim = generate_specific_anim(std, generic);
 		}
-		//anim = generate_specific_anim(std, generic);
 		anim = new_specific_anim(std, generic);
 		*a_ptr = anim;
-		generate_render_node(anim, graphics);
+		if (generic) {
+			generate_render_node(anim, graphics);
+		}
 		a_ptr = (&(*a_ptr)->next);
 	}
 	// Make final "next" ptr NULL to prevent segfaults
@@ -725,50 +734,6 @@ int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str
 	return R_SUCCESS;
 }
 
-int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {
-	struct func_node *node = animation->transform_list;
-	int do_add = 1;
-	while (node) {
-		if (node->func == func) {
-			do_add = 0;
-			break;
-		}
-		node = node->next;
-	}
-	if (do_add) {
-		node = malloc(sizeof(struct func_node));
-		node->data = data;
-		node->func = func;
-		node->next = animation->transform_list;
-		animation->transform_list = node;
-	}
-	return 0;
-}
-	
-
-int transform_rm(struct animate_specific *animation, void (*func)()) {
-	struct func_node *node = animation->transform_list;
-	struct func_node *prev = NULL;
-	while (node) {
-		
-		if (node->func == func) {
-			if (prev) {
-				prev->next = node->next;
-			}
-			else {
-				animation->transform_list = node->next;
-			}
-			free(node->data);
-			free(node);
-			break;
-		}
-		prev = node;
-		node = node->next;
-	}
-
-	return 0;
-}
-
 
 void rules_player(void *status_void) {
 	struct status_struct *status = (struct status_struct *)status_void;
@@ -793,15 +758,13 @@ void rules_ui(void *data) {
 		str->ampl = 1.5;
 	else
 		str->ampl = 1.2 + (float)(*str->score)/1000.0;
-	//printf("%f\n", animation->container->rect_out_parent_scale.w);
 }
 void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
 	//struct ui_bar *bar = animation->object->self_ui_bar;
 	struct ui_bar *bar = animation->object->self;
 	float ratio = (float) *bar->amount / *bar->max;
-	//animation->rect_out.w = 50 * ZOOM_MULT * 2 * ratio * animation->object->size_ratio.w;
-	animation->container.rect_out_parent_scale.w *= ratio;
+	animation->container.rect_out_parent_scale.w = ratio;
 	if ( ratio <= 0.5 ) {
 		if ( ratio <= 0.2 ) {
 			animation->frame = 2;

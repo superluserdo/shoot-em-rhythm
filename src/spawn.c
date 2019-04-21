@@ -47,16 +47,23 @@ void prepare_anim_character(struct animate_specific *anim, struct status_struct 
 
 }
 
+void prepare_anim_ui_bar(struct animate_specific *anim, struct status_struct *status) {
+
+	prepare_anim_ui(anim, status);
+
+	anim->next->next->rules_list = malloc(sizeof(struct rule_node));
+	anim->next->next->rules_list->rule = &rules_ui_bar;
+	anim->next->next->rules_list->data = anim->next->next;
+	anim->next->next->rules_list->next = NULL;
+
+}
+
 void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status) {
 
 	anim->rules_list = malloc(sizeof(struct rule_node));
-	anim->rules_list->rule = &rules_ui_bar;
-	anim->rules_list->data = anim;
-	anim->rules_list->next = malloc(sizeof(struct rule_node));
-	anim->rules_list->next->rule = &rules_ui;
-	anim->rules_list->next->data = NULL;
-	anim->rules_list->next->next = NULL;
-
+	anim->rules_list->rule = &rules_ui;
+	anim->rules_list->data = NULL;
+	anim->rules_list->next = NULL;
 	struct func_node *tr_node = malloc(sizeof(struct func_node));
 
 	struct tr_bump_data *bumpdata = malloc(sizeof(struct tr_bump_data));
@@ -71,7 +78,7 @@ void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status
 	tr_node->func = &tr_bump;
 	tr_node->next = NULL;
 	anim->transform_list = tr_node;
-	anim->rules_list->next->data = (void *)bumpdata;
+	anim->rules_list->data = (void *)bumpdata;
 }
 
 void spawn_player(struct std_list **object_list_stack_ptr,
@@ -97,12 +104,13 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 
 	config_setting_lookup_int(player_setting, "max_HP", &player->living.max_HP);
 	player->living.HP = player->living.max_HP;
+	player->living.iframes_duration = 2.0;
 
 	config_setting_lookup_int(player_setting, "max_PP", &player->living.max_PP);
 	player->living.power = player->living.max_PP;
 
 	player->object_logic = object_logic_player;
-	player->object_data = status->level;
+	player->object_data = status;
 }
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
@@ -119,23 +127,30 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	bar->max = bar_max_ptr;
 	bar->name = name;
 	bar->self = bar;
-	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "coloured bar"}, 2);
+	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "none", "coloured bar"}, 3);
 
 	struct animate_specific *anim = bar->animation;
 
-	prepare_anim_ui(anim, status);
+	prepare_anim_ui_bar(anim, status);
 
 	anim->container = *container;
 	anim->container.anchors_exposed = malloc(sizeof(*bar->animation->container.anchors_exposed));
 	anim->container.num_anchors_exposed = 1;
 	anim->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
-	anim->next->container.inherit = &anim->container;
-	anim->next->container.anchor_grabbed = &anim->container.anchors_exposed[0];
-	//anim->next->container.anchor_grabbed_offset_internal_scale = (struct size_ratio_struct) {-0.2, 0};
 
+	anim->next->container.inherit = &anim->container;
+	anim->next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
+	anim->next->container.anchor_grabbed = &anim->container.anchors_exposed[0];
 	anim->next->container.aspctr_lock = WH_INDEPENDENT;
-	anim->next->container.rect_out_parent_scale.w = 0.425;
+	anim->next->container.rect_out_parent_scale.w = 0.5;
 	anim->next->container.rect_out_parent_scale.h = 0.40;
+	anim->next->container.anchors_exposed[0] = (struct size_ratio_struct) {0, 0.5};
+
+	anim->next->next->container.inherit = &anim->next->container;
+	anim->next->next->container.anchor_grabbed = &anim->next->container.anchors_exposed[0];
+	anim->next->next->container.aspctr_lock = WH_INDEPENDENT;
+	anim->next->next->container.rect_out_parent_scale = 
+		(struct float_rect) {.w = 1, .h = 1};
 
 	return bar;
 }
@@ -174,8 +189,6 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	dummy_anim->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 	
 	prepare_anim_ui(dummy_anim, status);
-
-	dummy_anim->rules_list->data = dummy_anim;
 
 	struct animate_specific *anim = dummy_anim->next;
 

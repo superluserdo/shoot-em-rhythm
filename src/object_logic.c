@@ -6,10 +6,12 @@
 #include "main.h"
 #include "structure.h"
 #include "spawn.h"
+#include "transform.h"
 #include "object_logic.h"
 
 int object_logic_player(struct std *player_std, void *data) {
-	struct level_struct *level = data;
+	struct status_struct *status = data;
+	struct level_struct *level = status->level;
 	//struct object_spawn_array_struct *object_spawn_array = 
 	//		&level->object_spawn_arrays[level->lanes.currentlane];
 
@@ -25,16 +27,43 @@ int object_logic_player(struct std *player_std, void *data) {
 			if (monster->living.alive) {
 				int collision = container_test_overlap(player_std->container, monster_node->std->container);
 				if (collision) {
-					player->living.invincibility_toggle = 1;
 					player->living.HP -= 10;
-					printf("HIT! HP remaining: %d\n", player->living.HP);
+					if ( player->living.HP <= 0 ) {
+						status->audio->soundchecklist[5] = 1;
+						level->levelover = 1;
+					} else {
+
+						/* Turn on i-frames */
+						struct tr_blink_data *blink_data = malloc(sizeof(*blink_data));
+						*blink_data = (struct tr_blink_data) {
+							.framecount = &status->timing->framecount,
+							.frames_on = 5,
+							.frames_off = 5,
+						};
+						transform_add_check(player->std.animation, blink_data, tr_blink);
+						status->audio->soundchecklist[4] = 1;
+
+						player->living.invincibility = 1;
+						player->living.invincible_since = status->timing->currentbeat;
+					}
+					break;
 				}
 			}
 			count++;
 			monster_node = monster_node->prev;
 		}
-		printf("Count: %d\r", count);
 	}
+
+	if (player->living.invincibility == 1) {
+
+		/* Stop iframes */
+		if (status->timing->currentbeat - player->living.invincible_since >= 
+			player->living.iframes_duration) {
+			transform_rm(player->std.animation, tr_blink);
+			player->living.invincibility = 0;
+		}
+	}
+
 
 }
 

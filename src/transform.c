@@ -135,3 +135,48 @@ void tr_orbit_xyz(void *rect_trans, void *data) {
 	//*str.z_set = ((int)beat%4)/2 ? 1 : -1;
 	//*str.z_set = 1;
 }
+
+int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {
+	struct func_node *node = animation->transform_list;
+	int do_add = 1;
+	while (node) {
+		if (node->func == func) {
+			do_add = 0;
+			break;
+		}
+		node = node->next;
+	}
+	if (do_add) {
+		node = malloc(sizeof(struct func_node));
+		node->data = data;
+		node->func = func;
+		node->next = animation->transform_list;
+		animation->transform_list = node;
+	}
+	return 0;
+}
+	
+
+int transform_rm(struct animate_specific *animation, void (*func)()) {
+	struct func_node *node = animation->transform_list;
+	struct func_node *prev = NULL;
+	while (node) {
+		
+		if (node->func == func) {
+			if (prev) {
+				prev->next = node->next;
+			}
+			else {
+				animation->transform_list = node->next;
+			}
+			free(node->data);
+			free(node);
+			break;
+		}
+		prev = node;
+		node = node->next;
+	}
+
+	return 0;
+}
+

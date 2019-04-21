@@ -63,3 +63,6 @@ struct tr_orbit_xyz_data {
 
 void tr_constmult(struct float_rect *rect, int rect_bitmask, float ampl, float mult);
 
+int transform_add_check(struct animate_specific *animation, void *data, void (*func)());
+int transform_rm(struct animate_specific *animation, void (*func)());
+

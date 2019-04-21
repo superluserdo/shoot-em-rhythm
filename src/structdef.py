@@ -141,6 +141,24 @@ class struct_std(ctypes.Structure):
 class struct_animate_specific(ctypes.Structure):
     pass
 
+class struct_rule_node(ctypes.Structure):
+    pass
+
+struct_rule_node._pack_ = True # source:False
+struct_rule_node._fields_ = [
+    ('rule', POINTER_T(ctypes.CFUNCTYPE(None, POINTER_T(None)))),
+    ('data', POINTER_T(None)),
+    ('next', POINTER_T(struct_rule_node)),
+]
+
+
+# values for enumeration 'layer_mode_e'
+TIGHT = 0
+GLOBAL = 1
+layer_mode_e = ctypes.c_int # enum
+class struct_render_node(ctypes.Structure):
+    pass
+
 class struct_func_node(ctypes.Structure):
     pass
 
@@ -149,6 +167,22 @@ struct_func_node._fields_ = [
     ('data', POINTER_T(None)),
     ('func', POINTER_T(ctypes.CFUNCTYPE(None, POINTER_T(None), POINTER_T(None)))),
     ('next', POINTER_T(struct_func_node)),
+]
+
+struct_render_node._pack_ = True # source:False
+struct_render_node._fields_ = [
+    ('prev', POINTER_T(struct_render_node)),
+    ('next', POINTER_T(struct_render_node)),
+    ('rect_in', POINTER_T(struct_SDL_Rect)),
+    ('rect_out', struct_SDL_Rect),
+    ('img', POINTER_T(struct_SDL_Texture)),
+    ('customRenderFunc', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(None)))),
+    ('customRenderArgs', POINTER_T(None)),
+    ('renderer', POINTER_T(struct_SDL_Renderer)),
+    ('animation', POINTER_T(struct_animate_specific)),
+    ('transform_list', POINTER_T(struct_func_node)),
+    ('z', ctypes.c_float),
+    ('PADDING_0', ctypes.c_ubyte * 4),
 ]
 
 class struct_visual_container_struct(ctypes.Structure):
@@ -216,40 +250,6 @@ struct_animate_generic._fields_ = [
     ('clips', POINTER_T(POINTER_T(struct_clip))),
 ]
 
-class struct_rule_node(ctypes.Structure):
-    pass
-
-struct_rule_node._pack_ = True # source:False
-struct_rule_node._fields_ = [
-    ('rule', POINTER_T(ctypes.CFUNCTYPE(None, POINTER_T(None)))),
-    ('data', POINTER_T(None)),
-    ('next', POINTER_T(struct_rule_node)),
-]
-
-
-# values for enumeration 'layer_mode_e'
-TIGHT = 0
-GLOBAL = 1
-layer_mode_e = ctypes.c_int # enum
-class struct_render_node(ctypes.Structure):
-    pass
-
-struct_render_node._pack_ = True # source:False
-struct_render_node._fields_ = [
-    ('prev', POINTER_T(struct_render_node)),
-    ('next', POINTER_T(struct_render_node)),
-    ('rect_in', POINTER_T(struct_SDL_Rect)),
-    ('rect_out', struct_SDL_Rect),
-    ('img', POINTER_T(struct_SDL_Texture)),
-    ('customRenderFunc', POINTER_T(ctypes.CFUNCTYPE(ctypes.c_int32, POINTER_T(None)))),
-    ('customRenderArgs', POINTER_T(None)),
-    ('renderer', POINTER_T(struct_SDL_Renderer)),
-    ('animation', POINTER_T(struct_animate_specific)),
-    ('transform_list', POINTER_T(struct_func_node)),
-    ('z', ctypes.c_float),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-]
-
 struct_animate_specific._pack_ = True # source:False
 struct_animate_specific._fields_ = [
     ('generic', POINTER_T(struct_animate_generic)),
@@ -301,6 +301,8 @@ class struct_living(ctypes.Structure):
     ('max_HP', ctypes.c_int32),
     ('max_PP', ctypes.c_int32),
     ('invincibility', ctypes.c_int32),
+    ('invincible_since', ctypes.c_float),
+    ('iframes_duration', ctypes.c_float),
     ('invincibility_toggle', ctypes.c_int32),
     ('self', POINTER_T(None)),
      ]
@@ -912,41 +914,43 @@ LEVEL_INIT = 1
 LEVEL_LOOP = 2
 hook_type_e = ctypes.c_int # enum
 __all__ = \
-    ['R_CASCADE_UP_MAX', 'struct_sword_struct_0_0', 'TIGHT',
-    'struct_SDL_Texture', 'struct_object_spawn_elem_struct',
-    'layer_mode_e', 'aspctr_lock_e', 'struct_mutex_list_struct',
-    'START', 'struct_animate_specific_old',
-    'struct_size_ratio_struct', 'union_monster_new_0',
-    'SDL_FLIP_HORIZONTAL', 'struct_ui_struct', 'struct_monster',
-    'union_c__UA_pthread_mutex_t', 'visual_structure_name_e',
-    'struct_keyval_str_void', 'struct_ui_bar_0_0',
-    'struct_object_n_lanes_arrays_struct', 'struct_ui_counter_0_0',
-    'USED', 'struct_std', 'grid', 'struct_animate_generic',
-    'R_QUIT_TO_DESKTOP', 'return_codes_e', 'LEVEL_INIT',
-    'LEVEL_PLAY_AREA', 'struct_hooks_list_struct',
-    'struct_status_struct', 'union_sword_struct_0', 'R_FAILURE',
-    'struct_ui_counter', 'H_DOMINANT', 'R_LOOP_LEVEL',
-    'struct_graphics_struct', 'struct_rendercopyex_struct',
-    'struct_object_spawn_array_struct', 'struct_monster_node', 'DATA',
-    'struct_SDL_Renderer', 'c__EA_SDL_RendererFlip', 'R_PAUSE_LEVEL',
-    'SDL_FLIP_VERTICAL', 'W_DOMINANT', 'struct_clip',
-    'struct_level_effects_struct', 'struct_debug_struct',
-    'R_STARTSCREEN', 'struct_living', 'struct_audio_struct', 'LEN',
-    'R_RESTART_LEVEL', 'struct_rects_struct', 'vector_e',
-    'struct_ui_bar', 'struct_float_rect', 'struct_hooktypes_struct',
-    'struct_std_list', 'struct_dict_str_void', 'hook_type_e',
-    'R_LEVELS', 'SCREEN', 'union_player_struct_0', 'SDL_FLIP_NONE',
-    'struct_item', 'struct_rule_node', 'ELEM_SIZE',
-    'struct_player_struct', 'struct_xy_struct', 'struct_sword_struct',
-    'struct___pthread_internal_list', 'LEVEL_UI_TOP',
-    'struct_monster_new_0_0', 'struct_anchor_struct',
-    'struct_lane_struct', 'struct_render_node', 'struct_hooks_struct',
-    'struct_SDL_Point', 'struct_player_struct_0_0',
-    'struct_time_struct', 'struct___pthread_mutex_s',
-    'struct_visual_container_struct', 'struct_level_struct', 'FRAME',
-    'struct_SDL_Rect', 'struct_level_var_struct', 'union_ui_bar_0',
-    'LEVEL_LOOP', 'struct_monster_new', 'struct_frame',
-    'struct_program_struct', 'struct_laser_struct', 'WH_INDEPENDENT',
-    'GLOBAL', 'union_ui_counter_0', 'union_animate_specific_old_1',
-    'R_SUCCESS', 'R_CASCADE_UP', 'struct_animate_specific',
-    'struct_visual_container_struct_old', 'struct_func_node']
+    ['union_monster_new_0', 'WH_INDEPENDENT', 'struct_std_list',
+    'struct_func_node', 'struct_dict_str_void',
+    'struct_hooktypes_struct', 'struct_audio_struct',
+    'struct_render_node', 'struct_time_struct',
+    'struct_anchor_struct', 'struct_hooks_list_struct',
+    'struct_ui_bar', 'struct_item',
+    'struct_object_n_lanes_arrays_struct', 'H_DOMINANT',
+    'union_sword_struct_0', 'hook_type_e', 'struct_rule_node',
+    'struct_ui_bar_0_0', 'struct_size_ratio_struct', 'R_SUCCESS',
+    'union_ui_counter_0', 'SDL_FLIP_NONE', 'struct_ui_counter_0_0',
+    'R_LOOP_LEVEL', 'struct_animate_generic', 'SDL_FLIP_HORIZONTAL',
+    'R_LEVELS', 'struct_level_effects_struct', 'struct_ui_struct',
+    'struct_SDL_Point', 'struct_SDL_Rect', 'struct_living',
+    'struct_float_rect', 'TIGHT', 'struct_SDL_Texture',
+    'LEVEL_UI_TOP', 'struct_sword_struct_0_0', 'R_RESTART_LEVEL',
+    'struct_monster_node', 'R_CASCADE_UP_MAX', 'struct_clip',
+    'layer_mode_e', 'struct_monster_new_0_0',
+    'union_c__UA_pthread_mutex_t', 'aspctr_lock_e',
+    'struct___pthread_internal_list', 'struct_xy_struct',
+    'struct_player_struct_0_0', 'W_DOMINANT',
+    'struct_animate_specific', 'R_QUIT_TO_DESKTOP',
+    'struct_program_struct', 'struct_object_spawn_elem_struct',
+    'struct_std', 'R_CASCADE_UP', 'R_PAUSE_LEVEL', 'R_STARTSCREEN',
+    'START', 'struct_visual_container_struct', 'R_FAILURE',
+    'struct_object_spawn_array_struct', 'struct_lane_struct',
+    'struct_rendercopyex_struct', 'LEVEL_LOOP', 'ELEM_SIZE',
+    'visual_structure_name_e', 'struct_hooks_struct',
+    'struct_monster_new', 'struct_visual_container_struct_old',
+    'struct_status_struct', 'struct___pthread_mutex_s',
+    'c__EA_SDL_RendererFlip', 'vector_e', 'SDL_FLIP_VERTICAL',
+    'struct_ui_counter', 'USED', 'GLOBAL', 'grid',
+    'struct_sword_struct', 'struct_rects_struct', 'struct_frame',
+    'union_animate_specific_old_1', 'struct_animate_specific_old',
+    'union_player_struct_0', 'LEN', 'struct_player_struct',
+    'struct_SDL_Renderer', 'struct_monster', 'SCREEN',
+    'return_codes_e', 'struct_graphics_struct', 'struct_laser_struct',
+    'union_ui_bar_0', 'struct_keyval_str_void', 'struct_level_struct',
+    'struct_mutex_list_struct', 'LEVEL_PLAY_AREA', 'DATA',
+    'LEVEL_INIT', 'struct_level_var_struct', 'FRAME',
+    'struct_debug_struct']

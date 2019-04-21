@@ -916,7 +916,7 @@ int level_loop(struct status_struct status) {
 	if ( player->sword )
 		//swordfunc(level, sword, player->animation->rect_out, timing->framecount, linkptrs_start, *audio);
 
-	invinciblefunc(player);
+	//invinciblefunc(player);
 
 	//amihurt(lanes->total, status, linkptrs_start, player->animation->rect_out, (*bestiary));
 

@@ -13,3 +13,4 @@ void animate_specific_rm_recurse(struct animate_specific *animation, struct stat
 
 void prepare_anim_character(struct animate_specific *anim, struct status_struct *status);
 void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status);
+void prepare_anim_ui_bar(struct animate_specific *anim, struct status_struct *status);

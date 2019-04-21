@@ -49,7 +49,9 @@ struct living {
 	float defence;
 	int max_HP;
 	int max_PP;
-	int invincibility;
+	int invincibility; /* 0 = Normal, 1 = hurt, 2 = invincible */
+	float invincible_since;
+	float iframes_duration;
 	int invincibility_toggle;
 	void *self;
 };
