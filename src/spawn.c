@@ -100,6 +100,8 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 	graphic_spawn(&player->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"player"}, 1);
 
 	*player->container = *container;
+	player->container->anchors_exposed = malloc(1 * sizeof(container->anchors_exposed[0]));
+	player->container->anchors_exposed[0] = (struct size_ratio_struct) {.w = 0.8, .h = 0.4}; //Hand holding the weapon
 
 	prepare_anim_character(player->animation, status);
 
@@ -123,7 +125,8 @@ void spawn_sword(struct std_list **object_list_stack_ptr,
 					struct status_struct *status, 
 				   	const char *name) {
 
-	sword->power = 100;
+	sword->self = sword;
+	sword->power = 10000;
 	sword->down = 0;
 	sword->swing = 0;
 	sword->swing_up_duration = 0.5;
@@ -132,10 +135,17 @@ void spawn_sword(struct std_list **object_list_stack_ptr,
 	sword->name = "sword";
 	graphic_spawn(&sword->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"sword"}, 1);
 
+	sword->animation->return_clip = -1;
+	sword->animation->backwards = 1;
+	sword->animation->rules_list = malloc(sizeof(*sword->animation->rules_list));
+	sword->animation->rules_list->rule = &rules_sword;
+	sword->animation->rules_list->data = (void *) sword;
+	sword->animation->rules_list->next = NULL;
+
 	*sword->container = *container;
 
-	sword->object_logic = NULL;//object_logic_player;
-	sword->object_data = NULL;//status;
+	sword->object_logic = object_logic_sword;
+	sword->object_data = status;
 }
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,

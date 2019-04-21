@@ -547,6 +547,7 @@ struct animate_specific {
 	int frame;
 	float speed;
 	int loops;
+	int backwards;
 	int return_clip;
 	float lastFrameBeat;
 	struct rule_node *rules_list;

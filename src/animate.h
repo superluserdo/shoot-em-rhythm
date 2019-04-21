@@ -24,6 +24,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims);
 		
 void rules_player(void *playervoid);
+void rules_sword(void *sword_void);
 void rules_ui(void *data);
 void rules_ui_bar(void *data);
 void rules_ui_counter(void *animvoid);

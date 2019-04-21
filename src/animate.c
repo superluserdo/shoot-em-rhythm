@@ -351,19 +351,50 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
 					if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
 						animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
-						animation->frame++;
+						if (animation->backwards) {
+							animation->frame--;
+						} else {
+							animation->frame++;
+						}
 					}
 				}
-				if (animation->frame >= generic->clips[animation->clip]->num_frames) {
-					if (animation->loops == 0) {
-						animation->clip = animation->return_clip;	
-						animation->frame = 0;
-						animation->loops = -1;
+				if (!animation->backwards) {
+					if (animation->frame >= generic->clips[animation->clip]->num_frames) {
+						if (animation->loops == 0) {
+							if (animation->return_clip >= 0) {
+								/* If return_clip == -1 then just sit on this frame.
+								   Otherwise return and loop until further notice (loops=-1). */
+								animation->clip = animation->return_clip;	
+								animation->frame = 0;
+								animation->loops = -1;
+							} else {
+							animation->frame = generic->clips[animation->clip]->num_frames - 1;
+							}
+						} else {
+							animation->frame = 0;
+							if (animation->loops > 0) {
+								animation->loops--;
+							}
+						}
 					}
-					else {
-						animation->frame = 0;
-						if (animation->loops > 0)
-							animation->loops--;
+				} else if (animation->backwards) {
+					if (animation->frame < 0) {
+						if (animation->loops == 0) {
+							if (animation->return_clip >= 0) {
+								/* If return_clip == -1 then just sit on this frame.
+								   Otherwise return and loop until further notice (loops=-1). */
+								animation->clip = animation->return_clip;	
+								animation->frame = generic->clips[animation->clip]->num_frames - 1;;
+								animation->loops = -1;
+							} else {
+							animation->frame = 0;
+							}
+						} else {
+							animation->frame = generic->clips[animation->clip]->num_frames - 1;
+							if (animation->loops > 0) {
+								animation->loops--;
+							}
+						}
 					}
 				}
 			struct frame frame = generic->clips[animation->clip]->frames[animation->frame];
@@ -397,6 +428,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 			/*	Revert the container's rect_out_parent_scale back to the pretransform one for the next frame: */
 			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
+			container->screen_scale_uptodate = 1; // Put this in decascade_visual_container?
 
 			if (generic) {
 				struct render_node *render_node = animation->render_node;
@@ -734,6 +766,14 @@ int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str
 }
 
 
+void rules_sword(void *sword_void) {
+	struct sword_struct *sword = (struct sword_struct *)sword_void;
+	if (sword->swing) {
+		sword->std.animation->backwards ^= 1; //Toggle
+		sword->swing = 0;
+	}
+}
+
 void rules_player(void *status_void) {
 	struct status_struct *status = (struct status_struct *)status_void;
 	struct player_struct *player = status->player;
@@ -751,6 +791,7 @@ void rules_player(void *status_void) {
 		}
 	}
 }
+
 void rules_ui(void *data) {
 	struct tr_bump_data *str = (struct tr_bump_data *)data;
 	if (*str->score > 300)

@@ -29,7 +29,7 @@ int object_logic_player(struct std *player_std, void *data) {
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
 			if (monster->living.alive) {
-				int collision = container_test_overlap(player_std->container, monster_node->std->container);
+				int collision = container_test_overlap_x(player_std->container, monster_node->std->container);
 				if (collision) {
 					player->living.HP -= 10;
 					if ( player->living.HP <= 0 ) {
@@ -71,12 +71,56 @@ int object_logic_player(struct std *player_std, void *data) {
 
 }
 
+int object_logic_sword(struct std *sword_std, void *data) {
+
+	struct status_struct *status = data;
+	struct level_struct *level = status->level;
+	//struct object_spawn_array_struct *object_spawn_array = 
+	//		&level->object_spawn_arrays[level->lanes.currentlane];
+
+	/* Get hurt by monster */
+	struct sword_struct *sword = sword_std->self;
+	if (sword->swing && sword->down) {
+		struct std_list *active_monster_list = 
+			level->monster_list_stacks[level->lanes.currentlane];
+		struct std_list *monster_node = active_monster_list;
+		if (level->lanes.currentlane == 2) {
+			//printf("Monsters:\n");
+		}
+		float mindist = 999;
+		while (monster_node) {
+			struct monster_new *monster = monster_node->std->self;
+			if (level->lanes.currentlane == 2) {
+				//printf("%f\n", monster_node->std->container->rect_out_parent_scale.x);
+			}
+			if (monster->living.alive) {
+				if (monster_node->std->container->rect_out_parent_scale.x < mindist) {
+					mindist = monster_node->std->container->rect_out_parent_scale.x;
+				}
+				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container);
+				if (collision) {
+					printf("HIT. HP=%d\n", monster->living.HP);
+					monster->living.HP -= sword->power;
+					break;
+				}
+			}
+			monster_node = monster_node->prev;
+		}
+		printf("Mindist: %f\n", mindist);
+	}
+}
+
 int object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
 	monster_std->container->rect_out_parent_scale.x -= 0.001;
 	struct monster_new *monster = monster_std->self;
 
-	if (monster->living.alive == 123123123 /*start-dying code or something */ ) {
+	if (monster->living.HP <= 0) {
+		monster->living.alive = 0;
+	}
+	if (monster->living.alive == 0 /*start-dying code or something */ ) {
+		monster_new_rm((struct monster_new *)monster_std->self, status);
+		return 0;
 		// TODO: Append animation to animation list of explosion or something.
 		// This animation has rule where it calls function to destroy whole object at the end.
 		// Destroying object involves freeing everything, and taking the 
@@ -85,9 +129,8 @@ int object_logic_monster(struct std *monster_std, void *data) {
 
 
 	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5).w < 0) {
-		// TODO: Destroy monster
 		monster_new_rm((struct monster_new *)monster_std->self, status);
-		printf("Destroyed\n");
+		return 0;
 	}
 
 	return 0;

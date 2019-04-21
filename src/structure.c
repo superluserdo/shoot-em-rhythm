@@ -83,7 +83,7 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 	rect.y = parent_rect.y + rect.y * parent_rect.h + parent_rect.h * anchor_grabbed.h - anchor_hook_pos.h;
 
 	container->rect_out_screen_scale = rect;
-	container->screen_scale_uptodate = 1;
+	//container->screen_scale_uptodate = 1;
 
 	return rect;
 }
@@ -103,35 +103,44 @@ SDL_Rect visual_container_to_pixels(struct visual_container_struct *relative_con
 	return float_rect_to_pixels(&float_rect, screen_size);
 }
 
-int container_test_overlap(struct visual_container_struct *container_1, struct visual_container_struct *container_2) {
-	/* Compute whether there is any overlap between to containers.
-	   Only works for non-rotated containers */
+int container_test_overlap_x(struct visual_container_struct *container_1, struct visual_container_struct *container_2) {
 	struct float_rect decascade_1 = decascade_visual_container(container_1);
 	struct float_rect decascade_2 = decascade_visual_container(container_2);
-
-	int overlap = 0;
-	int overlap_x = 0;
-	int overlap_y = 0;
-
 	if (
 		((decascade_1.x > decascade_2.x) && (decascade_1.x < decascade_2.x + decascade_2.w)) ||
 		((decascade_2.x > decascade_1.x) && (decascade_2.x < decascade_1.x + decascade_1.w))
 	   ) {
-		overlap_x = 1;
+		return 1;
+	} else {
+		return 0;
 	}
+}
 
+int container_test_overlap_y(struct visual_container_struct *container_1, struct visual_container_struct *container_2) {
+	struct float_rect decascade_1 = decascade_visual_container(container_1);
+	struct float_rect decascade_2 = decascade_visual_container(container_2);
 	if (
 		((decascade_1.y > decascade_2.y) && (decascade_1.y < decascade_2.y + decascade_2.h)) ||
 		((decascade_2.y > decascade_1.y) && (decascade_2.y < decascade_1.y + decascade_1.h))
 	   ) {
-		overlap_y = 1;
+		return 1;
+	} else {
+		return 0;
 	}
+}
 
-	if (overlap_x && overlap_y) {
-		overlap = 1;
+int container_test_overlap(struct visual_container_struct *container_1, struct visual_container_struct *container_2) {
+	/* Compute whether there is any overlap between to containers.
+	   Only works for non-rotated containers */
+
+	if (
+		(container_test_overlap_x(container_1, container_2)) && 
+		(container_test_overlap_y(container_1, container_2))
+		) {
+		return 1;
+		} else {
+		return 0;
 	}
-
-	return overlap;
 }
 
 struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struct *container, float x, float y) {

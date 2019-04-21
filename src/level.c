@@ -363,9 +363,17 @@ int level_init (struct status_struct status) {
 	/* Sword */
 
 	// TODO: Finish making the sword just a regular object
+	struct visual_container_struct sword_container = (struct visual_container_struct) {
+		.inherit = player->container,
+		.rect_out_parent_scale = (struct float_rect) { .w = 1, .h = 1},
+		.aspctr_lock = H_DOMINANT,
+		.anchor_grabbed = &player->container->anchors_exposed[0],
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.1, .h = 0.8},
+	};
+
 	struct sword_struct *sword = &level->sword;
 	//graphic_spawn(&sword->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){SWORD}, 1);
-	spawn_sword(object_list_stack_ptr, generic_anim_dict, graphics, player, sword, &player_container, &status, "sword");
+	spawn_sword(object_list_stack_ptr, generic_anim_dict, graphics, player, sword, &sword_container, &status, "sword");
 
 	SDL_Texture *Swordimg = IMG_LoadTexture(renderer, SWORD_PATH); SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture 
 
@@ -623,10 +631,16 @@ int level_loop(struct status_struct status) {
 		}
 
 		else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_f){
-			vars->actionbuttonlist[3] = 0;}
+			if ( player->sword && sword->down ) {
+				sword->swing = 1;
+				sword->down = 0;
+			}
+		}
 		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_f){
-			vars->actionbuttonlist[3] = 1;
-			vars->acthistory[vars->acthistwrite] = 0;
+			if ( player->sword && !sword->down ) {
+				sword->swing = 1;
+				sword->down = 1;
+			}
 		}
 
 		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_p){
@@ -678,15 +692,6 @@ int level_loop(struct status_struct status) {
 			//laser->turnon = 0;
 			laser->turnoff = 1;
 		audio->soundchecklist[2] = 0;
-	}
-
-	if ( player->sword ) {
-
-		if ( vars->actionbuttonlist[3] == !sword->down ) {
-			sword->swing = 1;
-		}
-		else
-			sword->swing = 0;
 	}
 
 	/* Change music if necessary */
