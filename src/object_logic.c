@@ -7,6 +7,8 @@
 #include "structure.h"
 #include "spawn.h"
 #include "transform.h"
+#include "dict.h"		//Get rid
+#include "animate.h"	// of these?
 #include "object_logic.h"
 
 int object_logic_player(struct std *player_std, void *data) {
@@ -28,7 +30,7 @@ int object_logic_player(struct std *player_std, void *data) {
 		int count = 0;
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
-			if (monster->living.alive) {
+			if (monster->living.alive == 1) {
 				int collision = container_test_overlap_x(player_std->container, monster_node->std->container);
 				if (collision) {
 					player->living.HP -= 10;
@@ -86,7 +88,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 		struct std_list *monster_node = active_monster_list;
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
-			if (monster->living.alive) {
+			if (monster->living.alive == 1) {
 				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container);
 				if (collision) {
 					monster->living.HP -= sword->power;
@@ -103,16 +105,44 @@ int object_logic_monster(struct std *monster_std, void *data) {
 	monster_std->container->rect_out_parent_scale.x -= 0.001;
 	struct monster_new *monster = monster_std->self;
 
-	if (monster->living.HP <= 0) {
+	if (monster->living.alive == 1 && monster->living.HP <= 0) {
 		monster->living.alive = 0;
 	}
 	if (monster->living.alive == 0 /*start-dying code or something */ ) {
+		struct animate_generic *generic = dict_get_val(status->level->generic_anim_dict, "explosion");
+		if (!generic) {
+			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", "explosion");
+			abort();
+		}
+		struct animate_specific *explosion_anim = new_specific_anim(monster_std, generic);
+		struct animate_specific *anim = monster_std->animation;
+
+		/* Append explosion to end of animations */
+		while (anim->next) {
+			anim = anim->next;
+		}
+		anim->next = explosion_anim;
+		explosion_anim->container.inherit = monster_std->container;
+		explosion_anim->container.rect_out_parent_scale.x = 0.5;
+		explosion_anim->container.rect_out_parent_scale.y = 0.5;
+		explosion_anim->rules_list = malloc(1 * sizeof(*explosion_anim->rules_list));
+		*explosion_anim->rules_list = (struct rule_node) {0};
+		explosion_anim->rules_list->rule = &rules_explosion;
+		explosion_anim->return_clip = -1;
+		explosion_anim->loops = 3;
+		struct explosion_data_struct *explosion_data = malloc(sizeof(struct explosion_data_struct));
+		*explosion_data = (struct explosion_data_struct) {
+			.animation = explosion_anim,
+			.living = &monster->living
+		};
+		explosion_anim->rules_list->data = explosion_data;
+
+		monster->living.alive = -1; /* In process of dying */
+		return 0;
+	}
+	if (monster->living.alive == -2 ) /* Finished dying */ {
 		monster_new_rm((struct monster_new *)monster_std->self, status);
 		return 0;
-		// TODO: Append animation to animation list of explosion or something.
-		// This animation has rule where it calls function to destroy whole object at the end.
-		// Destroying object involves freeing everything, and taking the 
-		// object out of the std_list, removing the render node, etc.
 	}
 
 

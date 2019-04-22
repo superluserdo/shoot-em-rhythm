@@ -593,6 +593,12 @@ struct keyval_str_void {
 	void *val;
 };
 
+/* Needed for death explosion animation: */
+struct explosion_data_struct {
+	struct animate_specific *animation;
+	struct living *living;
+};
+
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_PAUSE_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 

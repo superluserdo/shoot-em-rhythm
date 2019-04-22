@@ -26,6 +26,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 void rules_player(void *playervoid);
 void rules_sword(void *sword_void);
 void rules_ui(void *data);
+void rules_explosion(void *data);
 void rules_ui_bar(void *data);
 void rules_ui_counter(void *animvoid);
 

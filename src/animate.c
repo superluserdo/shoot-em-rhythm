@@ -350,7 +350,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			if (generic) { /* (Animation is not a dummy) */
 				if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
 					if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-						animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
+						animation->lastFrameBeat = currentbeat;//+= generic->clips[animation->clip]->frames[animation->frame].duration;
 						if (animation->backwards) {
 							animation->frame--;
 						} else {
@@ -364,7 +364,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 							if (animation->return_clip >= 0) {
 								/* If return_clip == -1 then just sit on this frame.
 								   Otherwise return and loop until further notice (loops=-1). */
-								animation->clip = animation->return_clip;	
+								//animation->clip = animation->return_clip;	
 								animation->frame = 0;
 								animation->loops = -1;
 							} else {
@@ -383,7 +383,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 							if (animation->return_clip >= 0) {
 								/* If return_clip == -1 then just sit on this frame.
 								   Otherwise return and loop until further notice (loops=-1). */
-								animation->clip = animation->return_clip;	
+								//animation->clip = animation->return_clip;	
 								animation->frame = generic->clips[animation->clip]->num_frames - 1;;
 								animation->loops = -1;
 							} else {
@@ -562,9 +562,6 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 		}
 		anim = new_specific_anim(std, generic);
 		*a_ptr = anim;
-		if (generic) {
-			generate_render_node(anim, graphics);
-		}
 		a_ptr = (&(*a_ptr)->next);
 	}
 	// Make final "next" ptr NULL to prevent segfaults
@@ -792,6 +789,13 @@ void rules_player(void *status_void) {
 	}
 }
 
+void rules_explosion(void *data) {
+	struct explosion_data_struct *explosion_data = data;
+	if (explosion_data->animation->loops <= 0) {
+		explosion_data->living->alive = -2;
+	}
+}
+
 void rules_ui(void *data) {
 	struct tr_bump_data *str = (struct tr_bump_data *)data;
 	if (*str->score > 300)
@@ -799,6 +803,7 @@ void rules_ui(void *data) {
 	else
 		str->ampl = 1.2 + (float)(*str->score)/1000.0;
 }
+
 void rules_ui_bar(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
 	//struct ui_bar *bar = animation->object->self_ui_bar;
