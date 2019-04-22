@@ -11,25 +11,15 @@
 #define START_PATH1 "../art/startimgtext1.png"
 #define START_PATH2 "../art/startimgtext2.png"
 
-extern pthread_mutex_t track_mutex;
-extern pthread_mutex_t songstatus_mutex;
-extern volatile int music_ended;
-extern pthread_mutex_t display_mutex;
-extern pthread_cond_t display_cond;
-extern pthread_cond_t cond_end;
-extern struct audio_struct audio;
-
 int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *status) {
 
-	pthread_t soundthread;
-	audio.newtrack = 1;
+	//pthread_t soundthread;
+	struct audio_struct audio = *status->audio;
 	struct musicstart_struct {
-		int newtrack;
 		int *pause;
 	};
 	int dummypause = 0;
 	struct musicstart_struct musicstart_struct = {
-		.newtrack = audio.newtrack,
 		.pause = &dummypause
 	};
 	//TODO:	Fix audio segfaults!
@@ -38,11 +28,6 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 	//printf("ya dun goofed. return code is %d\n.", rc);
 	//exit(-1);
 	//}
-
-
-        pthread_mutex_lock( &track_mutex );
-        audio.track = 1;
-        pthread_mutex_unlock( &track_mutex );
 
 	SDL_Texture * startimgbg = NULL;
 	SDL_Texture * startimgtext1 = NULL;
@@ -113,12 +98,9 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 		SDL_SetRenderTarget(renderer, NULL);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texTarget, NULL,  NULL);
-		//pthread_mutex_lock(&display_mutex);
-		//pthread_cond_wait(&display_cond, &display_mutex);
 		SDL_Delay(wait_to_present(status->timing));
 		SDL_RenderPresent(renderer);
 		update_time(status->timing);
-		//pthread_mutex_unlock(&display_mutex);
 	}
 
 return R_SUCCESS;
@@ -128,11 +110,6 @@ void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture 
 	SDL_RenderClear(renderer);
 	//musicstop();
 
-	//pthread_mutex_lock(&songstatus_mutex);
-	//while (!music_ended) {
-	//	pthread_cond_wait( &cond_end, &songstatus_mutex);
-	//}
-	pthread_mutex_unlock(&songstatus_mutex);
 	SDL_DestroyTexture(startimgbg);
 	SDL_DestroyTexture(startimgtext1);
 	SDL_DestroyTexture(startimgtext2);

@@ -15,6 +15,17 @@ int object_logic_player(struct std *player_std, void *data) {
 
 	struct status_struct *status = data;
 	struct level_struct *level = status->level;
+	//TMP:
+	struct graphics_struct *graphics = status->graphics;
+	SDL_Rect pix_rect = visual_container_to_pixels(player_std->container, (struct xy_struct) {graphics->width, graphics->height});
+	float aspctr_inherit;
+	struct float_rect decas_rect = decascade_visual_container(player_std->container, (struct xy_struct) {graphics->width, graphics->height}, &aspctr_inherit);
+	printf("screen: %d x %d\n", graphics->width, graphics->height);
+	//printf("player: %d , %d\n", pix_rect.w, pix_rect.h);
+	printf("player: %f , %f\n", decas_rect.w, decas_rect.h);
+	printf("aspctr: %f\n", decas_rect.w/ decas_rect.h);
+	// /TMP
+
 	//struct object_spawn_array_struct *object_spawn_array = 
 	//		&level->object_spawn_arrays[level->lanes.currentlane];
 
@@ -31,7 +42,7 @@ int object_logic_player(struct std *player_std, void *data) {
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
-				int collision = container_test_overlap_x(player_std->container, monster_node->std->container);
+				int collision = container_test_overlap_x(player_std->container, monster_node->std->container, (struct xy_struct) {graphics->width, graphics->height});
 				if (collision) {
 					player->living.HP -= 10;
 					if ( player->living.HP <= 0 ) {
@@ -89,7 +100,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
-				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container);
+				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container, (struct xy_struct) {status->graphics->width, status->graphics->height});
 				if (collision) {
 					monster->living.HP -= sword->power;
 					break;
@@ -102,11 +113,43 @@ int object_logic_sword(struct std *sword_std, void *data) {
 
 int object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
-	monster_std->container->rect_out_parent_scale.x -= 0.001;
 	struct monster_new *monster = monster_std->self;
 
-	if (monster->living.alive == 1 && monster->living.HP <= 0) {
-		monster->living.alive = 0;
+	/* Move the monster */
+
+
+	struct time_struct *timing = status->timing;
+	float speed = timing->container_width_per_beat;
+	//			float translation = transspeed * timing.intervalglobal/1000.0;
+	//			int transint = (int)translation;
+	//			ptr2mon->remainder = translation - transint;
+	//			ptr2mon->monster_rect.x -= transint;
+	//			ptr2mon = ptr2mon->next;
+	//		float Dt;
+	//			transspeed = timing.bps * linkptrs_start[lane]->speed * ZOOM_MULT * speedmultmon * timing.pxperbeat + ptr2mon->remainder;
+	//			float extra = (((float)(width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
+	//			Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
+	//			if (Dt >= 0) {
+	//				float Dx = Dt / timing.bps * speedmultmon * linkptrs_end[lane]->speed;
+	//				linkptrs_end[lane]->monster_rect.x = width - Dx;
+	//				linkptrs_end[lane] = linkptrs_end[lane]->next;
+	//				monsterlanenum[lane]++;
+	//			}
+	//			else
+	//				break;
+	//		}
+	//	}
+
+
+
+	float Dt = timing->currentbeat - monster->entrybeat;
+	monster_std->container->rect_out_parent_scale.x = 1 - speed * Dt;
+	//printf("%f\n", Dt);
+	if (monster->living.alive == 1) {
+		if (monster->living.HP <= 0) {
+			monster->living.alive = 0;
+			status->level->score += 10;
+		}
 	}
 	if (monster->living.alive == 0 /*start-dying code or something */ ) {
 		struct animate_generic *generic = dict_get_val(status->level->generic_anim_dict, "explosion");
@@ -146,7 +189,7 @@ int object_logic_monster(struct std *monster_std, void *data) {
 	}
 
 
-	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5).w < 0) {
+	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->graphics->width, status->graphics->height}).w < 0) {
 		monster_new_rm((struct monster_new *)monster_std->self, status);
 		return 0;
 	}

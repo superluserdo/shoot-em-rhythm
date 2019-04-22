@@ -114,6 +114,8 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 
 	player->object_logic = object_logic_player;
 	player->object_data = status;
+
+	player->dist_to_monster_spawn = 1 - pos_at_custom_anchor_hook(player->container, 1, 0, (struct xy_struct) {graphics->width, graphics->height}).w;
 }
 
 void spawn_sword(struct std_list **object_list_stack_ptr,
@@ -230,16 +232,21 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	for (int i = 0; i < counter->digits; i++) {
 		struct visual_container_struct digit_container = (struct visual_container_struct) {
 			.inherit = &dummy_anim->container,
-			//.inherit = container,
 			.rect_out_parent_scale = (struct float_rect) { .x = 0.2 * i, .y = 0, .w = 0.2, .h = 1.0},
 			.aspctr_lock = WH_INDEPENDENT,
 		};
 		anim->container = digit_container;
-		//anim->container.anchors_exposed = 
-		//anim->rules_list->data = tmp_data;
-		//anim->transform_list->data = tmp_data;
 		anim = anim->next;
 	}
+
+	struct rule_node *rule_node = dummy_anim->rules_list;
+	while(rule_node->next) {
+		rule_node = rule_node->next;
+	}
+	rule_node->next = malloc(sizeof(struct rule_node));
+	rule_node->next->rule = &rules_ui_counter;
+	rule_node->next->data = (void *)dummy_anim;
+	rule_node->next->next = NULL;
 
 	return counter;
 }
@@ -269,6 +276,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //	sword->count = 0;
 //	sword->down = 0;
 //	sword->swing = 0;
+//	sword->swing = 0;
 //	sword->rect_in.w = SWORD_WIDTH;
 //	sword->rect_in.h = SWORD_HEIGHT;
 //	sword->rect_in.x = 0;
@@ -284,7 +292,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //	//SDL_Rect rcSword, rcSwordSrc;
 //}
 
-struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane) {
+struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
 	struct graphics_struct *graphics = status->graphics;
 	struct level_struct *level = status->level;
 
@@ -301,6 +309,7 @@ struct monster_new *spawn_flying_hamster(struct status_struct *status, struct vi
 	new_flyinghamster->living.HP = 1;
 	new_flyinghamster->living.power = 10;
 	new_flyinghamster->living.defence = 10;
+	new_flyinghamster->entrybeat = spawn_beat;
 
 	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"flying hamster", "smiley"}, 2);
 
@@ -323,7 +332,10 @@ struct monster_new *spawn_flying_hamster(struct status_struct *status, struct vi
 
 	animation->container = hamster_sub_container;
 	animation->next->container = hamster_sub_container;
-	animation->next->container.anchor_grabbed = &new_flyinghamster->animation->container.anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	animation->next->container.rect_out_parent_scale.w = 0.2;
+	animation->next->container.rect_out_parent_scale.h = 0.2;
+	animation->next->container.anchor_grabbed = &container->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	animation->next->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 	set_anchor_hook(new_flyinghamster->std.container, 0, 0.5);
 	//set_anchor_hook(&animation->next->container, 0, 0.5);
 

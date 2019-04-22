@@ -350,7 +350,8 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			if (generic) { /* (Animation is not a dummy) */
 				if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
 					if (currentbeat - animation->lastFrameBeat >= generic->clips[animation->clip]->frames[animation->frame].duration) {
-						animation->lastFrameBeat = currentbeat;//+= generic->clips[animation->clip]->frames[animation->frame].duration;
+						//animation->lastFrameBeat = currentbeat;
+						animation->lastFrameBeat += generic->clips[animation->clip]->frames[animation->frame].duration;
 						if (animation->backwards) {
 							animation->frame--;
 						} else {
@@ -826,14 +827,16 @@ void rules_ui_counter(void *animvoid) {
 	struct animate_specific *animation = (struct animate_specific *)animvoid;
 	//struct ui_counter *counter = animation->object->self_ui_counter;
 	struct ui_counter *counter = animation->object->self;
-	int2array(*counter->value, counter->array, counter->digits);
+	if (*counter->value > 0) {
+		int2array(*counter->value, counter->array, counter->digits);
+	} else {
+		int2array(0, counter->array, counter->digits);
+	}
+
+
+	animation = animation->next;
 	for (int i = 0; i < counter->digits; i++) {
 		if (animation) {
-			if (counter->array < 0) {
-				fprintf(stderr, "A UI counter has en*counter*ed (haha) a negative number. That's bad.\n");
-				fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
-				abort();
-			}
 			animation->clip = counter->array[i];
 			animation = animation->next;
 		}

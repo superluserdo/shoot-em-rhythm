@@ -8,6 +8,7 @@
 #include "structdef.h"
 #include "main.h"
 #include "clock.h"
+#include "audio.h"
 //#include "level.h"
 
 extern pthread_mutex_t display_mutex;
@@ -202,6 +203,8 @@ struct tex_rect_struct **menu_graphics(struct menu_struct *menu, TTF_Font *font,
 int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status) {
 
 	pause_time(status->timing);
+	pausemusic_toggle(status->audio, status->timing);
+
 	// Init Font ...
 
 	if ( TTF_Init( ) == -1 ) {
@@ -261,8 +264,9 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 				if (menu->parent) {
 					menu = menu->parent;
 				} else {
-				unpause_time(status->timing);
-				return R_LOOP_LEVEL;
+					unpause_time(status->timing);
+					pausemusic_toggle(status->audio, status->timing);
+					return R_LOOP_LEVEL;
 				}
 			}
 			else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP) {
@@ -309,10 +313,12 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		
 		if (action == RESUME) {
 			unpause_time(status->timing);
+			pausemusic_toggle(status->audio, status->timing);
 			return R_LOOP_LEVEL;
 		}
 		else if (action == RESTART) {
 			unpause_time(status->timing);
+			stopmusic(status->audio, status->timing);
 			return R_RESTART_LEVEL;
 		}
 		else if (action == QUITTOSTART) {
@@ -322,10 +328,12 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 				SDL_DestroyTexture(menu->graphics[i][0].texture);
 			}
 			unpause_time(status->timing);
+			stopmusic(status->audio, status->timing);
 			return R_STARTSCREEN;
 		}
 		else if (action == QUITTODESKTOP) {
 			unpause_time(status->timing);
+			stopmusic(status->audio, status->timing);
 			return R_QUIT_TO_DESKTOP;
 		}
 

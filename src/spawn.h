@@ -3,9 +3,8 @@ void spawn_player(struct std_list **object_list_stack_ptr, struct dict_str_void 
 void spawn_sword(struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, struct player_struct *player, struct sword_struct *sword, struct visual_container_struct *container, struct status_struct *status, const char *name);
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, int *bar_amount_ptr, int *bar_max_ptr, struct visual_container_struct *container, struct status_struct *status, const char *name);
 struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, int *counter_value_ptr, int digits, struct visual_container_struct *container, struct status_struct *status, const char *name, float *currentbeat_ptr);
-struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane);
+struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat);
 void set_anchor_hook(struct visual_container_struct *container, float x, float y);
-struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struct *container, float x, float y);
 
 void monster_new_rm(struct monster_new *monster, struct status_struct *status);
 void std_rm(struct std *std, struct status_struct *status);

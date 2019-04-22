@@ -10,7 +10,7 @@
 #include "structdef.h"
 #include "main.h"
 #include "level.h"
-#include "music.h"
+#include "audio.h"
 #include "clock.h"
 #include "helpers.h"
 #include "animate.h"
@@ -23,8 +23,6 @@
 
 //TODO: Layers functionality. Include spawnLayer() function (above or below)
 /*	Global Variables	*/
-
-int debugcount = 0; //delete
 
 
 /* Time */
@@ -95,9 +93,9 @@ int level_init (struct status_struct status) {
 	}
 
 	double confdub;
-	config_setting_lookup_float(timing_setting, "pxperbeat", &confdub);
-	timing->pxperbeat = (float)confdub;
-	printf("pxpb:		%f\n", timing->pxperbeat);
+	config_setting_lookup_float(timing_setting, "container_width_per_beat", &confdub);
+	timing->container_width_per_beat = (float)confdub;
+	printf("container_width_per_beat:		%f\n", timing->container_width_per_beat);
 	config_setting_lookup_float(timing_setting, "bpmin", &confdub);
 	timing->bps = (float)confdub/60.0;
 	printf("bps:		%f\n", timing->bps);
@@ -191,8 +189,8 @@ int level_init (struct status_struct status) {
 
 	struct visual_container_struct player_container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
-		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.1, .h = 1},
-		.aspctr_lock = WH_INDEPENDENT,
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = H_DOMINANT,
 	};
 
 	spawn_player(object_list_stack_ptr, generic_anim_dict, graphics, player, &player_container, &status, player_setting, "player");
@@ -287,7 +285,7 @@ int level_init (struct status_struct status) {
 		.anchor_hook = (struct size_ratio_struct) {.w = 0.5, .h = 0.5},
 	};
 
-	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &timing->currentbeat_int, 5, score_container, &status, "score", &timing->currentbeat);
+	ui->beat = spawn_ui_counter(object_list_stack_ptr, generic_anim_dict, graphics, &timing->currentbeat_int, 5, beat_container, &status, "beat", &timing->currentbeat);
 
 	/* REDOING HOW OBJECTS ARE QUEUED */
 	/* Generate Monster Linked Lists */
@@ -462,18 +460,18 @@ int level_init (struct status_struct status) {
 
 	/* Play some music */
 
-	soundstart();
+	//soundstart();
 
-	config_setting_lookup_int(thislevel_setting, "track", &audio->newtrack);
+	printf("playing config track\n");
+	const char *newtrack = NULL;
+	config_setting_lookup_string(thislevel_setting, "track", &newtrack);
+	if (!newtrack) {
+		fprintf(stderr, "Couldn't find track for level\n");
+		FILEINFO
+	} else {
+		playmusic(&status, newtrack, 1.0);
+	}
 
-	struct musicstart_struct {
-		int newtrack;
-		int *pause;
-	};
-	struct musicstart_struct musicstart_struct = {
-		.newtrack = audio->newtrack,
-		.pause = &level->pauselevel
-	};
 	//TODO:	Fix audio segfaults!
 	//rc = pthread_create(&threads, NULL, musicstart, (void*)&musicstart_struct);
 	//if (rc) {
@@ -481,7 +479,7 @@ int level_init (struct status_struct status) {
 	//}
 
 
-	audio->track = audio->newtrack;
+	//audio->track = audio->newtrack;
 
 	/* Snazzy Effects */
 
@@ -500,6 +498,10 @@ int level_init (struct status_struct status) {
 
 
 	level->vars->soundstatus = 0;
+
+	/* Start beat counter */
+	timing_zero(timing);
+	update_time(timing);
 
 	return R_LOOP_LEVEL;
 }
@@ -536,11 +538,6 @@ int level_loop(struct status_struct status) {
 		hook = hook->next;
 	}
 	
-	if ( !debugcount ) {
-		printf("%f\n", timing->currentbeat);
-		debugcount++;
-	}
-
 	if (level->levelover) {
 		quitlevel(status);
 		return R_STARTSCREEN;
@@ -696,21 +693,21 @@ int level_loop(struct status_struct status) {
 
 	/* Change music if necessary */
 
-	if ( audio->track != audio->newtrack ) {
+	//if ( audio->track != audio->newtrack ) {
 
-		if (audio->noise) {
-			musicstop();
-		}
-		else {
-			rc = pthread_create(&threads, NULL, musicstart, (void*)&audio->newtrack);
-			printf("NEW\n");
-			if (rc) {
-				printf("ya dun goofed. return code is %d\n.", rc);
-				exit(-1);
-			}
-			audio->track = audio->newtrack;
-		}
-	}
+	//	if (audio->noise) {
+	//		musicstop();
+	//	}
+	//	else {
+	//		rc = pthread_create(&threads, NULL, musicstart, (void*)&audio->newtrack);
+	//		printf("NEW\n");
+	//		if (rc) {
+	//			printf("ya dun goofed. return code is %d\n.", rc);
+	//			exit(-1);
+	//		}
+	//		audio->track = audio->newtrack;
+	//	}
+	//}
 
 	/* The real business */
 
@@ -722,15 +719,19 @@ int level_loop(struct status_struct status) {
 
 		while (lane_array->next_index < lane_array->num_objects) {
 			struct object_spawn_elem_struct *lane_elem = &lane_array->objects[lane_array->next_index];
-			if (currentbeat >= lane_elem->spawn_beat) {
+			float beatdiff = player->dist_to_monster_spawn / timing->container_width_per_beat;
+			float spawn_beat = lane_elem->spawn_beat - beatdiff;
+			if ((currentbeat + 1) >= spawn_beat) { /* +1 to align with int beat */
 
 				struct visual_container_struct hamster_container = {
 					.inherit = &level->lanes.containers[lane],
 					.rect_out_parent_scale = (struct float_rect) {.x = 0.9, .y = 0, .w = 1, .h = 1},
 					.aspctr_lock = H_DOMINANT,
 				};
+				hamster_container.anchors_exposed = malloc(sizeof(hamster_container.anchors_exposed[0]));
+				hamster_container.anchors_exposed[0] = (struct size_ratio_struct) {0.5, 0.5};
 
-				lane_elem->ptr = spawn_flying_hamster(&status, &hamster_container, lane);
+				lane_elem->ptr = spawn_flying_hamster(&status, &hamster_container, lane, spawn_beat);
 				lane_array->next_index++;
 			} else {
 				break;
@@ -855,7 +856,7 @@ void quitlevel(struct status_struct status) {
 	//	pthread_cond_wait( &cond_end, &track_mutex);
 	//}
 	//pthread_mutex_unlock( &track_mutex );
-	//	SDL_DestroyTexture(texTarget);
+	SDL_DestroyTexture(graphics->texTarget);
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
 	render_list_rm(&graphics->render_node_head);

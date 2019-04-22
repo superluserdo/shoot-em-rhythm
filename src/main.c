@@ -10,17 +10,11 @@
 #include "structdef.h"
 #include "main.h"
 #include "level.h"
-#include "music.h"
+//#include "music.h"
+#include "audio.h"
 #include "clock.h"
 #include <libconfig.h>
 #include <dlfcn.h>
-
-int soundchecklist[MAX_SOUNDS_LIST] = {0};
-
-SDL_Renderer *renderer;
-SDL_Window *win;
-pthread_mutex_t quit_mutex;
-int quitgame = 0;
 
 int main() {
 
@@ -31,23 +25,6 @@ int main() {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		return 1;
 
-	//TODO:	Fix audio segfaults!
-	// start SDL with audio support
-	//if(SDL_Init(SDL_INIT_AUDIO)==-1) {
-	//    printf("SDL_Init: %s\n", SDL_GetError());
-	//    exit(1);
-	//}
-	//if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
-	//    printf("Mix_OpenAudio: %s\n", Mix_GetError());
-	//    exit(2);
-	//}
-    //    pthread_t soundeffects;
-    //    rc = pthread_create(&soundeffects, NULL, playsound, (void*)NULL);
-    //    if (rc) {
-    //            printf("ya dun goofed. return code is %d\n.", rc);
-    //            exit(-1);
-    //    }
-
 	/*	Initialise the basic game state struct	*/
 
 	struct level_struct level = {0};
@@ -57,6 +34,17 @@ int main() {
 	struct graphics_struct graphics = {0};
 	struct program_struct program = {0};
 	
+	if (audio_init(&audio) == R_FAILURE) {
+		return R_FAILURE;
+	}
+
+    //    pthread_t soundeffects;
+    //    int sdl_rc = pthread_create(&soundeffects, NULL, playsound, (void*)NULL);
+    //    if (sdl_rc) {
+    //            printf("ya dun goofed. return code is %d\n.", sdl_rc);
+    //            exit(-1);
+    //    }
+
 	struct status_struct status = {
 		.level = &level,
 		.player = &player,
@@ -85,7 +73,8 @@ int main() {
 	//	exit(-1);
 	//}
 
-	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, 0);
+	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, SDL_WINDOW_RESIZABLE);
+	graphics.window = win;
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
 		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
@@ -163,6 +152,8 @@ int main() {
 	/*	The Main Game Loop */
 	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
 	while (1) {
+
+		query_resize(&graphics);
 
 		/* Call functions of per-frame plugins */
 		
@@ -359,4 +350,28 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 	}
 
 	return R_SUCCESS;
+}
+
+void query_resize(struct graphics_struct *graphics) {
+
+	/* Get (potentially updated) window dimensions */
+	int w, h;
+	SDL_GetWindowSize(graphics->window, &w, &h);
+
+	if ((w != graphics->width) || (h != graphics->height)) {
+		graphics->width = w;
+		graphics->height = h;
+
+		/* Resize texTarget to new texture */
+		SDL_Texture *texTarget_new = SDL_CreateTexture(graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
+		SDL_Texture *target_prev = SDL_GetRenderTarget(graphics->renderer);
+		SDL_SetRenderTarget(graphics->renderer, texTarget_new);
+
+		SDL_RenderClear(graphics->renderer);
+		SDL_RenderCopy(graphics->renderer, graphics->texTarget, NULL, NULL);
+
+		SDL_SetRenderTarget(graphics->renderer, target_prev);
+		SDL_DestroyTexture(graphics->texTarget);
+		graphics->texTarget = texTarget_new;
+	}
 }

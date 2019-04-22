@@ -184,6 +184,7 @@ struct player_struct {
 	int invinciblecounter[2];
 	int sword;
 	int flydir;
+	float dist_to_monster_spawn;
 	struct living living;
 };
 
@@ -229,10 +230,10 @@ struct program_struct {
 
 struct audio_struct {
 
-	int track;
-	int newtrack;
-	int noise;
+	int trackmaxlen;
+	char track[50];
 	int soundchecklist[MAX_SOUNDS_LIST];
+	int music_paused;
 	int music_mute;
 	float music_volume;
 
@@ -249,7 +250,7 @@ struct time_struct {
 	float startbeat;
 	float currentbeat;
 	int currentbeat_int;
-	float pxperbeat;
+	float container_width_per_beat;
 	int framecount;
 	int fpsanim;
 	int fpsglobal;
@@ -305,6 +306,7 @@ struct visual_container_struct_old {
 enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};
 
 struct graphics_struct {
+	SDL_Window *window;
 	int width, height;
 	struct visual_container_struct screen;
 	SDL_Renderer *renderer;

@@ -13,6 +13,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture *startimgtext2, SDL_Renderer *renderer);
 
 uint64_t rdtsc();
+void query_resize(struct graphics_struct *graphics);
 
 /* Module stuff */
 void *(*funcptr)(struct status_struct *status);
