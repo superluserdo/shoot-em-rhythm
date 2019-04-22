@@ -84,29 +84,17 @@ int object_logic_sword(struct std *sword_std, void *data) {
 		struct std_list *active_monster_list = 
 			level->monster_list_stacks[level->lanes.currentlane];
 		struct std_list *monster_node = active_monster_list;
-		if (level->lanes.currentlane == 2) {
-			//printf("Monsters:\n");
-		}
-		float mindist = 999;
 		while (monster_node) {
 			struct monster_new *monster = monster_node->std->self;
-			if (level->lanes.currentlane == 2) {
-				//printf("%f\n", monster_node->std->container->rect_out_parent_scale.x);
-			}
 			if (monster->living.alive) {
-				if (monster_node->std->container->rect_out_parent_scale.x < mindist) {
-					mindist = monster_node->std->container->rect_out_parent_scale.x;
-				}
 				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container);
 				if (collision) {
-					printf("HIT. HP=%d\n", monster->living.HP);
 					monster->living.HP -= sword->power;
 					break;
 				}
 			}
 			monster_node = monster_node->prev;
 		}
-		printf("Mindist: %f\n", mindist);
 	}
 }
 

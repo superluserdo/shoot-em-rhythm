@@ -29,7 +29,6 @@ struct size_ratio_struct {
 	int (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
 	struct std_list *object_stack_location; \
-	struct std_list *special_object_stack_location; \
 	void *self; \
 
 /*	Have to do it this crappy way because standard C11 doesn't allow unnamed structs within
@@ -124,6 +123,7 @@ struct level_struct {
 	struct lane_struct lanes;
 	struct std_list *object_list_stack;
 	struct std_list **monster_list_stacks;
+	struct std_list *monster_list_stack_end;//TODO: TMP
 	struct laser_struct laser;
 	struct sword_struct sword;
 	struct level_var_struct *vars;
@@ -407,6 +407,9 @@ struct monster_new {
 		struct std std;
 	};
 	struct living living;
+	struct std_list *monster_stack_location;
+	struct std_list **monster_list_stack_ptr;
+	float entrybeat; //TODO: TMP
 };
 
 

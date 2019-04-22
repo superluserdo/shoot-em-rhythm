@@ -307,7 +307,8 @@ struct monster_new *spawn_flying_hamster(struct status_struct *status, struct vi
 	/* Insert the monster into the lane's list of active monsters: */
 
 	struct std_list **monster_list_stack_ptr = &level->monster_list_stacks[lane];
-	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std, &new_flyinghamster->std.special_object_stack_location);
+	new_flyinghamster->monster_list_stack_ptr = monster_list_stack_ptr;
+	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std, &new_flyinghamster->monster_stack_location);
 
 	struct animate_specific *animation = new_flyinghamster->animation;
 
@@ -407,6 +408,14 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 
 void monster_new_rm(struct monster_new *monster, struct status_struct *status) {
 	std_rm(&monster->std, status);
+
+	/* Remove from active monster list */
+	std_stack_rm(
+		monster->monster_list_stack_ptr,
+		monster->monster_stack_location, 
+		&monster->std);
+	monster->monster_stack_location = NULL;
+
 	free(monster);
 }
 
@@ -416,17 +425,10 @@ void std_rm(struct std *std, struct status_struct *status) {
 	//	or pointer to status struct
 	
 	struct std_list *stack_pos = std->object_stack_location;
-	struct std_list *monster_stack_pos = std->special_object_stack_location;
 
 	/* Remove from object_list_stack */
 	std_stack_rm(&status->level->object_list_stack, stack_pos, std);
 	std->object_stack_location = NULL;
-
-	/* Remove from active monster list */
-	std_stack_rm(
-		&status->level->monster_list_stacks[status->level->lanes.currentlane], 
-		monster_stack_pos, std);
-	std->special_object_stack_location = NULL;
 
 }
 
