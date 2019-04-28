@@ -10,7 +10,6 @@
 #include "structdef.h"
 #include "main.h"
 #include "level.h"
-//#include "music.h"
 #include "audio.h"
 #include "clock.h"
 #include <libconfig.h>
@@ -261,6 +260,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 		config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
+		FILEINFO
 		return(R_FAILURE);
 	}
 
@@ -268,6 +268,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 	config_setting_t *modules_list_setting = config_lookup(&cfg, "modules_list");
 	if (modules_list_setting == NULL) {
 		fprintf(stderr,"Error looking up setting for 'modules_list'\n");
+		FILEINFO
 		return(R_FAILURE);
 	}
 	int num_modules = config_setting_length(modules_list_setting); 
@@ -295,6 +296,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 		if (!lib_handle)
 		{
 		   fprintf(stderr, "%s\n", dlerror());
+		   FILEINFO
 		   return R_FAILURE;
 		}
 
@@ -334,6 +336,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 			if ((error = dlerror()) != NULL) 
 			{
 			   fprintf(stderr, "%s\n", error);
+			   FILEINFO
 			   return R_FAILURE;
 			} else {
 

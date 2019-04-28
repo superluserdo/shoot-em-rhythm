@@ -9,6 +9,17 @@ inc = include_directories('include')
 #subdir('src')
 #subdir('test')
 
+cmd = run_command('get_all_mods.sh')
+mod_sources = cmd.stdout().strip().split('\n')
+#e = executable('prog', sources)
+foreach mod_source : mod_sources
+	mod_name = mod_source.split('/')[-1].strip('.c')
+	message(mod_name)
+	module = shared_library(mod_name, mod_source,
+	include_directories : inc,
+ )
+endforeach
+
 structdef_py = custom_target('structdef_py',
   output : 'structdef.py',
   #command : [comp, '@INPUT@', '@OUTPUT@'],

@@ -118,6 +118,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 			rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_hook_rect);
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
+				FILEINFO
 			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
 		}
@@ -139,6 +140,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 				int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
 				if (rc != 0) {
 					printf("%s\n", SDL_GetError());
+					FILEINFO
 				}
 				container = container->inherit;
 			}
@@ -316,8 +318,9 @@ int render_list_rm(struct render_node **node_ptr_ptr) {
 
 struct render_node *create_render_node() {
 	struct render_node *new_node = malloc(sizeof(struct render_node));
-	if (new_node == NULL)
+	if (new_node == NULL) {
 		printf("Error creating new rendering node :(\n");
+	}
 	new_node->prev = NULL;
 	new_node->next = NULL;
 	new_node->rect_in = NULL;
@@ -561,6 +564,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 			generic = dict_void_get_val(generic_anim_dict, specific_type_array[i]);
 			if (!generic) {
 				fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
+				FILEINFO
 				abort();
 			}
 			//anim = generate_specific_anim(std, generic);
@@ -592,10 +596,11 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 	config_init(&cfg);
 
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, "animations.cfg"))
+	if(! config_read_file(&cfg, "cfg/animations.cfg"))
 	{
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 		config_error_line(&cfg), config_error_text(&cfg));
+		FILEINFO
 		config_destroy(&cfg);
 		return R_FAILURE;
 	}
@@ -603,6 +608,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 	config_setting_t *generics_setting = config_lookup(&cfg, "generics");
 	if (generics_setting == NULL) {
 		printf("Error looking up setting for 'generics'\n");
+		FILEINFO
 		return R_FAILURE;
 	}
 	int num_generics = config_setting_length(generics_setting); 
@@ -641,6 +647,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 		generic_setting = config_setting_get_elem(generics_setting, i);
 		if (generic_setting == NULL) {
 			printf("Error looking up setting for 'generic'\n");
+			FILEINFO
 			return R_FAILURE;
 		}
 
@@ -649,6 +656,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 		const char *graphic_type_dummy;
 		if (config_setting_lookup_string(generic_setting, "name", &graphic_type_dummy) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
+			FILEINFO
 			return R_FAILURE;
 		}
 		int len = strlen(graphic_type_dummy);
@@ -660,12 +668,14 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 		const char *graphic_category;
 		if (config_setting_lookup_string(generic_setting, "graphic_category", &graphic_category) == CONFIG_FALSE) {
 			printf("Error looking up value for 'graphic_category'\n");
+			FILEINFO
 			return R_FAILURE;
 		}
 
 		clips_setting = config_setting_lookup(generic_setting, "clips");
 		if (clips_setting == NULL) {
 			printf("Error looking up setting for 'clips' %d\n", i);
+			FILEINFO
 			return R_FAILURE;
 		}
 		num_clips = config_setting_length(clips_setting); 
@@ -681,6 +691,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			clip_setting = config_setting_get_elem(clips_setting, j);
 			if (clip_setting == NULL) {
 				printf("Error looking up setting for 'clip'\n");
+				FILEINFO
 				return R_FAILURE;
 			}
 
@@ -698,6 +709,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			const char *img_dummy;
 			if (config_setting_lookup_string(clip_setting, "img", &img_dummy) == CONFIG_FALSE) {
 				printf("Error looking up value for 'img'\n");
+				FILEINFO
 				return R_FAILURE;
 			}
 			int len = strlen(img_dummy);
@@ -705,7 +717,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			strncpy(img_name, img_dummy, len+1);
 
 			SDL_Texture *texture = NULL;
-			char *path_prefix = "../art/";
+			char *path_prefix = "art/";
 			int maxnamelen = 50;
 			char *path_prefix_long = malloc(sizeof(path_prefix) + maxnamelen);
 			strncpy(path_prefix_long, path_prefix, maxnamelen);
@@ -731,6 +743,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			frames_setting = config_setting_lookup(clip_setting, "frames");
 			if (frames_setting == NULL) {
 				printf("Error looking up setting for 'frames'\n");
+				FILEINFO
 				return R_FAILURE;
 			}
 			num_frames = config_setting_length(frames_setting);
@@ -743,11 +756,13 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 				frame_setting = config_setting_get_elem(frames_setting, k);
 				if (frame_setting == NULL) {
 					printf("Error looking up setting for 'frame'\n");
+					FILEINFO
 					return R_FAILURE;
 				}
 				rect_setting = config_setting_lookup(frame_setting, "rect");
 				if (rect_setting == NULL) {
 					printf("Error looking up setting for 'rect'\n");
+					FILEINFO
 					return R_FAILURE;
 				}
 				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);

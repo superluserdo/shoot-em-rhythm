@@ -86,7 +86,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 	/* Get hurt by monster */
 	struct sword_struct *sword = sword_std->self;
 	if (sword->swing && sword->down) {
-		queue_sound(status->audio, "../sounds/whoosh.wav", 0.5);
+		queue_sound(status->audio, "sounds/whoosh.wav", 0.5);
 		struct std_list *active_monster_list = 
 			level->monster_list_stacks[level->lanes.currentlane];
 		struct std_list *monster_node = active_monster_list;
@@ -141,7 +141,7 @@ int object_logic_monster(struct std *monster_std, void *data) {
 	if (monster->living.alive == 1) {
 		if (monster->living.HP <= 0) {
 			monster->living.alive = 0;
-			queue_sound(status->audio, "../sounds/killsound.wav", 0.5);
+			queue_sound(status->audio, "sounds/killsound.wav", 0.5);
 			status->level->score += 10;
 		}
 	}

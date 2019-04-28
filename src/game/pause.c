@@ -212,7 +212,12 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		fprintf(stderr, "Init TTF  failed\n");
 		//return -1;
 	} 
-	TTF_Font *font = TTF_OpenFont("DejaVuSans.ttf",300);
+	TTF_Font *font = TTF_OpenFont("data/DejaVuSans.ttf",300);
+	if (!font) {
+		fprintf(stderr, "Couldn't open font\n");
+		FILEINFO
+		abort();
+	}
 	SDL_Color fg;
 	fg.r = 150;
 	fg.g = 250;
@@ -234,7 +239,8 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 
 	SDL_Surface *cursorsurf = TTF_RenderText_Solid(font, cursor_text, fg);
 	if (cursorsurf == NULL) {
-		printf("darn\n");
+		fprintf(stderr, "Couldn't draw cursor\n");
+		FILEINFO
 	}
 	SDL_Texture *cursortex = SDL_CreateTextureFromSurface(renderer, cursorsurf);
 

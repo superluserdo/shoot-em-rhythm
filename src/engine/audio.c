@@ -20,6 +20,7 @@ int audio_init(struct audio_struct *audio) {
 	
 	if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)==-1) {
 	    printf("Mix_OpenAudio: %s\n", Mix_GetError());
+		FILEINFO
 
 		/* Print music decoders */
 		printf("There are %d music decoders available\n", Mix_GetNumMusicDecoders());
@@ -91,6 +92,7 @@ void play_sounds(struct audio_struct *audio) {
 				if (channels_playing[j] == 0) {
 					if(Mix_PlayChannel(j, sound_val->sound, 0) == -1) {
 						printf("Mix_PlayChannel: %s\n",Mix_GetError());
+						FILEINFO
 					}
 					channel_found = 1;
 					break;
@@ -101,6 +103,7 @@ void play_sounds(struct audio_struct *audio) {
 				/* Kick sound off furthest-right channel */
 				if(Mix_PlayChannel(audio->max_soundchannels - 1, sound_val->sound, 1) == 0) {
 					printf("Mix_PlayChannel: %s\n",Mix_GetError());
+					FILEINFO
 				}
 			}
 		}
@@ -325,6 +328,7 @@ void playmusic(struct status_struct *status, const char *track, float volume){
 	Mix_Music *music=Mix_LoadMUS(audio->track);
 	if(!music) {
 	    printf("Mix_LoadMUS(\"music.mp3\"): %s\n", Mix_GetError());
+		FILEINFO
 	    // this might be a critical error...
 	}
 
@@ -335,6 +339,7 @@ void playmusic(struct status_struct *status, const char *track, float volume){
 	//if(Mix_PlayMusic(music, 1)==-1) {
 	if(Mix_FadeInMusicPos(music, 1, 0, 0)==-1) {
 		printf("Mix_FadeInMusic: %s\n", Mix_GetError());
+		FILEINFO
 	}
 	//if (fade <= 0) {
 	//	if(Mix_FadeInMusicPos(music, 1, 0, 0)==-1) {

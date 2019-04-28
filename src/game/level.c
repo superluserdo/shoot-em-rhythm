@@ -76,10 +76,11 @@ int level_init (struct status_struct status) {
 	config_init(&cfg);
 
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, "level.cfg"))
+	if(! config_read_file(&cfg, "cfg/level.cfg"))
 	{
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 				config_error_line(&cfg), config_error_text(&cfg));
+		FILEINFO
 		config_destroy(&cfg);
 		return(EXIT_FAILURE);
 	}
@@ -669,12 +670,14 @@ int level_loop(struct status_struct status) {
 				if (!pResult) {
 					fprintf(stderr, "Error in Python interpreter:	");
 					PyErr_Print();
+					FILEINFO
 				}
 
 				unpause_time(timing);
 
 			} else {
 				printf ("Some error with the function\n") ;
+				FILEINFO
 			}
 		}
 	}
