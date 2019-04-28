@@ -59,19 +59,6 @@ void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos, struc
 	}
 }
 
-void deleteList(struct monster_node** head_ref) {
-   struct monster_node* current = *head_ref;
-   struct monster_node* next;
-
-   while (current != NULL) 
-   {
-       next = current->next;
-       free(current);
-       current = next;
-   }
-   *head_ref = NULL;
-}
-
 void *vec(int elem_size, int len) {
 	int *ptr = malloc((sizeof(int)) * 3 + elem_size*len);
 	ptr = &ptr[3];

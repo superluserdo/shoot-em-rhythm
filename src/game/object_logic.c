@@ -9,22 +9,13 @@
 #include "transform.h"
 #include "dict.h"		//Get rid
 #include "animate.h"	// of these?
+#include "audio.h"
 #include "object_logic.h"
 
 int object_logic_player(struct std *player_std, void *data) {
 
 	struct status_struct *status = data;
 	struct level_struct *level = status->level;
-	//TMP:
-	struct graphics_struct *graphics = status->graphics;
-	SDL_Rect pix_rect = visual_container_to_pixels(player_std->container, (struct xy_struct) {graphics->width, graphics->height});
-	float aspctr_inherit;
-	struct float_rect decas_rect = decascade_visual_container(player_std->container, (struct xy_struct) {graphics->width, graphics->height}, &aspctr_inherit);
-	printf("screen: %d x %d\n", graphics->width, graphics->height);
-	//printf("player: %d , %d\n", pix_rect.w, pix_rect.h);
-	printf("player: %f , %f\n", decas_rect.w, decas_rect.h);
-	printf("aspctr: %f\n", decas_rect.w/ decas_rect.h);
-	// /TMP
 
 	//struct object_spawn_array_struct *object_spawn_array = 
 	//		&level->object_spawn_arrays[level->lanes.currentlane];
@@ -40,8 +31,9 @@ int object_logic_player(struct std *player_std, void *data) {
 		struct std_list *monster_node = active_monster_list;
 		int count = 0;
 		while (monster_node) {
-			struct monster_new *monster = monster_node->std->self;
+			struct monster_struct *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
+				struct graphics_struct *graphics = status->graphics;
 				int collision = container_test_overlap_x(player_std->container, monster_node->std->container, (struct xy_struct) {graphics->width, graphics->height});
 				if (collision) {
 					player->living.HP -= 10;
@@ -94,11 +86,12 @@ int object_logic_sword(struct std *sword_std, void *data) {
 	/* Get hurt by monster */
 	struct sword_struct *sword = sword_std->self;
 	if (sword->swing && sword->down) {
+		queue_sound(status->audio, "../sounds/whoosh.wav", 0.5);
 		struct std_list *active_monster_list = 
 			level->monster_list_stacks[level->lanes.currentlane];
 		struct std_list *monster_node = active_monster_list;
 		while (monster_node) {
-			struct monster_new *monster = monster_node->std->self;
+			struct monster_struct *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
 				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container, (struct xy_struct) {status->graphics->width, status->graphics->height});
 				if (collision) {
@@ -113,7 +106,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 
 int object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
-	struct monster_new *monster = monster_std->self;
+	struct monster_struct *monster = monster_std->self;
 
 	/* Move the monster */
 
@@ -142,17 +135,18 @@ int object_logic_monster(struct std *monster_std, void *data) {
 
 
 
-	float Dt = timing->currentbeat - monster->entrybeat;
+	float Dt = (timing->currentbeat + 1) - monster->entrybeat; /* +1 to align with int */
 	monster_std->container->rect_out_parent_scale.x = 1 - speed * Dt;
 	//printf("%f\n", Dt);
 	if (monster->living.alive == 1) {
 		if (monster->living.HP <= 0) {
 			monster->living.alive = 0;
+			queue_sound(status->audio, "../sounds/killsound.wav", 0.5);
 			status->level->score += 10;
 		}
 	}
 	if (monster->living.alive == 0 /*start-dying code or something */ ) {
-		struct animate_generic *generic = dict_get_val(status->level->generic_anim_dict, "explosion");
+		struct animate_generic *generic = dict_void_get_val(status->level->generic_anim_dict, "explosion");
 		if (!generic) {
 			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", "explosion");
 			abort();
@@ -184,13 +178,13 @@ int object_logic_monster(struct std *monster_std, void *data) {
 		return 0;
 	}
 	if (monster->living.alive == -2 ) /* Finished dying */ {
-		monster_new_rm((struct monster_new *)monster_std->self, status);
+		monster_struct_rm((struct monster_struct *)monster_std->self, status);
 		return 0;
 	}
 
 
 	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->graphics->width, status->graphics->height}).w < 0) {
-		monster_new_rm((struct monster_new *)monster_std->self, status);
+		monster_struct_rm((struct monster_struct *)monster_std->self, status);
 		return 0;
 	}
 

@@ -83,7 +83,7 @@ void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status
 }
 
 void spawn_player(struct std_list **object_list_stack_ptr,
-					struct dict_str_void *generic_anim_dict,
+					struct dict_void *generic_anim_dict,
 					struct graphics_struct *graphics,
 					struct player_struct *player,
 					struct visual_container_struct *container, 
@@ -101,7 +101,7 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 
 	*player->container = *container;
 	player->container->anchors_exposed = malloc(1 * sizeof(container->anchors_exposed[0]));
-	player->container->anchors_exposed[0] = (struct size_ratio_struct) {.w = 0.8, .h = 0.4}; //Hand holding the weapon
+	player->container->anchors_exposed[0] = (struct size_ratio_struct) {.w = 1.0, .h = 0.4}; //Hand holding the weapon
 
 	prepare_anim_character(player->animation, status);
 
@@ -115,11 +115,10 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 	player->object_logic = object_logic_player;
 	player->object_data = status;
 
-	player->dist_to_monster_spawn = 1 - pos_at_custom_anchor_hook(player->container, 1, 0, (struct xy_struct) {graphics->width, graphics->height}).w;
 }
 
 void spawn_sword(struct std_list **object_list_stack_ptr,
-					struct dict_str_void *generic_anim_dict,
+					struct dict_void *generic_anim_dict,
 					struct graphics_struct *graphics,
 					struct player_struct *player,
 					struct sword_struct *sword,
@@ -148,10 +147,11 @@ void spawn_sword(struct std_list **object_list_stack_ptr,
 
 	sword->object_logic = object_logic_sword;
 	sword->object_data = status;
+	sword->dist_to_monster_spawn = 0.5;//TODO
 }
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
-							struct dict_str_void *generic_anim_dict,
+							struct dict_void *generic_anim_dict,
 							struct graphics_struct *graphics,
 							int *bar_amount_ptr, int *bar_max_ptr,
 							struct visual_container_struct *container, 
@@ -193,7 +193,7 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 }
 
 struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
-									struct dict_str_void *generic_anim_dict,
+									struct dict_void *generic_anim_dict,
 									struct graphics_struct *graphics,
 									int *counter_value_ptr, int digits,
 									struct visual_container_struct *container, 
@@ -292,16 +292,16 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //	//SDL_Rect rcSword, rcSwordSrc;
 //}
 
-struct monster_new *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
+struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
 	struct graphics_struct *graphics = status->graphics;
 	struct level_struct *level = status->level;
 
-	struct monster_new *new_flyinghamster = malloc(sizeof(struct monster_new));
-	*new_flyinghamster = (struct monster_new) {0};
+	struct monster_struct *new_flyinghamster = malloc(sizeof(struct monster_struct));
+	*new_flyinghamster = (struct monster_struct) {0};
 	new_flyinghamster->std.self = new_flyinghamster;
 	struct lane_struct *lanes = &level->lanes;
 	struct std_list **object_list_stack_ptr = &level->object_list_stack;
-	struct dict_str_void *generic_anim_dict = level->generic_anim_dict;
+	struct dict_void *generic_anim_dict = level->generic_anim_dict;
 
 	new_flyinghamster->name = "new_flyinghamster";
 
@@ -418,7 +418,7 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 
 //TODO: Freeing functions (still working on these):
 
-void monster_new_rm(struct monster_new *monster, struct status_struct *status) {
+void monster_struct_rm(struct monster_struct *monster, struct status_struct *status) {
 	std_rm(&monster->std, status);
 
 	/* Remove from active monster list */

@@ -1,4 +1,4 @@
-project('shootem_rhythm', 'c')
+project('shoot-em-rhythm', 'c')
 add_global_arguments('-DSOME_TOKEN=value', language : 'c')
 cc = meson.get_compiler('c')
 
@@ -12,7 +12,7 @@ inc = include_directories('include')
 structdef_py = custom_target('structdef_py',
   output : 'structdef.py',
   #command : [comp, '@INPUT@', '@OUTPUT@'],
-  command : ['../create_structdef_py.sh'],
+  command : ['../src/create_structdef_py.sh'],
   install : true,
   install_dir : 'subdir')
 
@@ -46,7 +46,9 @@ deps = [
 	cc.find_library('config'),
 ]
 
-executable('shootem_rhythm', sources,
-		include_directories : inc,
-					dependencies : deps,
-			)
+executable('shoot-em-rhythm', sources,
+	include_directories : inc,
+	dependencies : deps,
+	install: true,
+	install_dir: '../bin/',
+)

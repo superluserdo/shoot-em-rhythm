@@ -174,25 +174,17 @@ struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struc
 			float aspctr_inherit;
 			decascade_visual_container(container, screen_size, &aspctr_inherit);
 		}
-		float aspctr = container->rect_out_screen_scale.w / container->rect_out_screen_scale.h;
 
 		if (!container->inherit->screen_scale_uptodate) {
 			float aspctr_inherit;
 			decascade_visual_container(container, screen_size, &aspctr_inherit);
 		}
-		float aspctr_inherit = container->inherit->rect_out_screen_scale.w / container->inherit->rect_out_screen_scale.h;
 
-		if (container->aspctr_lock == W_DOMINANT) {
-			custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
-				* container->rect_out_parent_scale.w;
-			custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) 
-				* container->rect_out_parent_scale.w / aspctr * aspctr_inherit;
-		} else if (container->aspctr_lock == H_DOMINANT) {
-			custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
-				* container->rect_out_parent_scale.h * aspctr / aspctr_inherit;
-			custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) 
-				* container->rect_out_parent_scale.h;
-		}
+		custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
+			* container->rect_out_screen_scale.w / container->inherit->rect_out_screen_scale.w;
+
+		custom_pos.h = old_pos.h + (custom_anchor_hook.h - old_anchor_hook.h) 
+			* container->rect_out_screen_scale.h / container->inherit->rect_out_screen_scale.h;
 	}
 
 	return custom_pos;

@@ -110,13 +110,6 @@ int level_init (struct status_struct status) {
 		printf("No settings found under 'level' in the config file\n");
 		return -1;
 	}
-	if(!config_setting_lookup_float(level_setting, "speedmult", &smd))
-		fprintf(stderr, "'speedmult' not found in config file.\n");
-	level->speedmult = (float) smd;
-
-	if(!config_setting_lookup_float(level_setting, "speedmultmon", &smd))
-		fprintf(stderr, "'speedmultmon' not found in config file.\n");
-	level->speedmultmon = (float) smd;
 
 	/* Lanes */
 
@@ -141,11 +134,6 @@ int level_init (struct status_struct status) {
 
 	lanes->currentlane = lanes->total/2;
 
-	double *remainder = calloc(lanes->total, sizeof(double));//Means that sub-frame movement is accounted for
-	level->remainder = remainder;
-	for (int lane = 0; lane < lanes->total; lane++)
-		remainder[lane] = 0.0;
-
 	int w, h;
 
 	/*		Sprite		*/
@@ -158,7 +146,7 @@ int level_init (struct status_struct status) {
 	if (rc == R_FAILURE) {
 		return R_FAILURE;
 	}
-	struct dict_str_void *generic_anim_dict = level->generic_anim_dict;
+	struct dict_void *generic_anim_dict = level->generic_anim_dict;
 
 	/* set sprite position */
 	graphics->screen = (struct visual_container_struct) {
@@ -189,7 +177,7 @@ int level_init (struct status_struct status) {
 
 	struct visual_container_struct player_container = (struct visual_container_struct) {
 		.inherit = &lanes->containers[lanes->currentlane],
-		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 1, .h = 1},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.4, .y = 0, .w = 0.5, .h = 1},
 		.aspctr_lock = H_DOMINANT,
 	};
 
@@ -204,7 +192,6 @@ int level_init (struct status_struct status) {
 	SDL_QueryTexture(Timg, NULL, NULL, &w, &h); // get the width and height of the texture
 
 	/* Create "film strip" of sequential background screens */
-	level->maxscreens = 300;
 	level->currentscreen = 0;
 
 	if (NATIVE_RES_X % TILE_SIZE == 0) {
@@ -219,11 +206,6 @@ int level_init (struct status_struct status) {
 	else {
 		grid.y = NATIVE_RES_Y / TILE_SIZE + 1;
 	}
-
-	int sampletilemap[grid.x][grid.y][2];
-	int sampletilemap2[grid.x][grid.y][2];
-	int sampletilemapmid[grid.x][grid.y][2];
-	int sampletilemaptop[grid.x][grid.y][2];
 
 	/*		HUD		*/
 
@@ -294,6 +276,8 @@ int level_init (struct status_struct status) {
 	level->object_spawn_arrays = object_spawn_arrays;
 
 
+	//TODO: Redo items
+#if 0
 	/*		Items		*/
 
 	SDL_Texture *Itemimg = IMG_LoadTexture(renderer, "../art/items.png");
@@ -331,17 +315,13 @@ int level_init (struct status_struct status) {
 	memcpy(&fist.wh, &(int [2]){ 20,20 }, sizeof fist.wh);
 	fist.image = &Itemimg;
 
-	struct item *(*itempokedex)[10]	= &level->itempokedex;;
-	(*itempokedex)[0] = &potion;
-	(*itempokedex)[1] = &laserjuice;
-	(*itempokedex)[2] = &fist;
-
 	/* Item Functions */
 
 	void (*itemfunctionarray[10])(int *int1ptr, int int2, void *otherdata);
 	itemfunctionarray[0] = NULL;//&restorehealth;
 	itemfunctionarray[1] = NULL;//&restorepower;
 	//	(*itemfunctionarray[0])(&player->living.HP, 3);
+#endif
 
 
 	/*		Weapons		*/
@@ -366,7 +346,7 @@ int level_init (struct status_struct status) {
 		.rect_out_parent_scale = (struct float_rect) { .w = 1, .h = 1},
 		.aspctr_lock = H_DOMINANT,
 		.anchor_grabbed = &player->container->anchors_exposed[0],
-		.anchor_hook = (struct size_ratio_struct) {.w = 0.1, .h = 0.8},
+		.anchor_hook = (struct size_ratio_struct) {.w = 0.05, .h = 0.8},
 	};
 
 	struct sword_struct *sword = &level->sword;
@@ -380,77 +360,7 @@ int level_init (struct status_struct status) {
 	/*	Tilemaps	*/
 
 	/* Generate a sample background that is 1 screen large */
-	for (int i = 0; i < grid.x; i++){
-		for (int j = 0; j < grid.y; j++){
-			sampletilemap2[i][j][0] = 0;
-			sampletilemap2[i][j][1] = 1;
-
-			if ((j == grid.y - 2 || j == 0) && i%3 == 0){
-				sampletilemap[i][j][0] = 0;
-				sampletilemap[i][j][1] = 1;
-			}
-			else{
-				sampletilemap[i][j][0] = 0;
-				sampletilemap[i][j][1] = 0;
-			}
-			if (j == 4 && i== 4){
-				sampletilemap[i][j][0] = 1;
-				sampletilemap[i][j][1] = 3;
-			}
-			sampletilemapmid[i][j][0] = 0;
-			sampletilemapmid[i][j][1] = 0;
-
-		}
-	}
-
-	/* "Film strip" of items */
-
-	int (*screenstrip[level->maxscreens])[grid.x][grid.y][2];
-
-
-	/*	Items	*/
-
-	int sampleitemmap[lanes->total][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
-	/*          lane number ^         ^ order	*/
-
-	//int sampleitemmap[grid.x][grid.y][2];
-
-	for (int i = 0; i < lanes->total; i++) {
-		for (int j = 0; j < MAX_ITEMS_PER_LANE_PER_SCREEN; j++) {
-			sampleitemmap[i][j][0] = -1;		//specifies the type of item
-			sampleitemmap[i][j][1] = 0;		//specifies item position
-		}
-	}
-	sampleitemmap[0][0][0] = 0;
-	sampleitemmap[0][0][1] = 0 * NATIVE_RES_X;
-
-	sampleitemmap[0][1][0] = 1;
-	sampleitemmap[0][1][1] = 0.5 * NATIVE_RES_X;
-
-	sampleitemmap[3][0][0] = 2;
-	sampleitemmap[3][0][1] = 0.3 * NATIVE_RES_X;
-
-	int (*itemscreen[level->maxscreens])[lanes->total][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
-	int (*(*itemscreenstrip)[level->maxscreens])[lanes->total][MAX_ITEMS_PER_LANE_PER_SCREEN][2] = malloc(sizeof(itemscreen) * level->maxscreens);
-	level->itemscreenstrip = *itemscreenstrip;
-
-
-	/*	Monsters*/
-
-
-	/* The same for items, except the only info is if it has been collected		*/
-
-	int iteminfoarray0[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN] = {0};
-	int iteminfoarray1[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN] = {0};
-	int iteminfoarray2[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN] = {0};
-
-	/* Array of pointers to each iteminfoarray */
-
-	iteminfoptrs[0] = &iteminfoarray0;
-	iteminfoptrs[1] = &iteminfoarray1;
-	iteminfoptrs[2] = &iteminfoarray2;
-
-
+	//TODO?
 
 	/*	Event Handling	*/
 
@@ -462,7 +372,6 @@ int level_init (struct status_struct status) {
 
 	//soundstart();
 
-	printf("playing config track\n");
 	const char *newtrack = NULL;
 	config_setting_lookup_string(thislevel_setting, "track", &newtrack);
 	if (!newtrack) {
@@ -471,15 +380,6 @@ int level_init (struct status_struct status) {
 	} else {
 		playmusic(&status, newtrack, 1.0);
 	}
-
-	//TODO:	Fix audio segfaults!
-	//rc = pthread_create(&threads, NULL, musicstart, (void*)&musicstart_struct);
-	//if (rc) {
-	//	exit(-1);
-	//}
-
-
-	//audio->track = audio->newtrack;
 
 	/* Snazzy Effects */
 
@@ -522,7 +422,6 @@ int level_loop(struct status_struct status) {
 	struct player_struct *player = status.player;
 	struct laser_struct *laser = &level->laser;
 	struct sword_struct *sword = &level->sword;
-	struct rects_struct *rects = level->rects;
 	struct lane_struct *lanes = &level->lanes;
 	SDL_Renderer *renderer = graphics->renderer;
 	uint64_t cpustart, cpuend;
@@ -719,7 +618,7 @@ int level_loop(struct status_struct status) {
 
 		while (lane_array->next_index < lane_array->num_objects) {
 			struct object_spawn_elem_struct *lane_elem = &lane_array->objects[lane_array->next_index];
-			float beatdiff = player->dist_to_monster_spawn / timing->container_width_per_beat;
+			float beatdiff = sword->dist_to_monster_spawn / timing->container_width_per_beat;
 			float spawn_beat = lane_elem->spawn_beat - beatdiff;
 			if ((currentbeat + 1) >= spawn_beat) { /* +1 to align with int beat */
 
@@ -808,7 +707,7 @@ int level_loop(struct status_struct status) {
 
 	if (status.level->partymode) {
 		level->effects->angle ++;
-		level->effects->colournum += level->speedmult*5;
+		level->effects->colournum += 5;
 		int r = level->effects->colournum%255;
 		int g = (level->effects->colournum + 100)%255;
 		int b = (level->effects->colournum + 200)%255;
@@ -818,9 +717,9 @@ int level_loop(struct status_struct status) {
 			.texture = graphics->texTarget,
 			.srcrect = NULL,
 			.dstrect = NULL,
-			.angle = level->effects->angle * level->speedmult,
+			.angle = level->effects->angle,
 			.center = NULL,
-			.flip = SDL_FLIP_NONE
+			.flip = SDL_FLIP_NONE,
 		};
 		graphics->rendercopyex_data = &rendercopyex_data;
 	}
@@ -848,7 +747,7 @@ void quitlevel(struct status_struct status) {
 	SDL_SetRenderTarget(graphics->renderer, graphics->texTarget);
 	SDL_RenderClear(graphics->renderer);
 	SDL_SetRenderTarget(graphics->renderer, NULL);
-	//musicstop();
+	stopmusic(status.audio);
 	//soundstop();
 	//pthread_mutex_lock( &track_mutex );
 	//volatile extern int music_ended;

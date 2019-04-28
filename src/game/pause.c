@@ -318,7 +318,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 		}
 		else if (action == RESTART) {
 			unpause_time(status->timing);
-			stopmusic(status->audio, status->timing);
+			stopmusic(status->audio);
 			return R_RESTART_LEVEL;
 		}
 		else if (action == QUITTOSTART) {
@@ -328,12 +328,12 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 				SDL_DestroyTexture(menu->graphics[i][0].texture);
 			}
 			unpause_time(status->timing);
-			stopmusic(status->audio, status->timing);
+			stopmusic(status->audio);
 			return R_STARTSCREEN;
 		}
 		else if (action == QUITTODESKTOP) {
 			unpause_time(status->timing);
-			stopmusic(status->audio, status->timing);
+			stopmusic(status->audio);
 			return R_QUIT_TO_DESKTOP;
 		}
 

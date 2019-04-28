@@ -6,8 +6,6 @@ void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos, struc
 
 void int2array(int number, int *array, int array_digits);
 
-void deleteList(struct monster_node** head_ref);
-
 void *vector(int elem_size, int len);
 
 void append_vec(void **vecptr);

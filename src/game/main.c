@@ -22,7 +22,7 @@ int main() {
 	SDL_Window *win = NULL;
 	SDL_Renderer *renderer = NULL;
 	// Initialize SDL.
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 		return 1;
 
 	/*	Initialise the basic game state struct	*/
@@ -58,8 +58,8 @@ int main() {
 	timing_init(&timing);
 	graphics.width = NATIVE_RES_X * ZOOM_MULT;
 	graphics.height = NATIVE_RES_Y * ZOOM_MULT;
-	program.debug.show_anchors = 1;
-	program.debug.show_containers = 1;
+	program.debug.show_anchors = 0;
+	program.debug.show_containers = 0;
 	graphics.debug_anchors = &program.debug.show_anchors;
 	graphics.debug_containers = &program.debug.show_containers;
 	graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
@@ -154,6 +154,7 @@ int main() {
 	while (1) {
 
 		query_resize(&graphics);
+		play_sounds(&audio);
 
 		/* Call functions of per-frame plugins */
 		
@@ -250,7 +251,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 
 	/* Search for modules listed in modules.cfg and get them */
 
-	const char *cfg_path = "modules.cfg";
+	const char *cfg_path = "cfg/modules.cfg";
 	config_t cfg;
 	config_init(&cfg);
 

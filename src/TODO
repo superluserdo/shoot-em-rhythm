@@ -80,3 +80,8 @@ void free_b(void *ptr) {
 ------ 2018-11-23 ---------
 
 	>	Was thinking about having function in python part that can break and resume where it left off. Just realised that this sounds like "yield". Try this out.
+
+
+------ 2019-04-23 ---------
+
+	>	Reverse order of object logic so that it starts on the one that spawned first

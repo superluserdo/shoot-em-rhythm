@@ -5,7 +5,7 @@
 void mainfunc();
 
 void myfunc(struct status_struct *status) {
-	//status->timing->bps *= 1.01;
+	//status->timing->bps *= 1.0001;
 
 //	/* Call function in main.c */
 //	mainfunc();

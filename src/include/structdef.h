@@ -78,6 +78,7 @@ struct sword_struct {
 	int swing;
 	int swing_up_duration;
 	int swing_down_duration;
+	float dist_to_monster_spawn;
 	union {
 		struct {
 			STD_MEMBERS
@@ -112,14 +113,7 @@ struct level_struct {
 	int levelover;
 	int pauselevel; //level.pauselevel changed by levelfunc()
 	int currentlevel;
-	struct xy_struct grid;
-	int maxscreens;
-	int totalnativedist;
 	int partymode;
-	float speedmult;
-	float speedmultmon;
-	int currentscreen;
-	float *laneheight;
 	struct lane_struct lanes;
 	struct std_list *object_list_stack;
 	struct std_list **monster_list_stacks;
@@ -128,13 +122,12 @@ struct level_struct {
 	struct sword_struct sword;
 	struct level_var_struct *vars;
 	struct level_effects_struct *effects;
-	struct rects_struct *rects;
-	struct monster *bestiary[10];
-	struct item *itempokedex[10];
-	int (**itemscreenstrip)[TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN][2];
-	double *remainder;
-	struct dict_str_void *generic_anim_dict;
+	struct dict_void *generic_anim_dict;
 	struct object_spawn_array_struct *object_spawn_arrays;
+
+	struct xy_struct grid;
+	int currentscreen;
+	float *laneheight;
 };
 
 struct level_effects_struct {
@@ -144,6 +137,8 @@ struct level_effects_struct {
 };
 
 struct level_var_struct {
+
+	/* Below here are not used anymore: */
 	struct mutex_list_struct *mutexes;
 	int soundstatus;
 	/* Event handling */
@@ -157,15 +152,6 @@ struct level_var_struct {
 	int acthistread;
 };
 
-struct rects_struct {
-	//SDL_Rect rcTSrc[grid.x * 3][grid.y], rcTile[grid.x * 3][grid.y];
-	//SDL_Rect rcTSrcmid[grid.x * 3][grid.y], rcTilemid[grid.x * 3][grid.y];
-	SDL_Rect rcLaser[3], rcLaserSrc[3];
-	SDL_Rect rcScore[5];
-	SDL_Rect rcScoreSrc[5];
-	SDL_Rect rcBeat[5];
-	SDL_Rect rcBeatSrc[5];
-};
 struct mutex_list_struct {
 	pthread_mutex_t soundstatus_mutex;
 };
@@ -184,7 +170,6 @@ struct player_struct {
 	int invinciblecounter[2];
 	int sword;
 	int flydir;
-	float dist_to_monster_spawn;
 	struct living living;
 };
 
@@ -230,12 +215,17 @@ struct program_struct {
 
 struct audio_struct {
 
+	/* Music */
 	int trackmaxlen;
 	char track[50];
 	int soundchecklist[MAX_SOUNDS_LIST];
 	int music_paused;
 	int music_mute;
 	float music_volume;
+
+	/* Sounds */
+	struct dict_void *sound_dict;
+	int max_soundchannels;
 
 };
 
@@ -315,7 +305,7 @@ struct graphics_struct {
 	struct ui_struct *ui;
 	int num_images;
 	struct rendercopyex_struct *rendercopyex_data;
-	struct dict_str_void *image_dict;
+	struct dict_void *image_dict;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
@@ -359,7 +349,7 @@ struct render_node {
 
 /*	Level	*/
 
-/* Trying out new way to queue monsters and items: */
+/* New way to queue monsters and items: */
 
 struct object_spawn_elem_struct {
 	float spawn_beat;
@@ -376,32 +366,8 @@ struct object_n_lanes_arrays_struct {
 	int num_lanes;
 	struct object_spawn_array_struct *arrays;
 };
-/* ------- */
-struct monster_node {
-	char montype;
-	char status;
-	int health;
-	float speed;
-	float entrybeat;
-	float remainder;
-	struct SDL_Rect monster_rect;
-	struct SDL_Rect monster_src;
-	struct animate_specific *animation;
-	struct monster_node * next;
-};
 
-
-struct monster { /* SOON TO BE OLD */
-	int health;
-	int attack;
-	float defence;
-	int Src[2];
-	int wh[2];
-	int generic_bank_index;
-	SDL_Texture *image;
-	};
-
-struct monster_new {
+struct monster_struct {
 	union {
 		struct {
 			STD_MEMBERS
@@ -583,17 +549,6 @@ struct func_node {
 
 //enum graphic_cat_e {CHARACTER, UI, UI_BAR, UI_COUNTER};
 //enum graphic_type_e {PLAYER, FLYING_HAMSTER, HP, POWER, COLOURED_BAR, NUMBERS, PLAYER2, SWORD, SMILEY};
-/* Dict types for generic_anim_dict (replacement of crappier generic_bank) */
-struct dict_str_void {
-	int num_entries;
-	int max_entries;
-	struct keyval_str_void *entries;
-};
-
-struct keyval_str_void {
-	const char *key;
-	void *val;
-};
 
 /* Needed for death explosion animation: */
 struct explosion_data_struct {

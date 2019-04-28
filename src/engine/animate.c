@@ -346,6 +346,10 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 		
 		while (animation) {
 			struct animate_generic *generic = animation->generic;
+			/* Set lastFrameBeat on first time */
+			if (animation->lastFrameBeat == 0 && currentbeat >= 0) {
+				animation->lastFrameBeat = currentbeat;
+			}
 
 			if (generic) { /* (Animation is not a dummy) */
 				if (generic->clips[animation->clip]->frames[animation->frame].duration > 0.0) {
@@ -543,7 +547,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	return 0;
 }
 
-int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_str_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
 	std_stack_push(object_list_stack_ptr, std, &std->object_stack_location);
 
@@ -554,7 +558,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 		/* Only get generic anim and make render node if
 		    animation type is not "none" (glorified container) */
 		if (strcmp(specific_type_array[i], "none") != 0) {
-			generic = dict_get_val(generic_anim_dict, specific_type_array[i]);
+			generic = dict_void_get_val(generic_anim_dict, specific_type_array[i]);
 			if (!generic) {
 				fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", specific_type_array[i]);
 				abort();
@@ -580,7 +584,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	return 0;
 }
 
-int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
+int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
 	/* Allocates and initialises dicts for generic animations
 	   and image textures */
 
@@ -603,14 +607,15 @@ int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str
 	}
 	int num_generics = config_setting_length(generics_setting); 
 
-	*generic_anim_dict_ptr = malloc(num_generics * sizeof(struct dict_str_void));
-	struct dict_str_void *generic_anim_dict = *generic_anim_dict_ptr;
+	*generic_anim_dict_ptr = malloc(num_generics * sizeof(struct dict_void));
+	struct dict_void *generic_anim_dict = *generic_anim_dict_ptr;
 
-	*image_dict_ptr = malloc(num_generics * sizeof(struct dict_str_void));
-	struct dict_str_void *image_dict = *image_dict_ptr;
+	//*image_dict_ptr = malloc(num_generics * sizeof(struct dict_void));
+	*image_dict_ptr = malloc(sizeof(struct dict_void));
+	struct dict_void *image_dict = *image_dict_ptr;
 
-	*generic_anim_dict = (struct dict_str_void) {0};
-	*image_dict = (struct dict_str_void) {0};
+	*generic_anim_dict = (struct dict_void) {0};
+	*image_dict = (struct dict_void) {0};
 
 	struct animate_generic *generic_ptr;
 	config_setting_t *generic_setting;
@@ -650,7 +655,7 @@ int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str
 		char *graphic_type = malloc(len+1);
 		strncpy(graphic_type, graphic_type_dummy, len+1);
 
-		int dict_index = dict_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
+		int dict_index = dict_void_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
 
 		const char *graphic_category;
 		if (config_setting_lookup_string(generic_setting, "graphic_category", &graphic_category) == CONFIG_FALSE) {
@@ -719,7 +724,7 @@ int dicts_populate(struct dict_str_void **generic_anim_dict_ptr, struct dict_str
 				return R_FAILURE;
 			}
 
-			int dict_index = dict_add_keyval(image_dict, img_name, texture);
+			int dict_index = dict_void_add_keyval(image_dict, img_name, texture);
 
 			clip_ptr->img = texture;
 
