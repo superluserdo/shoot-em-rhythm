@@ -51,7 +51,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 	rcStartbgSrc.h = 360;
 
 	SDL_Rect rcStartt1, rcStartt1Src;
-	rcStartt1.x = 0.1 * status->graphics->width;
+	rcStartt1.x = 0.1 * status->master_graphics->width;
 	rcStartt1.y = 0;
 	rcStartt1.w = 444 * ZOOM_MULT;
 	rcStartt1.h = 58 * ZOOM_MULT;
@@ -61,8 +61,8 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 	rcStartt1Src.h = 58;
 
 	SDL_Rect rcStartt2, rcStartt2Src;
-	rcStartt2.x = 0.3 * status->graphics->width;
-	rcStartt2.y = 0.6 * status->graphics->height;
+	rcStartt2.x = 0.3 * status->master_graphics->width;
+	rcStartt2.y = 0.6 * status->master_graphics->height;
 	rcStartt2.w = 356 * ZOOM_MULT;
 	rcStartt2.h = 27 * ZOOM_MULT;
 	rcStartt2Src.x = 0;
@@ -71,7 +71,7 @@ int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *s
 	rcStartt2Src.h = 27;
 
 
-	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->graphics->width, status->graphics->height);
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->master_graphics->width, status->master_graphics->height);
 
 	while (1) {
 		SDL_Event e;

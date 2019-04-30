@@ -45,7 +45,7 @@ struct std_list *std_stack_push(struct std_list **stack_ptr, struct std *std, st
 	*stack_ptr = list_node;
 }
 
-void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos, struct std *std) {
+void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos) {
 	if (stack_pos) {
 		if (stack_pos->prev) {
 			stack_pos->prev->next = stack_pos->next;

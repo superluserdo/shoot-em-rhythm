@@ -41,7 +41,7 @@ int print_render_list(struct render_node *render_node_head) {
 
 }
 
-void test_render_list_robustness(struct std_list *object_list_stack, struct graphics_struct *graphics) {
+void test_render_list_robustness(struct std_list *object_list_stack, struct graphical_stage_struct *graphics) {
 	/* TEST that render node list is robust against deletions by deleting whole list every frame */
 	printf("BEFORE list_rm:\n");
 	print_object_list_stack(object_list_stack);
@@ -57,36 +57,35 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 
 /* RENDER */
 
-void render_process(struct std_list *object_list_stack, struct graphics_struct *graphics, struct time_struct *timing) {
-	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
-	renderlist(graphics->render_node_head, graphics);
+void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, struct time_struct *timing) {
+	query_resize(master_graphics, tex_target_ptr);
 
-	if (*graphics->debug_test_render_list_robustness) {
+	SDL_SetRenderTarget(master_graphics->renderer, *tex_target_ptr);
+	SDL_RenderClear(master_graphics->renderer);
+
+	if (*master_graphics->debug_test_render_list_robustness) {
 		test_render_list_robustness(object_list_stack, graphics);
 	}
 
-	SDL_SetRenderTarget(graphics->renderer, NULL);
-	SDL_RenderClear(graphics->renderer);
+	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
+	renderlist(graphics->render_node_head, graphics);
 
-	if (graphics->rendercopyex_data) {
-		struct rendercopyex_struct *data = graphics->rendercopyex_data;
-		SDL_RenderCopyEx(data->renderer, data->texture, data->srcrect, 
-						data->dstrect, data->angle, data->center, data->flip);
-	}
-	else {
-		SDL_RenderCopy(graphics->renderer, graphics->texTarget, NULL, NULL);
-	}
-	SDL_Delay(wait_to_present(timing));
-	SDL_RenderPresent(graphics->renderer);
-	update_time(timing);
-
-	SDL_SetRenderTarget(graphics->renderer, graphics->texTarget);
 }
 
-int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
+int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
+
+	struct graphics_struct *master_graphics = graphics->master_graphics;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
-			int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
+			int rc;
+			if (graphics->rendercopyex_data) {
+				struct rendercopyex_struct *data = graphics->rendercopyex_data;
+				rc = SDL_RenderCopyEx(node_ptr->renderer, node_ptr->img, node_ptr->rect_in,
+									data->dstrect, data->angle, data->center, data->flip);
+			}
+			else {
+				rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
+			}
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
 				FILEINFO
@@ -95,7 +94,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
-		if (*graphics->debug_anchors) {
+		if (*master_graphics->debug_anchors) {
 			int rc;
 			int anchor_width = 6;
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
@@ -122,14 +121,14 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
 		}
-		if (*graphics->debug_containers) {
+		if (*master_graphics->debug_containers) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
 			int line_width = 6;
 			struct visual_container_struct *container = &node_ptr->animation->container;
 
 			while (container) {
 				SDL_Rect abs_container = visual_container_to_pixels(container,
-										(struct xy_struct){graphics->width, graphics->height});
+										(struct xy_struct){master_graphics->width, master_graphics->height});
 				SDL_Point points[5] = {
 					{abs_container.x, abs_container.y},
 					{abs_container.x + abs_container.w, abs_container.y},
@@ -152,7 +151,7 @@ int renderlist(struct render_node *node_ptr, struct graphics_struct *graphics) {
 	return 0;
 }
 
-int node_insert_over(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_over(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
 	struct render_node *render_node_head = graphics->render_node_head;
 	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
@@ -172,7 +171,7 @@ int node_insert_over(struct graphics_struct *graphics, struct render_node *node_
 	return 0;
 }
 
-int node_insert_under(struct graphics_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_under(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
 	struct render_node *render_node_head = graphics->render_node_head;
 	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
@@ -192,7 +191,7 @@ int node_insert_under(struct graphics_struct *graphics, struct render_node *node
 	return 0;
 }
 
-int node_insert_z_under(struct graphics_struct *graphics, struct render_node *node_src, float z) {
+int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
 	struct render_node *render_node_head = graphics->render_node_head;
 	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (render_node_head == NULL) {
@@ -228,7 +227,7 @@ int node_insert_z_under(struct graphics_struct *graphics, struct render_node *no
 	return 0;
 }
 
-int node_insert_z_over(struct graphics_struct *graphics, struct render_node *node_src, float z) {
+int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
 	struct render_node *render_node_head = graphics->render_node_head;
 	struct render_node *render_node_tail = graphics->render_node_tail;
 	node_src->z = z;
@@ -267,7 +266,7 @@ int node_insert_z_over(struct graphics_struct *graphics, struct render_node *nod
 	return 0;
 }
 
-int render_node_rm(struct graphics_struct *graphics, struct render_node *node_ptr) {
+int render_node_rm(struct graphical_stage_struct *graphics, struct render_node *node_ptr) {
 	if (node_ptr->prev) {
 		node_ptr->prev->next = node_ptr->next;
 	}
@@ -337,7 +336,7 @@ struct render_node *create_render_node() {
 
 /* ANIMATE */
 
-void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphics_struct *graphics, float currentbeat) {
+void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat) {
 
 	struct std_list *std_list_node = object_list_stack;
 	int std_list_node_count = 0;
@@ -432,7 +431,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			}
 
 			/* Convert from container-scale relative width to global scale absolute width */
-			SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->width, graphics->height});
+			SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->master_graphics->width, graphics->master_graphics->height});
 
 			/*	Revert the container's rect_out_parent_scale back to the pretransform one for the next frame: */
 			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
@@ -444,7 +443,16 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 					generate_render_node(animation, graphics);
 					render_node = animation->render_node;
 				}
-				render_node->rect_in = &(generic->clips[animation->clip]->frames[animation->frame].rect);
+
+				SDL_Rect *rect_in = &generic->clips[animation->clip]->frames[animation->frame].rect;
+
+				/* If rect_in is {0}, make node's rect_in NULL (use whole texture) */
+				if (!rect_in->x && !rect_in->y && !rect_in->w && !rect_in->h) {
+					render_node->rect_in = NULL;
+				} else {
+					render_node->rect_in = rect_in;
+				}
+
 				if (render_node->z != animation->z) {
 					/* Take render node out of the list */
 					if (render_node->prev) {
@@ -532,15 +540,24 @@ struct animate_specific *new_specific_anim(struct std *std, struct animate_gener
 	return specific;
 }
 
-int generate_render_node(struct animate_specific *specific, struct graphics_struct *graphics) {
+int generate_render_node(struct animate_specific *specific, struct graphical_stage_struct *graphics) {
 	/* Creates, populates, and inserts a rendering node	*/
 
 	struct animate_generic *generic = specific->generic;
+	struct graphics_struct *master_graphics = graphics->master_graphics;
 
 	struct render_node *r_node = malloc(sizeof(struct render_node));
 	*r_node = (struct render_node) {0};
-	r_node->rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
-	r_node->renderer = graphics->renderer;
+	SDL_Rect *rect_in = &generic->clips[specific->clip]->frames[specific->frame].rect;
+
+	/* If rect_in is {0}, make node's rect_in NULL (use whole texture) */
+	if (!rect_in->x && !rect_in->y && !rect_in->w && !rect_in->h) {
+		r_node->rect_in = NULL;
+	} else {
+		r_node->rect_in = rect_in;
+	}
+
+	r_node->renderer = master_graphics->renderer;
 	r_node->img = generic->clips[specific->clip]->img;
 	r_node->animation = specific;
 	r_node->customRenderFunc = NULL;
@@ -550,7 +567,7 @@ int generate_render_node(struct animate_specific *specific, struct graphics_stru
 	return 0;
 }
 
-int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphics_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, const char* specific_type_array[], int num_specific_anims) {
 
 	std_stack_push(object_list_stack_ptr, std, &std->object_stack_location);
 
@@ -880,3 +897,29 @@ struct anchor_struct *make_anchors_exposed(struct animate_specific *anim, int n)
 	anim->container.num_anchors_exposed = n;
 }
 
+void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr) {
+
+	/* Get (potentially updated) window dimensions */
+	int w, h;
+	SDL_GetWindowSize(master_graphics->window, &w, &h);
+
+	if ((w != master_graphics->width) || (h != master_graphics->height)) {
+		master_graphics->width = w;
+		master_graphics->height = h;
+
+		/* If rendering to a target (not screen), resize texTarget to new texture */
+
+		if (*tex_target_ptr) {
+			SDL_Texture *texTarget_new = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+			SDL_Texture *target_prev = SDL_GetRenderTarget(master_graphics->renderer);
+			SDL_SetRenderTarget(master_graphics->renderer, texTarget_new);
+
+			SDL_RenderClear(master_graphics->renderer);
+			SDL_RenderCopy(master_graphics->renderer, *tex_target_ptr, NULL, NULL);
+
+			SDL_SetRenderTarget(master_graphics->renderer, target_prev);
+			SDL_DestroyTexture(*tex_target_ptr);
+			*tex_target_ptr = texTarget_new;
+		}
+	}
+}

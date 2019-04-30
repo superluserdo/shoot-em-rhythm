@@ -1,5 +1,7 @@
 project('shoot-em-rhythm', 'c')
 add_global_arguments('-DSOME_TOKEN=value', language : 'c')
+add_global_arguments('-Wno-pedantic', language : 'c')
+add_global_arguments('-Wno-all', language : 'c')
 cc = meson.get_compiler('c')
 
 #inc = include_directories('./')

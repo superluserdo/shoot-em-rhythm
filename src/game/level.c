@@ -33,11 +33,8 @@ int level_init (struct status_struct status) {
 
 	/*	Get some structs	*/
 
-	struct graphics_struct *graphics = status.graphics;
-	graphics->render_node_head = NULL;
-	graphics->render_node_tail = NULL;
-	graphics->num_images = 0;
-	SDL_Renderer *renderer = graphics->renderer;
+	struct graphics_struct *master_graphics = status.master_graphics;
+	SDL_Renderer *renderer = master_graphics->renderer;
 
 
 	/*	Some Variables	*/
@@ -51,12 +48,16 @@ int level_init (struct status_struct status) {
 
 	struct level_struct *level = status.level;
 	*level = (struct level_struct) {0};
+	struct std *std = &level->stage.std;
+
+	spawn_graphical_stage_child(&level->stage, master_graphics, level, "level");
+
 	level->currentlevel = 1;
 	level->lanes.total = TOTAL_LANES;
 
 	struct lane_struct *lanes = &level->lanes;
 
-	struct std_list **object_list_stack_ptr = &level->object_list_stack;
+	struct std_list **object_list_stack_ptr = &level->stage.graphics.object_list_stack;
 	level->monster_list_stacks = malloc(sizeof(*level->monster_list_stacks) * level->lanes.total);
 	for (int i = 0; i < level->lanes.total; i++) {
 		level->monster_list_stacks[i] = NULL;
@@ -122,7 +123,7 @@ int level_init (struct status_struct status) {
 	lanes->containers = malloc(sizeof(struct visual_container_struct) * lanes->total);
 	struct visual_container_struct *container_level_play_area = malloc(sizeof(struct visual_container_struct));
 	*container_level_play_area = (struct visual_container_struct) {
-		.inherit = &graphics->screen,
+		.inherit = &master_graphics->screen,
 		.rect_out_parent_scale = (struct float_rect) {.x = 0, .y = 0.3, .w = 1, .h = 0.7},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
@@ -139,18 +140,19 @@ int level_init (struct status_struct status) {
 
 	/*		Sprite		*/
 
+	struct graphical_stage_struct *graphics = &level->stage.graphics;
 	graphics->num_images = 100; //TODO
 
 	/* Initialise the image dictionary and generic animation dictionary.
 	   Both are out-parameters here. */
-	rc = dicts_populate(&level->generic_anim_dict, &graphics->image_dict, &status, graphics->renderer);
+	rc = dicts_populate(&level->stage.graphics.generic_anim_dict, &level->stage.graphics.image_dict, &status, master_graphics->renderer);
 	if (rc == R_FAILURE) {
 		return R_FAILURE;
 	}
-	struct dict_void *generic_anim_dict = level->generic_anim_dict;
+	struct dict_void *generic_anim_dict = level->stage.graphics.generic_anim_dict;
 
 	/* set sprite position */
-	graphics->screen = (struct visual_container_struct) {
+	master_graphics->screen = (struct visual_container_struct) {
 		.inherit = NULL,
 		.rect_out_parent_scale = (struct float_rect) { .x = 1, .y = 1, .w = 1, .h = 1},
 		.aspctr_lock = WH_INDEPENDENT,
@@ -211,11 +213,11 @@ int level_init (struct status_struct status) {
 	/*		HUD		*/
 
 	struct ui_struct *ui = malloc(sizeof(struct ui_struct));
-	graphics->ui = ui;
+	level->ui = ui;
 
 	struct visual_container_struct *container_level_ui_top = malloc(sizeof(struct visual_container_struct));
 	*container_level_ui_top = (struct visual_container_struct) {
-		.inherit = &graphics->screen,
+		.inherit = &master_graphics->screen,
 		.rect_out_parent_scale = (struct float_rect) {.x = 0, .y = 0, .w = 1, .h = 0.3},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
@@ -390,12 +392,6 @@ int level_init (struct status_struct status) {
 	level->effects->colournum = 0,
 	level->effects->hue = 0;
 
-	/* Create a Master Render Target */
-
-	graphics->texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
-	SDL_SetRenderTarget(renderer, graphics->texTarget);
-	SDL_RenderClear(graphics->renderer);
-	SDL_SetRenderTarget(renderer, NULL);
 
 
 	level->vars->soundstatus = 0;
@@ -416,15 +412,16 @@ int level_loop(struct status_struct status) {
 
 	/* Frame Loop */
 
-	struct graphics_struct *graphics = status.graphics;
+	struct graphics_struct *master_graphics = status.master_graphics;
 	struct audio_struct *audio = status.audio;
 	struct level_struct *level = status.level;
+	struct graphical_stage_struct *graphics = &level->stage.graphics;
 	struct level_var_struct *vars = level->vars;
 	struct player_struct *player = status.player;
 	struct laser_struct *laser = &level->laser;
 	struct sword_struct *sword = &level->sword;
 	struct lane_struct *lanes = &level->lanes;
-	SDL_Renderer *renderer = graphics->renderer;
+	SDL_Renderer *renderer = master_graphics->renderer;
 	uint64_t cpustart, cpuend;
 	struct time_struct *timing = status.timing;
 
@@ -639,7 +636,7 @@ int level_loop(struct status_struct status) {
 		}
 	}
 
-	struct std_list *current_obj = level->object_list_stack;
+	struct std_list *current_obj = graphics->object_list_stack;
 	while (current_obj) {
 		struct std_list *new_obj = current_obj->prev;
 		if (current_obj->std->object_logic) {
@@ -714,10 +711,10 @@ int level_loop(struct status_struct status) {
 		int r = level->effects->colournum%255;
 		int g = (level->effects->colournum + 100)%255;
 		int b = (level->effects->colournum + 200)%255;
-		SDL_SetTextureColorMod(graphics->texTarget, r,g,b);
+		SDL_SetTextureColorMod(*graphics->tex_target_ptr, r,g,b);
 		struct rendercopyex_struct rendercopyex_data = {
 			.renderer = renderer,
-			.texture = graphics->texTarget,
+			.texture = *graphics->tex_target_ptr,
 			.srcrect = NULL,
 			.dstrect = NULL,
 			.angle = level->effects->angle,
@@ -730,7 +727,7 @@ int level_loop(struct status_struct status) {
 		graphics->rendercopyex_data = NULL;
 	}
 
-	render_process(level->object_list_stack, graphics, timing);
+	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage.graphics.tex_target_ptr, timing);
 
 	cpuend = rdtsc();
 	return R_LOOP_LEVEL; //loop
@@ -740,16 +737,16 @@ int level_loop(struct status_struct status) {
 /*Functions*/
 
 void quitlevel(struct status_struct status) {
-	struct graphics_struct *graphics = status.graphics;
+	struct graphics_struct *master_graphics = status.master_graphics;
 	struct time_struct *timing = status.timing;
 	printf("Level Over.\n");
 
 	//	for ( int i = 0; i < MAX_SOUNDS_LIST; i++ )
 	//		soundchecklist[i] = 0;
-	SDL_RenderClear(graphics->renderer);
-	SDL_SetRenderTarget(graphics->renderer, graphics->texTarget);
-	SDL_RenderClear(graphics->renderer);
-	SDL_SetRenderTarget(graphics->renderer, NULL);
+	SDL_RenderClear(master_graphics->renderer);
+	SDL_SetRenderTarget(master_graphics->renderer, *status.level->stage.graphics.tex_target_ptr);
+	SDL_RenderClear(master_graphics->renderer);
+	SDL_SetRenderTarget(master_graphics->renderer, NULL);
 	stopmusic(status.audio);
 	//soundstop();
 	//pthread_mutex_lock( &track_mutex );
@@ -758,10 +755,10 @@ void quitlevel(struct status_struct status) {
 	//	pthread_cond_wait( &cond_end, &track_mutex);
 	//}
 	//pthread_mutex_unlock( &track_mutex );
-	SDL_DestroyTexture(graphics->texTarget);
+	SDL_DestroyTexture(*status.level->stage.graphics.tex_target_ptr);
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
-	render_list_rm(&graphics->render_node_head);
+	render_list_rm(&status.level->stage.graphics.render_node_head);
 }
 struct object_spawn_array_struct *level_init_object_spawn_arrays(void *level_setting_void, int num_lanes) {
 

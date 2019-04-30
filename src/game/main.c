@@ -9,6 +9,7 @@
 #include <SDL2/SDL_mixer.h>
 #include "structdef.h"
 #include "main.h"
+#include "animate.h"
 #include "level.h"
 #include "audio.h"
 #include "clock.h"
@@ -30,7 +31,7 @@ int main() {
 	struct player_struct player = {0};
 	struct audio_struct audio = {0};
 	struct time_struct timing = {0};
-	struct graphics_struct graphics = {0};
+	struct graphics_struct master_graphics = {0};
 	struct program_struct program = {0};
 	
 	if (audio_init(&audio) == R_FAILURE) {
@@ -49,20 +50,27 @@ int main() {
 		.player = &player,
 		.audio = &audio,
 		.timing = &timing,
-		.graphics = &graphics,
+		.master_graphics = &master_graphics,
 		.program = &program
 	};
 	timing.fpsanim = 30;
 	timing.fpsglobal = 60;
 	timing_init(&timing);
-	graphics.width = NATIVE_RES_X * ZOOM_MULT;
-	graphics.height = NATIVE_RES_Y * ZOOM_MULT;
+	master_graphics.width = NATIVE_RES_X * ZOOM_MULT;
+	master_graphics.height = NATIVE_RES_Y * ZOOM_MULT;
 	program.debug.show_anchors = 0;
 	program.debug.show_containers = 0;
-	graphics.debug_anchors = &program.debug.show_anchors;
-	graphics.debug_containers = &program.debug.show_containers;
-	graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
+	program.debug.test_render_list_robustness = 0;
+	master_graphics.debug_anchors = &program.debug.show_anchors;
+	master_graphics.debug_containers = &program.debug.show_containers;
+	master_graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
+	master_graphics.graphics.master_graphics = &master_graphics;
 
+	//struct std main_std = {0};
+	//spawn_graphical_stage(&main_std, master_graphics, &main_std->graphics, &main_std, "main");
+	SDL_Texture *screen_texture = NULL;
+	master_graphics.graphics.tex_target_ptr = &screen_texture;
+	
 	/* NOTE: I've moved timing out of its own thread into the main thread.
 	 * frametimer() is no longer used */
 	//pthread_t framethread;
@@ -72,8 +80,8 @@ int main() {
 	//	exit(-1);
 	//}
 
-	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, graphics.width, graphics.height, SDL_WINDOW_RESIZABLE);
-	graphics.window = win;
+	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, master_graphics.width, master_graphics.height, SDL_WINDOW_RESIZABLE);
+	master_graphics.window = win;
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
 		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
@@ -88,7 +96,7 @@ int main() {
 	   	printf("%s  %d\n", info.name, info.flags&2);
 		}
 	}
-	graphics.renderer = renderer;
+	master_graphics.renderer = renderer;
 
 	program.python_interpreter_enable = 0;
 	PyObject    *pModule ; 
@@ -152,7 +160,6 @@ int main() {
 	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
 	while (1) {
 
-		query_resize(&graphics);
 		play_sounds(&audio);
 
 		/* Call functions of per-frame plugins */
@@ -174,7 +181,7 @@ int main() {
 			returncode = startscreen(win, renderer, &status);
 		}
 		else if ( returncode == R_PAUSE_LEVEL) {
-			returncode = pausefunc(renderer, graphics.texTarget, level.currentlevel, &status);
+			returncode = pausefunc(renderer, *status.level->stage.graphics.tex_target_ptr, level.currentlevel, &status);
 		}
 		else if ( returncode == R_LOOP_LEVEL) {
 			returncode = level_loop(status);
@@ -188,6 +195,21 @@ int main() {
 		else {
 			break;
 		}
+		render_process(master_graphics.object_list_stack, &master_graphics.graphics, &master_graphics, master_graphics.graphics.tex_target_ptr, &timing);
+
+		//printf("%p\n", *master_graphics.graphics.tex_target_ptr);
+		printf("%p\n", master_graphics.graphics.render_node_head[0].img);
+		printf("	%p\n", master_graphics.object_list_stack->std->animation->generic->clips[0]->img);
+		//
+		SDL_SetRenderTarget(master_graphics.renderer, NULL);
+		SDL_RenderClear(master_graphics.renderer);
+		//SDL_RenderCopy(master_graphics.renderer, *master_graphics.graphics.tex_target_ptr, NULL, NULL);
+
+		SDL_RenderCopy(master_graphics.renderer, master_graphics.object_list_stack->std->animation->generic->clips[0]->img, NULL, NULL);
+		//
+		SDL_Delay(wait_to_present(&timing));
+		SDL_RenderPresent(master_graphics.renderer);
+		update_time(&timing);
 
 	}
 
@@ -356,26 +378,3 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 	return R_SUCCESS;
 }
 
-void query_resize(struct graphics_struct *graphics) {
-
-	/* Get (potentially updated) window dimensions */
-	int w, h;
-	SDL_GetWindowSize(graphics->window, &w, &h);
-
-	if ((w != graphics->width) || (h != graphics->height)) {
-		graphics->width = w;
-		graphics->height = h;
-
-		/* Resize texTarget to new texture */
-		SDL_Texture *texTarget_new = SDL_CreateTexture(graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, graphics->width, graphics->height);
-		SDL_Texture *target_prev = SDL_GetRenderTarget(graphics->renderer);
-		SDL_SetRenderTarget(graphics->renderer, texTarget_new);
-
-		SDL_RenderClear(graphics->renderer);
-		SDL_RenderCopy(graphics->renderer, graphics->texTarget, NULL, NULL);
-
-		SDL_SetRenderTarget(graphics->renderer, target_prev);
-		SDL_DestroyTexture(graphics->texTarget);
-		graphics->texTarget = texTarget_new;
-	}
-}

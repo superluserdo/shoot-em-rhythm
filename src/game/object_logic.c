@@ -33,7 +33,7 @@ int object_logic_player(struct std *player_std, void *data) {
 		while (monster_node) {
 			struct monster_struct *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
-				struct graphics_struct *graphics = status->graphics;
+				struct graphics_struct *graphics = status->master_graphics;
 				int collision = container_test_overlap_x(player_std->container, monster_node->std->container, (struct xy_struct) {graphics->width, graphics->height});
 				if (collision) {
 					player->living.HP -= 10;
@@ -93,7 +93,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 		while (monster_node) {
 			struct monster_struct *monster = monster_node->std->self;
 			if (monster->living.alive == 1) {
-				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container, (struct xy_struct) {status->graphics->width, status->graphics->height});
+				int collision = container_test_overlap_x(sword_std->container, monster_node->std->container, (struct xy_struct) {status->master_graphics->width, status->master_graphics->height});
 				if (collision) {
 					monster->living.HP -= sword->power;
 					break;
@@ -146,7 +146,7 @@ int object_logic_monster(struct std *monster_std, void *data) {
 		}
 	}
 	if (monster->living.alive == 0 /*start-dying code or something */ ) {
-		struct animate_generic *generic = dict_void_get_val(status->level->generic_anim_dict, "explosion");
+		struct animate_generic *generic = dict_void_get_val(status->level->stage.graphics.generic_anim_dict, "explosion");
 		if (!generic) {
 			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", "explosion");
 			abort();
@@ -178,13 +178,13 @@ int object_logic_monster(struct std *monster_std, void *data) {
 		return 0;
 	}
 	if (monster->living.alive == -2 ) /* Finished dying */ {
-		monster_struct_rm((struct monster_struct *)monster_std->self, status);
+		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
 		return 0;
 	}
 
 
-	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->graphics->width, status->graphics->height}).w < 0) {
-		monster_struct_rm((struct monster_struct *)monster_std->self, status);
+	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->master_graphics->width, status->master_graphics->height}).w < 0) {
+		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
 		return 0;
 	}
 

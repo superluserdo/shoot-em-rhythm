@@ -84,7 +84,7 @@ void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status
 
 void spawn_player(struct std_list **object_list_stack_ptr,
 					struct dict_void *generic_anim_dict,
-					struct graphics_struct *graphics,
+					struct graphical_stage_struct *graphics,
 					struct player_struct *player,
 					struct visual_container_struct *container, 
 					struct status_struct *status, 
@@ -119,7 +119,7 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 
 void spawn_sword(struct std_list **object_list_stack_ptr,
 					struct dict_void *generic_anim_dict,
-					struct graphics_struct *graphics,
+					struct graphical_stage_struct *graphics,
 					struct player_struct *player,
 					struct sword_struct *sword,
 					struct visual_container_struct *container, 
@@ -152,7 +152,7 @@ void spawn_sword(struct std_list **object_list_stack_ptr,
 
 struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 							struct dict_void *generic_anim_dict,
-							struct graphics_struct *graphics,
+							struct graphical_stage_struct *graphics,
 							int *bar_amount_ptr, int *bar_max_ptr,
 							struct visual_container_struct *container, 
 							struct status_struct *status, const char *name) {
@@ -194,7 +194,7 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 
 struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 									struct dict_void *generic_anim_dict,
-									struct graphics_struct *graphics,
+									struct graphical_stage_struct *graphics,
 									int *counter_value_ptr, int digits,
 									struct visual_container_struct *container, 
 									struct status_struct *status, const char *name,
@@ -293,15 +293,15 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //}
 
 struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
-	struct graphics_struct *graphics = status->graphics;
+	struct graphics_struct *graphics = status->master_graphics;
 	struct level_struct *level = status->level;
 
 	struct monster_struct *new_flyinghamster = malloc(sizeof(struct monster_struct));
 	*new_flyinghamster = (struct monster_struct) {0};
 	new_flyinghamster->std.self = new_flyinghamster;
 	struct lane_struct *lanes = &level->lanes;
-	struct std_list **object_list_stack_ptr = &level->object_list_stack;
-	struct dict_void *generic_anim_dict = level->generic_anim_dict;
+	struct std_list **object_list_stack_ptr = &level->stage.graphics.object_list_stack;
+	struct dict_void *generic_anim_dict = level->stage.graphics.generic_anim_dict;
 
 	new_flyinghamster->name = "new_flyinghamster";
 
@@ -311,7 +311,7 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	new_flyinghamster->living.defence = 10;
 	new_flyinghamster->entrybeat = spawn_beat;
 
-	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"flying hamster", "smiley"}, 2);
+	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, &status->level->stage.graphics, (const char *[]){"flying hamster", "smiley"}, 2);
 
 	/* Insert the monster into the lane's list of active monsters: */
 
@@ -402,6 +402,65 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	return new_flyinghamster;
 }
 
+void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, struct graphics_struct *master_graphics, void *self, const char *name) {
+
+	/* Spawns a graphical stage that is itself a member of a graphical stage 
+	   (ie it isn't the top-level one in main.c) */
+
+	struct std *std = &stage->std;
+	struct graphical_stage_struct *graphics = &stage->graphics;
+	/* Give the level its own "object" std struct */
+	std->name = name;
+	std->container = malloc(sizeof(*std->container));
+	*std->container = (struct visual_container_struct) {
+		.inherit = NULL,
+		.rect_out_parent_scale = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
+		.aspctr_lock = WH_INDEPENDENT,
+	};
+	std->self = self;
+
+	graphic_spawn(std, &master_graphics->object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"none"}, 1);
+
+	std->animation->container = *std->container;
+
+	struct frame *frame = malloc(sizeof(*frame));
+	*frame = (struct frame) {0};
+
+	SDL_Texture *tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
+	struct clip *clip = malloc(sizeof(*clip));
+	*clip = (struct clip) {
+		.img = tex_target,
+		.num_frames = 1,
+		.frames = frame,
+		.container_scale_factor = 1,
+		.aspctr_lock = WH_INDEPENDENT,
+	};
+	SDL_Texture **tex_target_ptr = &clip->img;
+
+	struct clip **clips = malloc(sizeof(*clips));
+	*clips = clip;
+
+	struct animate_generic *generic = malloc(sizeof(*generic));
+	*generic = (struct animate_generic) {
+		.num_clips = 1,
+		.clips = clips,
+	};
+
+	std->animation->generic = generic;
+
+	/* Graphical vars of the level only */
+	graphics->render_node_head = NULL;
+	graphics->render_node_tail = NULL;
+	graphics->num_images = 0;
+	graphics->master_graphics = master_graphics;
+
+	/* Set the level's texture to draw to */
+	graphics->tex_target_ptr = tex_target_ptr;
+	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
+	SDL_SetRenderTarget(master_graphics->renderer, NULL);
+	SDL_RenderClear(master_graphics->renderer);
+}
+
 //TODO	Write recursive destructors for each struct type
 
 void set_anchor_hook(struct visual_container_struct *container, float x, float y) {
@@ -418,33 +477,30 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 
 //TODO: Freeing functions (still working on these):
 
-void monster_struct_rm(struct monster_struct *monster, struct status_struct *status) {
-	std_rm(&monster->std, status);
+void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_ptr, struct graphical_stage_struct *graphics) {
+	std_rm(&monster->std, stack_ptr, graphics);
 
 	/* Remove from active monster list */
 	std_stack_rm(
 		monster->monster_list_stack_ptr,
-		monster->monster_stack_location, 
-		&monster->std);
+		monster->monster_stack_location);
 	monster->monster_stack_location = NULL;
 
 	free(monster);
 }
 
-void std_rm(struct std *std, struct status_struct *status) {
-	animate_specific_rm_recurse(std->animation, status);
-	//free(std->object_data); //Need to think about how to do this. Data could be custom mallocd
-	//	or pointer to status struct
+void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics) {
+	animate_specific_rm_recurse(std->animation, graphics);
 	
 	struct std_list *stack_pos = std->object_stack_location;
 
 	/* Remove from object_list_stack */
-	std_stack_rm(&status->level->object_list_stack, stack_pos, std);
+	std_stack_rm(stack_ptr, stack_pos);
 	std->object_stack_location = NULL;
 
 }
 
-void animate_specific_rm(struct animate_specific *animation, struct status_struct *status) {
+void animate_specific_rm(struct animate_specific *animation, struct graphical_stage_struct *graphics) {
 
 	struct rule_node *rule = animation->rules_list;
 	while (rule) {
@@ -459,17 +515,17 @@ void animate_specific_rm(struct animate_specific *animation, struct status_struc
 		free(transform_to_free);
 	}
 	if (animation->render_node) {
-		render_node_rm(status->graphics,animation->render_node);
+		render_node_rm(graphics, animation->render_node);
 	}
 
 	free(animation->container.anchors_exposed);
 
 }
 
-void animate_specific_rm_recurse(struct animate_specific *animation, struct status_struct *status) {
+void animate_specific_rm_recurse(struct animate_specific *animation, struct graphical_stage_struct *graphics) {
 	while (animation) {
 		struct animate_specific *animation_to_free = animation;
-		animate_specific_rm(animation_to_free, status);
+		animate_specific_rm(animation_to_free, graphics);
 		animation = animation->next;
 	}
 }

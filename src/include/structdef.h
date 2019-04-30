@@ -93,7 +93,7 @@ struct status_struct {
 	struct player_struct *player;
 	struct audio_struct *audio;
 	struct time_struct *timing;
-	struct graphics_struct *graphics;
+	struct graphics_struct *master_graphics;
 	struct program_struct *program;
 
 };
@@ -107,7 +107,33 @@ struct lane_struct {
 	float *laneheight;	//TODO: Make float
 	struct visual_container_struct *containers;
 };
+
+struct graphical_stage_struct {
+	/* Something that has its own render target, animations, render nodes.
+	   E.g. level, startscreen, pause screen, etc. ``graphics`` has master. */
+	struct render_node *render_node_head;
+	struct render_node *render_node_tail;
+	struct rendercopyex_struct *rendercopyex_data;
+	struct dict_void *generic_anim_dict;
+	struct dict_void *image_dict;
+	struct std_list *object_list_stack;
+	int num_images;
+	SDL_Texture **tex_target_ptr;
+	struct graphics_struct *master_graphics;
+};
+
+struct graphical_stage_child_struct {
+	struct std std;
+	struct graphical_stage_struct graphics;
+};
+
 struct level_struct {
+	union {
+		struct {
+			STD_MEMBERS
+		};
+		struct std std;
+	};
 	int score;
 	int gameover;
 	int levelover;
@@ -115,15 +141,16 @@ struct level_struct {
 	int currentlevel;
 	int partymode;
 	struct lane_struct lanes;
-	struct std_list *object_list_stack;
 	struct std_list **monster_list_stacks;
 	struct std_list *monster_list_stack_end;//TODO: TMP
 	struct laser_struct laser;
 	struct sword_struct sword;
 	struct level_var_struct *vars;
 	struct level_effects_struct *effects;
-	struct dict_void *generic_anim_dict;
 	struct object_spawn_array_struct *object_spawn_arrays;
+	struct ui_struct *ui;
+
+	struct graphical_stage_child_struct stage;
 
 	struct xy_struct grid;
 	int currentscreen;
@@ -300,16 +327,11 @@ struct graphics_struct {
 	int width, height;
 	struct visual_container_struct screen;
 	SDL_Renderer *renderer;
-	struct render_node *render_node_head;
-	struct render_node *render_node_tail;
-	struct ui_struct *ui;
-	int num_images;
-	struct rendercopyex_struct *rendercopyex_data;
-	struct dict_void *image_dict;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
-	SDL_Texture *texTarget;
+	struct std_list *object_list_stack;
+	struct graphical_stage_struct graphics;
 };
 
 /* RENDERING */
@@ -445,8 +467,6 @@ struct clip {
 struct animate_generic {
 	int num_clips;
 	struct clip **clips;
-	//struct animate_specific *default_specific;
-	// Deprecated
 };
 
 struct anchor_struct {

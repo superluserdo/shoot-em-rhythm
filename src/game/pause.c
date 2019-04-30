@@ -9,13 +9,20 @@
 #include "main.h"
 #include "clock.h"
 #include "audio.h"
-//#include "level.h"
-
-extern pthread_mutex_t display_mutex;
-extern pthread_mutex_t clock_mutex;
-extern pthread_cond_t display_cond;
 
 // Put struct declarations in structdef:
+
+//struct pause_struct {
+//	struct std std;
+//	struct graphical_stage_struct *graphics;
+//};
+//
+//struct pause_struct *pause = status.level;
+//*pause = (struct pause_struct) {0};
+//struct std *std = &pause->std;
+//
+//spawn_graphical_stage(std, master_graphics, &level->graphics, level, "level");
+
 
 enum menu_type_e {MENU, BUTTON, SLIDER};
 
@@ -202,6 +209,12 @@ struct tex_rect_struct **menu_graphics(struct menu_struct *menu, TTF_Font *font,
 
 int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentlevel, struct status_struct *status) {
 
+	struct graphical_stage_child_struct *pause_stage = malloc(sizeof(*pause_stage));
+	*pause_stage = (struct graphical_stage_child_struct) {0};
+
+	struct graphics_struct *master_graphics = status->master_graphics;
+	spawn_graphical_stage_child(&pause_stage, master_graphics, &pause_stage->std, "pausemenu");
+	//TODO: Why does this^ cause a segfault when exiting the pause menu?
 	pause_time(status->timing);
 	pausemusic_toggle(status->audio, status->timing);
 
@@ -250,7 +263,7 @@ int pausefunc(SDL_Renderer *renderer, SDL_Texture *levelcapture, int currentleve
 	textbox_rect.w = 800;
 	textbox_rect.h = 400;
 
-	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->graphics->width, status->graphics->height);
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->master_graphics->width, status->master_graphics->height);
 
 	enum menu_var_e action;
 
@@ -457,7 +470,7 @@ int pausefunc_bkp(SDL_Renderer *renderer, SDL_Texture *levelcapture, int current
 	textbox_rect.w = 800;
 	textbox_rect.h = 400;
 
-	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->graphics->width, status->graphics->height);
+	SDL_Texture *texTarget = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, status->master_graphics->width, status->master_graphics->height);
 
 	while (1) {
 
