@@ -174,9 +174,9 @@ struct tex_rect_struct **menu_graphics(struct menu_struct *menu, TTF_Font *font,
 		struct menu_item_struct item = menu->menu_items[i];
 
 		if (item.menu_type == SLIDER) {
-			menu_gr[i] = malloc(2 * sizeof(menu_gr[i]));
+			menu_gr[i] = malloc(2 * sizeof(*menu_gr[i]));
 		} else {
-			menu_gr[i] = malloc(1 * sizeof(menu_gr[i]));
+			menu_gr[i] = malloc(1 * sizeof(*menu_gr[i]));
 		}
 		const char *text = item.text;
 		int text_length = strlen(text);

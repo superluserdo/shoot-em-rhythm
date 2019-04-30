@@ -151,8 +151,8 @@ int object_logic_monster(struct std *monster_std, void *data) {
 			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", "explosion");
 			abort();
 		}
-		struct animate_specific *explosion_anim = new_specific_anim(monster_std, generic);
-		struct animate_specific *anim = monster_std->animation;
+		struct animation_struct *explosion_anim = new_animation(monster_std, GENERIC, generic);
+		struct animation_struct *anim = monster_std->animation;
 
 		/* Append explosion to end of animations */
 		while (anim->next) {
@@ -165,8 +165,8 @@ int object_logic_monster(struct std *monster_std, void *data) {
 		explosion_anim->rules_list = malloc(1 * sizeof(*explosion_anim->rules_list));
 		*explosion_anim->rules_list = (struct rule_node) {0};
 		explosion_anim->rules_list->rule = &rules_explosion;
-		explosion_anim->return_clip = -1;
-		explosion_anim->loops = 3;
+		explosion_anim->control->return_clip = -1;
+		explosion_anim->control->loops = 3;
 		struct explosion_data_struct *explosion_data = malloc(sizeof(struct explosion_data_struct));
 		*explosion_data = (struct explosion_data_struct) {
 			.animation = explosion_anim,

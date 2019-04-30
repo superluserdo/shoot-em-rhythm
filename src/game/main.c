@@ -198,14 +198,14 @@ int main() {
 		render_process(master_graphics.object_list_stack, &master_graphics.graphics, &master_graphics, master_graphics.graphics.tex_target_ptr, &timing);
 
 		//printf("%p\n", *master_graphics.graphics.tex_target_ptr);
-		printf("%p\n", master_graphics.graphics.render_node_head[0].img);
-		printf("	%p\n", master_graphics.object_list_stack->std->animation->generic->clips[0]->img);
+		//printf("%p\n", master_graphics.graphics.render_node_head[0].img);
+		//printf("	%p\n", master_graphics.object_list_stack->std->animation->generic->clips[0]->img);
 		//
 		SDL_SetRenderTarget(master_graphics.renderer, NULL);
 		SDL_RenderClear(master_graphics.renderer);
 		//SDL_RenderCopy(master_graphics.renderer, *master_graphics.graphics.tex_target_ptr, NULL, NULL);
 
-		SDL_RenderCopy(master_graphics.renderer, master_graphics.object_list_stack->std->animation->generic->clips[0]->img, NULL, NULL);
+		SDL_RenderCopy(master_graphics.renderer, master_graphics.object_list_stack->std->animation->img, NULL, NULL);
 		//
 		SDL_Delay(wait_to_present(&timing));
 		SDL_RenderPresent(master_graphics.renderer);

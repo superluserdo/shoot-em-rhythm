@@ -136,7 +136,7 @@ void tr_orbit_xyz(void *rect_trans, void *data) {
 	//*str.z_set = 1;
 }
 
-int transform_add_check(struct animate_specific *animation, void *data, void (*func)()) {
+int transform_add_check(struct animation_struct *animation, void *data, void (*func)()) {
 	struct func_node *node = animation->transform_list;
 	int do_add = 1;
 	while (node) {
@@ -157,7 +157,7 @@ int transform_add_check(struct animate_specific *animation, void *data, void (*f
 }
 	
 
-int transform_rm(struct animate_specific *animation, void (*func)()) {
+int transform_rm(struct animation_struct *animation, void (*func)()) {
 	struct func_node *node = animation->transform_list;
 	struct func_node *prev = NULL;
 	while (node) {

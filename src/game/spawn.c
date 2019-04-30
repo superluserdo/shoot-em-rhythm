@@ -16,7 +16,7 @@
 #include "spawn.h"
 #include "object_logic.h"
 
-void prepare_anim_character(struct animate_specific *anim, struct status_struct *status) {
+void prepare_anim_character(struct animation_struct *anim, struct status_struct *status) {
 	anim->rules_list = malloc(sizeof(struct rule_node));
 	anim->rules_list->rule = &rules_player;
 	anim->rules_list->data = (void *)status;
@@ -48,7 +48,7 @@ void prepare_anim_character(struct animate_specific *anim, struct status_struct 
 
 }
 
-void prepare_anim_ui_bar(struct animate_specific *anim, struct status_struct *status) {
+void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *status) {
 
 	prepare_anim_ui(anim, status);
 
@@ -59,7 +59,7 @@ void prepare_anim_ui_bar(struct animate_specific *anim, struct status_struct *st
 
 }
 
-void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status) {
+void prepare_anim_ui(struct animation_struct *anim, struct status_struct *status) {
 
 	anim->rules_list = malloc(sizeof(struct rule_node));
 	anim->rules_list->rule = &rules_ui;
@@ -136,8 +136,8 @@ void spawn_sword(struct std_list **object_list_stack_ptr,
 	sword->name = "sword";
 	graphic_spawn(&sword->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"sword"}, 1);
 
-	sword->animation->return_clip = -1;
-	sword->animation->backwards = 1;
+	sword->animation->control->return_clip = -1;
+	sword->animation->control->backwards = 1;
 	sword->animation->rules_list = malloc(sizeof(*sword->animation->rules_list));
 	sword->animation->rules_list->rule = &rules_sword;
 	sword->animation->rules_list->data = (void *) sword;
@@ -164,9 +164,9 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	bar->max = bar_max_ptr;
 	bar->name = name;
 	bar->self = bar;
-	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "none", "coloured bar"}, 3);
+	graphic_spawn(&bar->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"hp", "ser_container", "coloured bar"}, 3);
 
-	struct animate_specific *anim = bar->animation;
+	struct animation_struct *anim = bar->animation;
 
 	prepare_anim_ui_bar(anim, status);
 
@@ -212,14 +212,14 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	const char *graphic_types[digits+1];
 	/* Initialise the image dictionary and generic animation dictionary.
 	   Both are out-parameters here. */
-	graphic_types[0] = "none";
+	graphic_types[0] = "ser_container";
 
 	for (int i = 0; i < digits; i++) {
 		graphic_types[i+1] = "numbers";
 	}
 	graphic_spawn(&counter->std, object_list_stack_ptr, generic_anim_dict, graphics, graphic_types, digits+1);
 
-	struct animate_specific *dummy_anim = counter->animation;
+	struct animation_struct *dummy_anim = counter->animation;
 	dummy_anim->container = (struct visual_container_struct) {0};
 	dummy_anim->container.inherit = container;
 	dummy_anim->container.rect_out_parent_scale = (struct float_rect) { .x = 0.5, .y = 0.5, .w = 1, .h = 1};
@@ -227,7 +227,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	
 	prepare_anim_ui(dummy_anim, status);
 
-	struct animate_specific *anim = dummy_anim->next;
+	struct animation_struct *anim = dummy_anim->next;
 
 	for (int i = 0; i < counter->digits; i++) {
 		struct visual_container_struct digit_container = (struct visual_container_struct) {
@@ -319,7 +319,7 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	new_flyinghamster->monster_list_stack_ptr = monster_list_stack_ptr;
 	std_stack_push(monster_list_stack_ptr, &new_flyinghamster->std, &new_flyinghamster->monster_stack_location);
 
-	struct animate_specific *animation = new_flyinghamster->animation;
+	struct animation_struct *animation = new_flyinghamster->animation;
 
 	new_flyinghamster->container = malloc(sizeof(struct visual_container_struct));
 	*new_flyinghamster->container = *container;
@@ -419,14 +419,18 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	};
 	std->self = self;
 
-	graphic_spawn(std, &master_graphics->object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"none"}, 1);
+	graphic_spawn(std, &master_graphics->object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"ser_texture"}, 1);
 
 	std->animation->container = *std->container;
 
+	SDL_Texture *tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
+	std->animation->img = tex_target;
+	SDL_Texture **tex_target_ptr = &std->animation->img;
+
+#if 0
 	struct frame *frame = malloc(sizeof(*frame));
 	*frame = (struct frame) {0};
 
-	SDL_Texture *tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
 	struct clip *clip = malloc(sizeof(*clip));
 	*clip = (struct clip) {
 		.img = tex_target,
@@ -446,7 +450,10 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 		.clips = clips,
 	};
 
-	std->animation->generic = generic;
+	std->animation->control = malloc(sizeof(struct animate_control));
+	*std->animation->control = (struct animate_control) {0};
+	std->animation->control->generic = generic;
+#endif
 
 	/* Graphical vars of the level only */
 	graphics->render_node_head = NULL;
@@ -490,7 +497,7 @@ void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_p
 }
 
 void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics) {
-	animate_specific_rm_recurse(std->animation, graphics);
+	animation_struct_rm_recurse(std->animation, graphics);
 	
 	struct std_list *stack_pos = std->object_stack_location;
 
@@ -500,7 +507,7 @@ void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage
 
 }
 
-void animate_specific_rm(struct animate_specific *animation, struct graphical_stage_struct *graphics) {
+void animation_struct_rm(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
 
 	struct rule_node *rule = animation->rules_list;
 	while (rule) {
@@ -522,10 +529,10 @@ void animate_specific_rm(struct animate_specific *animation, struct graphical_st
 
 }
 
-void animate_specific_rm_recurse(struct animate_specific *animation, struct graphical_stage_struct *graphics) {
+void animation_struct_rm_recurse(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
 	while (animation) {
-		struct animate_specific *animation_to_free = animation;
-		animate_specific_rm(animation_to_free, graphics);
+		struct animation_struct *animation_to_free = animation;
+		animation_struct_rm(animation_to_free, graphics);
 		animation = animation->next;
 	}
 }

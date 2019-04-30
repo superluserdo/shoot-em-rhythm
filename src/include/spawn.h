@@ -12,10 +12,10 @@ void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_p
 
 void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics);
 
-void animate_specific_rm(struct animate_specific *animation, struct graphical_stage_struct *graphics);
+void animation_struct_rm(struct animation_struct *animation, struct graphical_stage_struct *graphics);
 
-void animate_specific_rm_recurse(struct animate_specific *animation, struct graphical_stage_struct *graphics);
+void animation_struct_rm_recurse(struct animation_struct *animation, struct graphical_stage_struct *graphics);
 
-void prepare_anim_character(struct animate_specific *anim, struct status_struct *status);
-void prepare_anim_ui(struct animate_specific *anim, struct status_struct *status);
-void prepare_anim_ui_bar(struct animate_specific *anim, struct status_struct *status);
+void prepare_anim_character(struct animation_struct *anim, struct status_struct *status);
+void prepare_anim_ui(struct animation_struct *anim, struct status_struct *status);
+void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *status);

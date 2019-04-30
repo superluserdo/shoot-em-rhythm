@@ -20,9 +20,11 @@ int render_list_rm(struct render_node **node_ptr_ptr);
 struct dict_void *generic_anim_dict_populate(struct dict_void *image_dict, struct status_struct *status);
 int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer);
 
-struct animate_specific *new_specific_anim(struct std *std, struct animate_generic *generic);
-int generate_render_node(struct animate_specific *specific, struct graphical_stage_struct *graphics);
-int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, const char* specific_type_array[], int num_specific_anims);
+struct animation_struct *new_animation(struct std *std, enum animate_mode_e animate_mode, struct animate_generic *generic);
+int generate_render_node(struct animation_struct *specific, struct graphical_stage_struct *graphics);
+void update_render_node(struct animation_struct *specific, struct render_node *r_node);
+
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, const char* animation_type_array[], int num_anims);
 		
 void rules_player(void *playervoid);
 void rules_sword(void *sword_void);
@@ -31,5 +33,5 @@ void rules_explosion(void *data);
 void rules_ui_bar(void *data);
 void rules_ui_counter(void *animvoid);
 
-struct anchor_struct *make_anchors_exposed(struct animate_specific *anim, int n);
+struct anchor_struct *make_anchors_exposed(struct animation_struct *anim, int n);
 void de_update_containers(struct std_list *std_list_node);

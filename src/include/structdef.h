@@ -25,7 +25,7 @@ struct size_ratio_struct {
 #define STD_MEMBERS \
 	const char *name; \
 	struct visual_container_struct *container; /* Container structure of the entire object. Use container.pos_relative to control the object's position relative to parent at runtime. */\
-	struct animate_specific *animation; \
+	struct animation_struct *animation; \
 	int (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
 	struct std_list *object_stack_location; \
@@ -358,7 +358,7 @@ struct render_node {
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
 	SDL_Renderer *renderer;
-	struct animate_specific *animation;
+	struct animation_struct *animation;
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
 };
@@ -471,69 +471,20 @@ struct animate_generic {
 
 struct anchor_struct {
 	struct size_ratio_struct pos_anim_internal;
-	struct animate_specific *anim;
+	struct animation_struct *anim;
 };
 	
-struct animate_specific_old {
-	struct animate_generic *generic;
-
-	int clip;
-	int frame;
-	float speed;
-	int loops;
-	int return_clip;
-	float lastFrameBeat;
-
-	struct rule_node *rules_list;
-
-	struct std *object;
-	//struct xy_struct *parent_pos;	/*	Adjust object position and size ratio in these two structs.	*/
-	//struct size_ratio_struct *parent_size_ratio;	/*	They're put into rect_out each frame.		*/
-	//struct animate_specific *list_head;
-
-	/* Container-related - experimental! */
-	enum aspctr_lock_e aspctr_lock; /*	Whether to scale based on container's width or height,
-										or both */
-	union {
-		float container_scale_factor; /* Animation layer's size as fraction of container */
-		struct size_ratio_struct container_scale_factor_wh; /* Same but with independent w and h */
-	};
-
-	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
-								  // or all animations (I think? Can't remember)
-	float z;
-	float screen_height_ratio; /* How much the texture fills the screen height.
-													* Preserves aspect ratio. I chose height
-													* since the game has a set height but is
-													* arbitrarily long. */
-	//struct size_ratio_struct *anchor_grabbed;
-	struct anchor_struct *anchor_grabbed; /* Pointer to the container-scale anchor 
-												 this animation is locked to. Can be
-												 defined by the animation, or point to
-												 another animation's exposed anchor */
-	//struct size_ratio_struct *anchors_exposed;
-	int num_anchors_exposed;
-	struct anchor_struct *anchors_exposed; /* List of "exposed anchors" for a single texture/layer
-										  animation. Other animations can lock onto these */
-	struct size_ratio_struct anchor_hook; /* Sprite-relative position of anchor hook.
-											 Default is the one specified by generic animation */
-	struct size_ratio_struct anchor_grabbed_offset_internal_scale; /* Offset in grabbed animation's
-																	  scale of the anchor hook from
-																	  the target's grabbed anchor */
-
-	struct size_ratio_struct offset_container_scale; /* Offset in container scale of the 
-													 object, after everything else is applied */
-
-	struct func_node *transform_list;
-
-	struct render_node *render_node;
-	struct float_rect rect_out_container_scale;
-	struct animate_specific *next;
+enum animate_mode_e {
+	GENERIC,	/* Controls a full generic animation with frames */
+	TEXTURE,	/* Transform-based animations of a static 
+				   or externally-changed texture */
+	CONTAINER,	/* Transform-based animations of a container */
 };
 
-struct animate_specific {
-	struct animate_generic *generic;
+struct animate_control {
 
+	/* Control of generic animation */
+	struct animate_generic *generic;
 	int clip;
 	int frame;
 	float speed;
@@ -541,18 +492,31 @@ struct animate_specific {
 	int backwards;
 	int return_clip;
 	float lastFrameBeat;
-	struct rule_node *rules_list;
+};
+
+struct animation_struct {
+
+	/* Parent object the animation belongs to */
 	struct std *object;
 
-	/* Container-related */
+	/* Animation mode */
+	enum animate_mode_e animate_mode;
 
+	/* GENERIC mode only */
+	struct animate_control *control;
+
+	/* GENERIC and TEXTURE modes only */
+	SDL_Texture *img;
+
+	/* Container-related */
+	struct visual_container_struct container;
 	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
 								  // or all animations (I think? Can't remember)
 	float z;
+	struct rule_node *rules_list;
 	struct func_node *transform_list;
 	struct render_node *render_node;
-	struct animate_specific *next;
-	struct visual_container_struct container;
+	struct animation_struct *next;
 };
 
 struct rule_node {
@@ -572,7 +536,7 @@ struct func_node {
 
 /* Needed for death explosion animation: */
 struct explosion_data_struct {
-	struct animate_specific *animation;
+	struct animation_struct *animation;
 	struct living *living;
 };
 
