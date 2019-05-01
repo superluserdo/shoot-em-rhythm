@@ -1,6 +1,6 @@
 /* Helper Functions */
 
-struct std_list *std_stack_push(struct std_list **stack_ptr, struct std *std, struct std_list **stack_ptr_from_std);
+void std_stack_push(struct std_list **stack_ptr, struct std *std, struct std_list **stack_ptr_from_std);
 
 void std_stack_rm(struct std_list **stack_ptr, struct std_list *stack_pos);
 

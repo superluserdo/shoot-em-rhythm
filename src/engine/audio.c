@@ -38,6 +38,7 @@ int audio_init(struct audio_struct *audio) {
 	audio->sound_dict = malloc(sizeof(struct dict_void));
 	*audio->sound_dict = (struct dict_void) {0};
 	
+	return R_SUCCESS;
 
 }
 
@@ -309,8 +310,6 @@ void stopmusic(struct audio_struct *audio) {
 
 void playmusic(struct status_struct *status, const char *track, float volume){
 
-	int starting = 0;
-	int ending = 0;
 	struct audio_struct *audio = status->audio;
 	Mix_VolumeMusic(volume * 128);
 	audio->music_volume = volume;
@@ -318,11 +317,7 @@ void playmusic(struct status_struct *status, const char *track, float volume){
 		strncpy(audio->track, track, audio->trackmaxlen+1);
 		printf("Track: %s\n", track);
 
-		starting = 1;
-		ending = 0;
 	}
-
-	struct time_struct timing = *status->timing;
 
 	//load the MP3 file "music.mp3" to play as music
 	Mix_Music *music=Mix_LoadMUS(audio->track);
@@ -331,10 +326,6 @@ void playmusic(struct status_struct *status, const char *track, float volume){
 		FILEINFO
 	    // this might be a critical error...
 	}
-
-	// use musicFinished for when music stops
-	//Mix_HookMusicFinished(music_Finished);
-	int fade = 0;
 
 	//if(Mix_PlayMusic(music, 1)==-1) {
 	if(Mix_FadeInMusicPos(music, 1, 0, 0)==-1) {
@@ -350,8 +341,6 @@ void playmusic(struct status_struct *status, const char *track, float volume){
 	//	    printf("Mix_FadeInMusic: %s\n", Mix_GetError());
 	//	}
 	//}
-
-	int muted = 0;
 
 
 	//if (ending) {

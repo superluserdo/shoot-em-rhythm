@@ -30,7 +30,7 @@ void int2array(int number, int *array, int array_digits) {
 
 }
 
-struct std_list *std_stack_push(struct std_list **stack_ptr, struct std *std, struct std_list **stack_ptr_from_std) {
+void std_stack_push(struct std_list **stack_ptr, struct std *std, struct std_list **stack_ptr_from_std) {
 	struct std_list *list_node = malloc(sizeof(*list_node));
 	*list_node = (struct std_list) {
 		.std = std,

@@ -7,12 +7,14 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>
 #include "structdef.h"
 #include "main.h"
 #include "animate.h"
 #include "level.h"
 #include "audio.h"
 #include "clock.h"
+#include "pause.h"
 #include <libconfig.h>
 #include <dlfcn.h>
 
@@ -33,6 +35,8 @@ int main() {
 	struct time_struct timing = {0};
 	struct graphics_struct master_graphics = {0};
 	struct program_struct program = {0};
+
+	struct menu_stage_struct pause_stage = {0};
 	
 	if (audio_init(&audio) == R_FAILURE) {
 		return R_FAILURE;
@@ -66,8 +70,6 @@ int main() {
 	master_graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
 	master_graphics.graphics.master_graphics = &master_graphics;
 
-	//struct std main_std = {0};
-	//spawn_graphical_stage(&main_std, master_graphics, &main_std->graphics, &main_std, "main");
 	SDL_Texture *screen_texture = NULL;
 	master_graphics.graphics.tex_target_ptr = &screen_texture;
 	
@@ -80,11 +82,14 @@ int main() {
 	//	exit(-1);
 	//}
 
-	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, master_graphics.width, master_graphics.height, SDL_WINDOW_RESIZABLE);
+	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, 
+			master_graphics.width, master_graphics.height, 
+			SDL_WINDOW_RESIZABLE);
 	master_graphics.window = win;
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
-		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", SDL_GetError());
+		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", 
+				SDL_GetError());
 		
 		/* Print driver info if renderer creation fails */
 		SDL_RendererInfo info;
@@ -100,9 +105,6 @@ int main() {
 
 	program.python_interpreter_enable = 0;
 	PyObject    *pModule ; 
-	PyObject    *pDict ;
-	PyObject    *python_func;
-	PyObject *generator;
 	if (program.python_interpreter_enable) {
 
 		printf("Python interpreter enabled! Initialising...\n");
@@ -110,7 +112,6 @@ int main() {
 		/*	Initialise the Python interpreter	*/
 		Py_Initialize() ;
 
-		int         iSize = 0 ;
 		char        python_funcname[] = "while_ipython" ;
 		char		python_filename[] = "pythonhelper";
 
@@ -135,29 +136,27 @@ int main() {
 		} else {
 			fprintf (stderr,"Couldnt load the python module %s\n", python_filename) ;
 		}
-		program.python_helper_function_generator = PyObject_CallFunction(status.program->python_helper_function,"O", status.program->status_python_capsule);
-		PyObject_CallMethod(status.program->python_helper_function_generator,"send", "s", NULL);
-		printf("Made generator that returned %p\n", program.python_helper_function_generator);
+		program.python_helper_function_generator = 
+				PyObject_CallFunction(status.program->python_helper_function,
+						"O", status.program->status_python_capsule);
+		PyObject_CallMethod(status.program->python_helper_function_generator,
+				"send", "s", NULL);
+		printf("Made generator that returned %p\n", 
+				program.python_helper_function_generator);
 	}
 
 	/* Set up hooks */
 
+	/* Create list of functions to call in level */
 	enum return_codes_e rc = hooks_setup(&program);
 	if (rc!=R_SUCCESS) {
 		fprintf(stderr,"Failed to setup the module hooks, sorry :(\n");
 		return R_FAILURE;
 	}
 
-	/* Create list of functions to call in level */
-
-	void *(*hookfuncs[])(struct status_struct *status) = {funcptr, funcptr};
-
-	/* ---------------------------------------------------------------------- */
-
 	enum  return_codes_e returncode = startscreen(win, renderer, &status);
 
 	/*	The Main Game Loop */
-	//	NOTE: The stack smashing error seemed to occur when the loop just kept looping because it wasn'tr intercepting a particular return code!
 	while (1) {
 
 		play_sounds(&audio);
@@ -181,7 +180,9 @@ int main() {
 			returncode = startscreen(win, renderer, &status);
 		}
 		else if ( returncode == R_PAUSE_LEVEL) {
-			returncode = pausefunc(renderer, *status.level->stage.graphics.tex_target_ptr, level.currentlevel, &status);
+			returncode = pausefunc(renderer, &pause_stage,
+					*status.level->stage.graphics.tex_target_ptr, 
+					&status);
 		}
 		else if ( returncode == R_LOOP_LEVEL) {
 			returncode = level_loop(status);
@@ -195,18 +196,10 @@ int main() {
 		else {
 			break;
 		}
-		render_process(master_graphics.object_list_stack, &master_graphics.graphics, &master_graphics, master_graphics.graphics.tex_target_ptr, &timing);
+		render_process(master_graphics.object_list_stack, 
+				&master_graphics.graphics, &master_graphics, 
+				master_graphics.graphics.tex_target_ptr, timing.currentbeat);
 
-		//printf("%p\n", *master_graphics.graphics.tex_target_ptr);
-		//printf("%p\n", master_graphics.graphics.render_node_head[0].img);
-		//printf("	%p\n", master_graphics.object_list_stack->std->animation->generic->clips[0]->img);
-		//
-		SDL_SetRenderTarget(master_graphics.renderer, NULL);
-		SDL_RenderClear(master_graphics.renderer);
-		//SDL_RenderCopy(master_graphics.renderer, *master_graphics.graphics.tex_target_ptr, NULL, NULL);
-
-		SDL_RenderCopy(master_graphics.renderer, master_graphics.object_list_stack->std->animation->img, NULL, NULL);
-		//
 		SDL_Delay(wait_to_present(&timing));
 		SDL_RenderPresent(master_graphics.renderer);
 		update_time(&timing);
@@ -215,8 +208,11 @@ int main() {
 
 	/* Finish Suspended Python Functions */
 	if (status.program->python_interpreter_enable) {
-		if (status.program->python_helper_function && PyCallable_Check(status.program->python_helper_function)) {
-			PyObject *pResult = PyObject_CallMethod(status.program->python_helper_function_generator,"send", "i", 1);
+		if (status.program->python_helper_function && 
+				PyCallable_Check(status.program->python_helper_function)) {
+			PyObject *pResult = PyObject_CallMethod(
+					status.program->python_helper_function_generator,
+					"send", "i", 1);
 			if (!pResult) {
 				//PyErr_Print();
 			}
@@ -296,15 +292,19 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 	int num_modules = config_setting_length(modules_list_setting); 
 	printf("Module files to load: %d\n", num_modules);
 	for (int i = 0; i < num_modules; i++) {
-		config_setting_t *module_setting = config_setting_get_elem(modules_list_setting, i);
-		config_setting_t *path_setting = config_setting_get_member(module_setting, "path");
+		config_setting_t *module_setting = config_setting_get_elem(
+				modules_list_setting, i);
+		config_setting_t *path_setting = config_setting_get_member(
+				module_setting, "path");
 		const char *path = config_setting_get_string(path_setting);
 		if (!path) {
-			fprintf(stderr,"Could not find valid module file path in entry %d of file %s\n", i, cfg_path);
+			fprintf(stderr,"Could not find valid module file path in entry \
+					%d of file %s\n", i, cfg_path);
 			return(R_FAILURE);
 		}
 
-		config_setting_t *functions_setting = config_setting_get_member(module_setting, "functions");
+		config_setting_t *functions_setting = config_setting_get_member(module_setting,
+			   	"functions");
 		if (!functions_setting) {
 			fprintf(stderr,"Error looking up setting for 'functions'\n");
 			return(R_FAILURE);
@@ -323,30 +323,39 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 		}
 
 		for (int j = 0; j < num_functions; j++) {
-			config_setting_t *function_setting = config_setting_get_elem(functions_setting, j);
+			config_setting_t *function_setting = config_setting_get_elem(
+					functions_setting, j);
 			if (!function_setting) {
-				fprintf(stderr,"Error looking up setting for function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for function %d\
+					   	in module %d\n", j, i);
 				return(R_FAILURE);
 			}
-			config_setting_t *name_setting = config_setting_get_member(function_setting, "name");
+			config_setting_t *name_setting = config_setting_get_member(
+					function_setting, "name");
 			if (!name_setting) {
-				fprintf(stderr,"Error looking up setting for 'name' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for 'name' in function %d\
+					   	in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 			const char *func_name = config_setting_get_string(name_setting);
 			if (!func_name) {
-				fprintf(stderr,"Error getting value for 'name' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error getting value for 'name' in function %d\
+					   	in module %d\n", j, i);
 				return(R_FAILURE);
 			}
 
-			config_setting_t *exec_location_setting = config_setting_get_member(function_setting, "exec_location");
+			config_setting_t *exec_location_setting = config_setting_get_member(
+					function_setting, "exec_location");
 			if (!exec_location_setting) {
-				fprintf(stderr,"Error looking up setting for 'exec_location' in function %d in module %d\n", j, i);
+				fprintf(stderr,"Error looking up setting for 'exec_location' in\
+					   	function %d in module %d\n", j, i);
 				return(R_FAILURE);
 			}
-			enum hook_type_e hook_type = config_setting_get_int(exec_location_setting);
+			enum hook_type_e hook_type = config_setting_get_int(
+					exec_location_setting);
 			if (hook_type < 0 || hook_type >= NUM_HOOK_LOCATIONS) {
-				fprintf(stderr,"Attempting to store hook in execution location that doesn't exist.\n");
+				fprintf(stderr,"Attempting to store hook in execution location \
+						that doesn't exist.\n");
 				return R_FAILURE;
 			}
 

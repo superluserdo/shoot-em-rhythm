@@ -21,7 +21,7 @@ int node_ptr_count = 0;
 int rule_node_count = 0;
 int transform_node_count = 0;
 
-int print_object_list_stack(struct std_list *object_list_stack) {
+void print_object_list_stack(struct std_list *object_list_stack) {
 	struct std_list *object = object_list_stack;
 	while (object) {
 		printf("%s:		rendernode=", object->std->name);
@@ -30,7 +30,7 @@ int print_object_list_stack(struct std_list *object_list_stack) {
 	}
 }
 
-int print_render_list(struct render_node *render_node_head) {
+void print_render_list(struct render_node *render_node_head) {
 	struct render_node *node = render_node_head;
 	printf("render_node_head:	%p\n", render_node_head);
 	while (node) {
@@ -57,7 +57,7 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 
 /* RENDER */
 
-void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, struct time_struct *timing) {
+void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, float currentbeat) {
 	query_resize(master_graphics, tex_target_ptr);
 
 	SDL_SetRenderTarget(master_graphics->renderer, *tex_target_ptr);
@@ -67,7 +67,7 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 		test_render_list_robustness(object_list_stack, graphics);
 	}
 
-	advance_frames_and_create_render_list(object_list_stack, graphics, timing->currentbeat);
+	advance_frames_and_create_render_list(object_list_stack, graphics, currentbeat);
 	renderlist(graphics->render_node_head, graphics);
 
 }
@@ -123,7 +123,6 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 		}
 		if (*master_graphics->debug_containers) {
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
-			int line_width = 6;
 			struct visual_container_struct *container = &node_ptr->animation->container;
 
 			while (container) {
@@ -152,11 +151,9 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 }
 
 int node_insert_over(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
-	struct render_node *render_node_head = graphics->render_node_head;
-	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
+		graphics->render_node_head = node_src;
+		graphics->render_node_tail = node_src;
 		node_src->z = 0;
 	}
 	else {
@@ -165,18 +162,16 @@ int node_insert_over(struct graphical_stage_struct *graphics, struct render_node
 		node_dest->next = node_src;	
 		node_src->z = node_dest->z;
 	}
-	if (node_dest == render_node_tail) {
-		render_node_tail = node_src;
+	if (node_dest == graphics->render_node_tail) {
+		graphics->render_node_tail = node_src;
 	}
 	return 0;
 }
 
 int node_insert_under(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
-	struct render_node *render_node_head = graphics->render_node_head;
-	struct render_node *render_node_tail = graphics->render_node_tail;
 	if (node_dest == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
+		graphics->render_node_head = node_src;
+		graphics->render_node_tail = node_src;
 		node_src->z = 0;
 	}
 	else {
@@ -185,40 +180,38 @@ int node_insert_under(struct graphical_stage_struct *graphics, struct render_nod
 		node_dest->prev = node_src;	
 		node_src->z = node_dest->z;
 	}
-	if (node_dest == render_node_head) {
-		render_node_head = node_src;
+	if (node_dest == graphics->render_node_head) {
+		graphics->render_node_head = node_src;
 	}
 	return 0;
 }
 
 int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
-	struct render_node *render_node_head = graphics->render_node_head;
-	struct render_node *render_node_tail = graphics->render_node_tail;
-	if (render_node_head == NULL) {
-		render_node_head = node_src;
-		render_node_tail = node_src;
+	if (graphics->render_node_head == NULL) {
+		graphics->render_node_head = node_src;
+		graphics->render_node_tail = node_src;
 		node_src->z = z;
 	}
 	else {
-		struct render_node *node = render_node_head;
+		struct render_node *node = graphics->render_node_head;
 		while (node) {
 			if ( node_src->z <= node->z) {
 				node_src->next = node;
 				node_src->prev = node->prev;
 				node->prev = node_src;	
-				if (node == render_node_head) {
-					render_node_head = node_src;
+				if (node == graphics->render_node_head) {
+					graphics->render_node_head = node_src;
 				}
 				//if (node == render_node_tail) {
 				//	render_node_tail = node_src;
 				//}
 				break;
 			}		
-			if (node == render_node_tail) {
-				node_src->prev = render_node_tail;
+			if (node == graphics->render_node_tail) {
+				node_src->prev = graphics->render_node_tail;
 				node_src->next = NULL;
-				render_node_tail->next = node_src;
-				render_node_tail = node_src;
+				graphics->render_node_tail->next = node_src;
+				graphics->render_node_tail = node_src;
 				break;
 			}
 			node = node->next;
@@ -228,15 +221,13 @@ int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_n
 }
 
 int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
-	struct render_node *render_node_head = graphics->render_node_head;
-	struct render_node *render_node_tail = graphics->render_node_tail;
 	node_src->z = z;
-	if (render_node_head == NULL) {
+	if (graphics->render_node_head == NULL) {
 		graphics->render_node_head = node_src;
 		graphics->render_node_tail = node_src;
 	}
 	else {
-		struct render_node *node = render_node_head;
+		struct render_node *node = graphics->render_node_head;
 		while (node) {
 			if ( node_src->z < node->z) {
 				node_src->next = node;
@@ -245,7 +236,7 @@ int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_no
 				}
 				node_src->prev = node->prev;
 				node->prev = node_src;	
-				if (node == render_node_head) {
+				if (node == graphics->render_node_head) {
 					graphics->render_node_head = node_src;
 				}
 				//if (node == render_node_tail) {
@@ -253,8 +244,8 @@ int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_no
 				//}
 				break;
 			}		
-			if (node == render_node_tail) {
-				node_src->prev = render_node_tail;
+			if (node == graphics->render_node_tail) {
+				node_src->prev = graphics->render_node_tail;
 				node_src->next = NULL;
 				graphics->render_node_tail->next = node_src;
 				graphics->render_node_tail = node_src;
@@ -692,8 +683,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 
 	struct clip *clip_ptr;
 	config_setting_t *clip_setting;
-	SDL_Texture *img;
-	int img_index;
+	
 	double container_scale_factor;
 	int aspctr_lock;
 	int num_frames;
@@ -723,7 +713,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 		char *graphic_type = malloc(len+1);
 		strncpy(graphic_type, graphic_type_dummy, len+1);
 
-		int dict_index = dict_void_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
+		dict_void_add_keyval(generic_anim_dict, graphic_type, generic_ptr);
 
 		const char *graphic_category;
 		if (config_setting_lookup_string(generic_setting, "graphic_category", &graphic_category) == CONFIG_FALSE) {
@@ -796,7 +786,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 				return R_FAILURE;
 			}
 
-			int dict_index = dict_void_add_keyval(image_dict, img_name, texture);
+			dict_void_add_keyval(image_dict, img_name, texture);
 
 			clip_ptr->img = texture;
 
@@ -926,7 +916,7 @@ void rules_ui_counter(void *animvoid) {
 	}
 }
 
-struct anchor_struct *make_anchors_exposed(struct animation_struct *anim, int n) {
+void make_anchors_exposed(struct animation_struct *anim, int n) {
 
 	struct size_ratio_struct *anchors_exposed = malloc(n * sizeof(*anchors_exposed));
 

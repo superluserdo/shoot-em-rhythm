@@ -60,8 +60,6 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 		new_rect.h = rect.h * parent_rect.h;
 	} else {
 
-		float aspctr = rect.w/rect.h;
-
 		if (aspctr_lock == W_DOMINANT) {
 			new_rect.w = rect.w * parent_rect.w;
 			new_rect.h = rect.h * parent_rect.w * (*aspctr_inherit);

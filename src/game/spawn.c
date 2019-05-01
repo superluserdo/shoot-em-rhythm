@@ -293,13 +293,11 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 //}
 
 struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
-	struct graphics_struct *graphics = status->master_graphics;
 	struct level_struct *level = status->level;
 
 	struct monster_struct *new_flyinghamster = malloc(sizeof(struct monster_struct));
 	*new_flyinghamster = (struct monster_struct) {0};
 	new_flyinghamster->std.self = new_flyinghamster;
-	struct lane_struct *lanes = &level->lanes;
 	struct std_list **object_list_stack_ptr = &level->stage.graphics.object_list_stack;
 	struct dict_void *generic_anim_dict = level->stage.graphics.generic_anim_dict;
 
@@ -477,7 +475,6 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 	container->anchor_hook = new_anchor_hook;
 
 	/* Preserve the real position: */
-	struct float_rect rect_out = container->rect_out_parent_scale;
 	container->rect_out_parent_scale.x += (new_anchor_hook.w - old_anchor_hook.w) * container->rect_out_parent_scale.w;
 	container->rect_out_parent_scale.y += (new_anchor_hook.h - old_anchor_hook.h) * container->rect_out_parent_scale.h;
 }

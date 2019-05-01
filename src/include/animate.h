@@ -1,10 +1,12 @@
 /* Funcs */
 
+void print_object_list_stack(struct std_list *object_list_stack);
+void print_render_list(struct render_node *render_node_head);
 int advanceFrames(struct render_node *render_node_head, float currentbeat);
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat);
 
 //void render_process(struct graphics_struct *graphics, struct time_struct *timing);
-void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, struct time_struct *timing);
+void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, float currentbeat);
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics);
 void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr);
 
@@ -33,5 +35,5 @@ void rules_explosion(void *data);
 void rules_ui_bar(void *data);
 void rules_ui_counter(void *animvoid);
 
-struct anchor_struct *make_anchors_exposed(struct animation_struct *anim, int n);
+void make_anchors_exposed(struct animation_struct *anim, int n);
 void de_update_containers(struct std_list *std_list_node);

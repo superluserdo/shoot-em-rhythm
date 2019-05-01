@@ -57,7 +57,7 @@ int dict_int_add_keyval(struct dict_int *dict, const char *key, int val) {
 		return index;
 }
 
-int dict_int_set_val(struct dict_int *dict, const char *key, int val) {
+void dict_int_set_val(struct dict_int *dict, const char *key, int val) {
 	
 	int index = dict_int_get_index(dict, key);
 	if (index == -1) {
@@ -114,7 +114,7 @@ int dict_void_add_keyval(struct dict_void *dict, const char *key, void *val) {
 		return index;
 }
 
-int dict_void_set_val(struct dict_void *dict, const char *key, void *val) {
+void dict_void_set_val(struct dict_void *dict, const char *key, void *val) {
 	
 	int index = dict_void_get_index(dict, key);
 	if (index == -1) {

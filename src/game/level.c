@@ -39,16 +39,13 @@ int level_init (struct status_struct status) {
 
 	/*	Some Variables	*/
 
-	struct render_node *r_node;
 
 	/* Status of the Level */
 
 	struct time_struct *timing = status.timing;
-	struct audio_struct *audio = status.audio;
 
 	struct level_struct *level = status.level;
 	*level = (struct level_struct) {0};
-	struct std *std = &level->stage.std;
 
 	spawn_graphical_stage_child(&level->stage, master_graphics, level, "level");
 
@@ -71,8 +68,6 @@ int level_init (struct status_struct status) {
 
 	/* Setup Config File */
 	config_t cfg;
-	config_setting_t *setting;
-	const char *str;
 
 	config_init(&cfg);
 
@@ -106,7 +101,6 @@ int level_init (struct status_struct status) {
 
 
 	config_setting_t *level_setting = config_setting_lookup(thislevel_setting, "level");
-	double smd;
 
 	if (level_setting == NULL) {
 		printf("No settings found under 'level' in the config file\n");
@@ -405,11 +399,6 @@ int level_init (struct status_struct status) {
 
 int level_loop(struct status_struct status) {
 
-	pthread_t threads;
-	extern pthread_cond_t soundstatus_cond;
-	extern pthread_mutex_t soundstatus_mutex;
-	int rc; //Return code
-
 	/* Frame Loop */
 
 	struct graphics_struct *master_graphics = status.master_graphics;
@@ -422,10 +411,10 @@ int level_loop(struct status_struct status) {
 	struct sword_struct *sword = &level->sword;
 	struct lane_struct *lanes = &level->lanes;
 	SDL_Renderer *renderer = master_graphics->renderer;
-	uint64_t cpustart, cpuend;
+	//uint64_t cpustart, cpuend;
 	struct time_struct *timing = status.timing;
 
-	cpustart = rdtsc();
+	//cpustart = rdtsc();
 
 	/* Hooks! */
 
@@ -703,8 +692,6 @@ int level_loop(struct status_struct status) {
 		//SDL_RenderCopy(renderer, imgs->Swordimg, &sword->rect_in, &sword->rect_out);
 	}
 
-	struct render_node *node_ptr = graphics->render_node_head;
-
 	if (status.level->partymode) {
 		level->effects->angle ++;
 		level->effects->colournum += 5;
@@ -727,9 +714,9 @@ int level_loop(struct status_struct status) {
 		graphics->rendercopyex_data = NULL;
 	}
 
-	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage.graphics.tex_target_ptr, timing);
+	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage.graphics.tex_target_ptr, timing->currentbeat);
 
-	cpuend = rdtsc();
+	//cpuend = rdtsc();
 	return R_LOOP_LEVEL; //loop
 }
 

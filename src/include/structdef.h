@@ -24,9 +24,9 @@ struct size_ratio_struct {
 
 #define STD_MEMBERS \
 	const char *name; \
-	struct visual_container_struct *container; /* Container structure of the entire object. Use container.pos_relative to control the object's position relative to parent at runtime. */\
+	struct visual_container_struct *container; /* Container structure of the entire object. Use container.rec_out_parent_scale.{x,y} to control the object's position relative to parent at runtime. */\
 	struct animation_struct *animation; \
-	int (*object_logic)(struct std *std, void *data); \
+	void (*object_logic)(struct std *std, void *data); \
 	void *object_data; \
 	struct std_list *object_stack_location; \
 	void *self; \
@@ -310,16 +310,6 @@ struct visual_container_struct {
 	int screen_scale_uptodate;
 };
 
-struct visual_container_struct_old {
-	//enum visual_structure_name_e name;
-	//enum visual_structure_name_e inherit;
-	struct visual_container_struct_old *inherit;
-	struct float_rect rect;
-	float aspctr; /* Aspect ratio of container = w/h
-				   * Don't use if aspctr_lock == WH_INDEPENDENT */
-	enum aspctr_lock_e aspctr_lock; /* Should both w and h be inherited, or just one (locked aspect ratio) */
-};
-
 enum vector_e { START=-3, ELEM_SIZE=-3, LEN=-2, USED=-1, DATA=0};
 
 struct graphics_struct {
@@ -332,6 +322,9 @@ struct graphics_struct {
 	int *debug_test_render_list_robustness;
 	struct std_list *object_list_stack;
 	struct graphical_stage_struct graphics;
+	void *font;
+	SDL_Color font_colour;
+
 };
 
 /* RENDERING */

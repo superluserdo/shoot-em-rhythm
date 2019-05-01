@@ -12,7 +12,7 @@
 #include "audio.h"
 #include "object_logic.h"
 
-int object_logic_player(struct std *player_std, void *data) {
+void object_logic_player(struct std *player_std, void *data) {
 
 	struct status_struct *status = data;
 	struct level_struct *level = status->level;
@@ -76,7 +76,7 @@ int object_logic_player(struct std *player_std, void *data) {
 
 }
 
-int object_logic_sword(struct std *sword_std, void *data) {
+void object_logic_sword(struct std *sword_std, void *data) {
 
 	struct status_struct *status = data;
 	struct level_struct *level = status->level;
@@ -104,7 +104,7 @@ int object_logic_sword(struct std *sword_std, void *data) {
 	}
 }
 
-int object_logic_monster(struct std *monster_std, void *data) {
+void object_logic_monster(struct std *monster_std, void *data) {
 	struct status_struct *status = (struct status_struct *)data;
 	struct monster_struct *monster = monster_std->self;
 
@@ -175,19 +175,19 @@ int object_logic_monster(struct std *monster_std, void *data) {
 		explosion_anim->rules_list->data = explosion_data;
 
 		monster->living.alive = -1; /* In process of dying */
-		return 0;
+		return;
 	}
 	if (monster->living.alive == -2 ) /* Finished dying */ {
 		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
-		return 0;
+		return;
 	}
 
 
 	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->master_graphics->width, status->master_graphics->height}).w < 0) {
 		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
-		return 0;
+		return;
 	}
 
-	return 0;
+	return;
 }
 

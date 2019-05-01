@@ -14,13 +14,8 @@
 int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *status) {
 
 	//pthread_t soundthread;
-	struct audio_struct audio = *status->audio;
 	struct musicstart_struct {
 		int *pause;
-	};
-	int dummypause = 0;
-	struct musicstart_struct musicstart_struct = {
-		.pause = &dummypause
 	};
 	//TODO:	Fix audio segfaults!
 	//int rc = pthread_create(&soundthread, NULL, musicstart, (void*)&musicstart_struct);

@@ -35,7 +35,6 @@ void tr_bump(void *rect_trans, void *data) {
 		str.bump_width = 1.0;
 	}
 
-	struct float_rect rect = *(struct float_rect*)rect_trans;
 	float dec = *str.currentbeat - (int)*str.currentbeat;
 	float peak_start = str.peak_offset - str.bump_width/2;
 	float peak_end = str.peak_offset + str.bump_width/2;
@@ -122,8 +121,6 @@ void tr_orbit_xyz(void *rect_trans, void *data) {
 	rect->x += str.x.ampl*sin(2*PI*(str.x.freq*beat + str.x.phase));
 	rect->y += str.y.ampl*sin(2*PI*(str.y.freq*beat + str.y.phase));
 
-	//SDL_Rect pre_scaling = *rect;
-	struct float_rect pre_scaling = *rect;
 	rect->w *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
 	rect->h *= 1 + str.z.ampl*sin(2*PI*(str.z.freq*beat) + str.z.phase);
 
