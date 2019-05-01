@@ -468,6 +468,27 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 
 //TODO	Write recursive destructors for each struct type
 
+void spawn_bg(struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture *bg_texture) {
+	/* Spawn a texture as the background of a stage */
+	struct std *bg_std = malloc(sizeof(*bg_std));
+	*bg_std = (struct std) {0};
+	bg_std->name = "background";
+	bg_std->container = malloc(sizeof(*bg_std->container));
+	*bg_std->container = (struct visual_container_struct) {0};
+	
+	bg_std->container->inherit = &master_graphics->screen;
+	bg_std->container->rect_out_parent_scale = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1};
+	bg_std->container->aspctr_lock = WH_INDEPENDENT;
+
+	bg_std->self = NULL;
+
+	graphic_spawn(bg_std, &graphics->object_list_stack, graphics->generic_anim_dict, graphics, (const char *[]){"ser_texture"}, 1);
+
+	bg_std->animation->container = *bg_std->container;
+	bg_std->animation->img = bg_texture;
+	bg_std->animation->z = -1; /* Background layer */
+}
+
 void set_anchor_hook(struct visual_container_struct *container, float x, float y) {
 	struct size_ratio_struct new_anchor_hook = {.w = x, .h = y};
 	struct size_ratio_struct old_anchor_hook = container->anchor_hook;
