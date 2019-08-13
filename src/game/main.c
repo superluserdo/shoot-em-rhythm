@@ -2,6 +2,7 @@
 #include <Python.h>
 
 #include <stdio.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <SDL2/SDL.h>
@@ -15,6 +16,7 @@
 #include "audio.h"
 #include "clock.h"
 #include "pause.h"
+#include "object_logic.h"
 #include <libconfig.h>
 #include <dlfcn.h>
 
@@ -103,7 +105,7 @@ int main() {
 	}
 	master_graphics.renderer = renderer;
 
-	program.python_interpreter_enable = 0;
+	program.python_interpreter_enable = 1;
 	PyObject    *pModule ; 
 	if (program.python_interpreter_enable) {
 
@@ -113,6 +115,7 @@ int main() {
 		Py_Initialize() ;
 
 		char        python_funcname[] = "while_ipython" ;
+		char		python_dirname[] = "scripts";
 		char		python_filename[] = "pythonhelper";
 
 		/*	Don't start the python interpreter until prompted	*/
@@ -120,29 +123,33 @@ int main() {
 
 		/*	Add current directory to path of C-API python interpreter	*/
 		PyRun_SimpleString("import sys");
-		PyRun_SimpleString("sys.path.append('.')");
+		PyRun_SimpleString("sys.path.append('scripts')");
 		PyRun_SimpleString("import os");
 		
 		/* Get Python code/module */
 		pModule = PyImport_ImportModule(python_filename);
-		if (NULL != pModule)
-		{
+		if (pModule) {
 			/* Get the function and check if its callable function */   
 			program.python_helper_function = PyObject_GetAttrString(pModule, python_funcname);
 
 			/* Build the input arguments */
 			program.status_python_capsule = PyCapsule_New(&status, NULL, NULL);
 
+			program.python_helper_function_generator = 
+					PyObject_CallFunction(status.program->python_helper_function,
+							"O", status.program->status_python_capsule);
+			PyObject_CallMethod(status.program->python_helper_function_generator,
+					"send", "s", NULL);
+			printf("Made generator that returned %p\n", 
+					program.python_helper_function_generator);
+			if (program.python_helper_function_generator == NULL) {
+				PyErr_Print();
+			}
 		} else {
-			fprintf (stderr,"Couldnt load the python module %s\n", python_filename) ;
+			char cwd[100];
+			fprintf (stderr,"Couldn't load the python module: %s/%s/%s\n", getcwd(cwd,sizeof(cwd)), python_dirname, python_filename) ;
+			PyErr_Print();
 		}
-		program.python_helper_function_generator = 
-				PyObject_CallFunction(status.program->python_helper_function,
-						"O", status.program->status_python_capsule);
-		PyObject_CallMethod(status.program->python_helper_function_generator,
-				"send", "s", NULL);
-		printf("Made generator that returned %p\n", 
-				program.python_helper_function_generator);
 	}
 
 	/* Set up hooks */
@@ -159,7 +166,7 @@ int main() {
 	/*	The Main Game Loop */
 	while (1) {
 
-		play_sounds(&audio);
+		audio_func(&audio);
 
 		/* Call functions of per-frame plugins */
 		
@@ -181,7 +188,7 @@ int main() {
 		}
 		else if ( returncode == R_PAUSE_LEVEL) {
 			returncode = pausefunc(renderer, &pause_stage,
-					*status.level->stage.graphics.tex_target_ptr, 
+					//*status.level->stage.graphics.tex_target_ptr, 
 					&status);
 		}
 		else if ( returncode == R_LOOP_LEVEL) {
@@ -196,7 +203,10 @@ int main() {
 		else {
 			break;
 		}
-		render_process(master_graphics.object_list_stack, 
+
+		process_object_logics(master_graphics.graphics.object_list_stack);
+
+		render_process(master_graphics.graphics.object_list_stack, 
 				&master_graphics.graphics, &master_graphics, 
 				master_graphics.graphics.tex_target_ptr, timing.currentbeat);
 

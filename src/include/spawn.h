@@ -11,7 +11,8 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 
 void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_ptr, struct graphical_stage_struct *graphics);
 
-void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics);
+void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics, int free_self);
+void std_list_rm(struct std_list **std_list_head, struct graphical_stage_struct *graphics, int free_self);
 
 void animation_struct_rm(struct animation_struct *animation, struct graphical_stage_struct *graphics);
 
@@ -20,3 +21,5 @@ void animation_struct_rm_recurse(struct animation_struct *animation, struct grap
 void prepare_anim_character(struct animation_struct *anim, struct status_struct *status);
 void prepare_anim_ui(struct animation_struct *anim, struct status_struct *status);
 void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *status);
+
+void exit_graphical_stage_child(struct graphical_stage_child_struct *stage);

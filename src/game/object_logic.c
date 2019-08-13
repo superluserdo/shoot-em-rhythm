@@ -113,27 +113,6 @@ void object_logic_monster(struct std *monster_std, void *data) {
 
 	struct time_struct *timing = status->timing;
 	float speed = timing->container_width_per_beat;
-	//			float translation = transspeed * timing.intervalglobal/1000.0;
-	//			int transint = (int)translation;
-	//			ptr2mon->remainder = translation - transint;
-	//			ptr2mon->monster_rect.x -= transint;
-	//			ptr2mon = ptr2mon->next;
-	//		float Dt;
-	//			transspeed = timing.bps * linkptrs_start[lane]->speed * ZOOM_MULT * speedmultmon * timing.pxperbeat + ptr2mon->remainder;
-	//			float extra = (((float)(width - (player_out.x + player_out.w + rcSword.w/2)))/transspeed - 4*timing.intervalglobal/1000.0) * timing.bps;
-	//			Dt = timing.currentbeat - linkptrs_end[lane]->entrybeat + extra;
-	//			if (Dt >= 0) {
-	//				float Dx = Dt / timing.bps * speedmultmon * linkptrs_end[lane]->speed;
-	//				linkptrs_end[lane]->monster_rect.x = width - Dx;
-	//				linkptrs_end[lane] = linkptrs_end[lane]->next;
-	//				monsterlanenum[lane]++;
-	//			}
-	//			else
-	//				break;
-	//		}
-	//	}
-
-
 
 	float Dt = (timing->currentbeat + 1) - monster->entrybeat; /* +1 to align with int */
 	monster_std->container->rect_out_parent_scale.x = 1 - speed * Dt;
@@ -191,3 +170,37 @@ void object_logic_monster(struct std *monster_std, void *data) {
 	return;
 }
 
+void object_logic_timeout(struct std *std, void *data) {
+
+	struct timeout_data_struct *timeout_data = data;
+
+	float Dt = *timeout_data->current_time - timeout_data->start_time;
+	std->container->rect_out_parent_scale.x = 1 - Dt;
+	if (Dt >= timeout_data->duration) {
+		std_rm(std, &timeout_data->graphics->object_list_stack, timeout_data->graphics, 1);
+	}
+}
+
+void object_logic_fadeout(struct std *std, void *data) {
+
+	struct timeout_data_struct *timeout_data = data;
+
+	float Dt = *timeout_data->current_time - timeout_data->start_time;
+	std->animation->container.rect_out_parent_scale.w = 0;//1 - Dt;
+	SDL_SetTextureAlphaMod(std->animation->img, 255 * (1 - Dt/timeout_data->duration));
+	if (Dt >= timeout_data->duration) {
+		std_rm(std, &timeout_data->graphics->object_list_stack, timeout_data->graphics, 1);
+	}
+}
+
+void process_object_logics(struct std_list *object_list_stack) {
+	struct std_list *current_obj = object_list_stack;
+	while (current_obj) {
+		struct std_list *new_obj = current_obj->prev;
+		if (current_obj->std->object_logic) {
+			current_obj->std->object_logic(current_obj->std, current_obj->std->object_data);
+		}
+		current_obj = new_obj; /* Do this so an object can delete itself and 
+								  this loop still works */
+	}
+}

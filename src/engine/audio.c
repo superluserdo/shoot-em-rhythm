@@ -5,6 +5,22 @@
 #include "audio.h"
 #include "dict.h"
 
+void audio_func(struct audio_struct *audio) {
+	play_sounds(audio);
+	audio_mute_toggle(audio);
+}
+
+void audio_mute_toggle(struct audio_struct *audio) {
+	if (audio->music_mute) {
+		Mix_VolumeMusic(0);
+		audio->music_mute = 1;
+	}
+	else {
+		Mix_VolumeMusic(audio->music_volume * 128);
+		audio->music_mute = 0;
+	}
+}
+
 struct sound_val_struct {
 	/* For use as a value to a sound file-path key */
 	Mix_Chunk *sound;

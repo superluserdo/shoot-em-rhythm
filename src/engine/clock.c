@@ -89,11 +89,11 @@ void update_time(struct time_struct *timing) {
 
 void pause_time(struct time_struct *timing) {
 	timing->startpause = SDL_GetTicks();
-	//level->pauselevel = 1;
+	*timing->pauselevel = 1;
 	timing->pause_change = 1;
 }
 void unpause_time(struct time_struct *timing) {
 	timing->endpause = SDL_GetTicks();
-	//level->pauselevel = 0;
+	*timing->pauselevel = 0;
 	timing->pause_change = 1;
 }

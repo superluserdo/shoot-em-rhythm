@@ -15,6 +15,7 @@
 #include "structure.h"
 #include "spawn.h"
 #include "object_logic.h"
+#include "dict.h"
 
 void prepare_anim_character(struct animation_struct *anim, struct status_struct *status) {
 	anim->rules_list = malloc(sizeof(struct rule_node));
@@ -417,11 +418,14 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	};
 	std->self = self;
 
-	graphic_spawn(std, &master_graphics->object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"ser_texture"}, 1);
+	graphic_spawn(std, &master_graphics->graphics.object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"ser_texture"}, 1);
 
 	std->animation->container = *std->container;
 
 	SDL_Texture *tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
+	/* Give this (render target) texture alpha blending so it can layer over other render targets */
+	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
+
 	std->animation->img = tex_target;
 	SDL_Texture **tex_target_ptr = &std->animation->img;
 
@@ -503,7 +507,6 @@ void set_anchor_hook(struct visual_container_struct *container, float x, float y
 //TODO: Freeing functions (still working on these):
 
 void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_ptr, struct graphical_stage_struct *graphics) {
-	std_rm(&monster->std, stack_ptr, graphics);
 
 	/* Remove from active monster list */
 	std_stack_rm(
@@ -511,10 +514,23 @@ void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_p
 		monster->monster_stack_location);
 	monster->monster_stack_location = NULL;
 
-	free(monster);
+	std_rm(&monster->std, stack_ptr, graphics, 1);
+	/* Also frees std->self, aka monster */
 }
 
-void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics) {
+void std_list_rm(struct std_list **std_list_head, struct graphical_stage_struct *graphics, int free_self) {
+
+	struct std_list *std_node = *std_list_head;
+
+	while(std_node) {
+		struct std_list *std_next = std_node->next;
+		std_rm(std_node->std, std_list_head, graphics, free_self);
+		// free(std_node); //(Don't need this as it's freed by std_stack_rm)
+		std_node = std_next;
+	}
+}
+
+void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage_struct *graphics, int free_self) {
 	animation_struct_rm_recurse(std->animation, graphics);
 	
 	struct std_list *stack_pos = std->object_stack_location;
@@ -523,6 +539,9 @@ void std_rm(struct std *std, struct std_list **stack_ptr, struct graphical_stage
 	std_stack_rm(stack_ptr, stack_pos);
 	std->object_stack_location = NULL;
 
+	if (free_self && std->self) {
+		free(std->self);
+	}
 }
 
 void animation_struct_rm(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
@@ -553,4 +572,21 @@ void animation_struct_rm_recurse(struct animation_struct *animation, struct grap
 		animation_struct_rm(animation_to_free, graphics);
 		animation = animation->next;
 	}
+}
+
+void exit_graphical_stage_child(struct graphical_stage_child_struct *stage) {
+	struct graphical_stage_struct *graphics = &stage->graphics;
+	render_list_rm(&graphics->render_node_head);
+	std_list_rm(&graphics->object_list_stack, graphics, 0);
+	dict_void_rm(graphics->generic_anim_dict);
+	dict_void_rm(graphics->image_dict);
+
+	/* Lose the stage from the graphical_stage_child_struct 
+	   to become just a std object */
+	struct std *std_from_stage = realloc(stage, sizeof(struct std));
+	std_from_stage->self = std_from_stage;
+}
+
+void destroy_graphical_stage_child(struct graphical_stage_child_struct *stage) {
+
 }

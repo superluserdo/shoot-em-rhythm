@@ -123,3 +123,21 @@ void dict_void_set_val(struct dict_void *dict, const char *key, void *val) {
 		dict->entries[index].val = val;
 	}
 }
+
+void dict_int_rm(struct dict_void *dict) {
+	free(dict->entries);
+	free(dict);
+}
+
+void dict_void_rm(struct dict_void *dict) {
+	if (!dict) {
+		return;
+	}
+	for (int i = 0; i < dict->num_entries; i++) {
+		if (dict->entries[i].val) {
+			free(dict->entries[i].val);
+		}
+	}
+	free(dict->entries);
+	free(dict);
+}

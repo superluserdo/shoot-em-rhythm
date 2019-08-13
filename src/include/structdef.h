@@ -320,7 +320,7 @@ struct graphics_struct {
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
-	struct std_list *object_list_stack;
+	//struct std_list *object_list_stack;
 	struct graphical_stage_struct graphics;
 	void *font;
 	SDL_Color font_colour;
@@ -533,6 +533,12 @@ struct explosion_data_struct {
 	struct living *living;
 };
 
+struct timeout_data_struct {
+	struct graphical_stage_struct *graphics;
+	float start_time;
+	float *current_time;
+	float duration;
+};
 
 enum return_codes_e { R_SUCCESS, R_FAILURE, R_RESTART_LEVEL, R_LOOP_LEVEL, R_PAUSE_LEVEL, R_QUIT_TO_DESKTOP, R_CASCADE_UP=100, R_CASCADE_UP_MAX=199, R_STARTSCREEN=200, R_LEVELS=201 };
 

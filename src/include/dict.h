@@ -36,3 +36,5 @@ void *dict_void_get_val(struct dict_void *dict, const char *key);
 int dict_void_add_keyval(struct dict_void *dict, const char *key, void *val);
 void dict_void_set_val(struct dict_void *dict, const char *key, void *val);
 
+void dict_int_rm(struct dict_void *dict);
+void dict_void_rm(struct dict_void *dict);

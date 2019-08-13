@@ -16,6 +16,7 @@
 #include "animate.h"
 #include "transform.h" // Can hopefully get rid of this soon
 #include "spawn.h"
+#include "object_logic.h"
 //#include "deprecated_funcs.h"
 
 #define SWORD_WIDTH 32
@@ -625,15 +626,7 @@ int level_loop(struct status_struct status) {
 		}
 	}
 
-	struct std_list *current_obj = graphics->object_list_stack;
-	while (current_obj) {
-		struct std_list *new_obj = current_obj->prev;
-		if (current_obj->std->object_logic) {
-			current_obj->std->object_logic(current_obj->std, current_obj->std->object_data);
-		}
-		current_obj = new_obj; /* Do this so an object can delete itself and 
-								  this loop still works */
-	}
+	process_object_logics(graphics->object_list_stack);
 
 	if (laser->on) {
 		//laserfire(level, lanes->total, laser, player, rects->rcLaser, rects->rcLaserSrc, player->animation->rect_out, lanes->laneheight, lanes->currentlane, timing->framecount, level->currentscreen, level->effects->hue, audio->soundchecklist);
@@ -728,25 +721,20 @@ void quitlevel(struct status_struct status) {
 	struct time_struct *timing = status.timing;
 	printf("Level Over.\n");
 
-	//	for ( int i = 0; i < MAX_SOUNDS_LIST; i++ )
-	//		soundchecklist[i] = 0;
-	SDL_RenderClear(master_graphics->renderer);
-	SDL_SetRenderTarget(master_graphics->renderer, *status.level->stage.graphics.tex_target_ptr);
-	SDL_RenderClear(master_graphics->renderer);
-	SDL_SetRenderTarget(master_graphics->renderer, NULL);
+	//SDL_RenderClear(master_graphics->renderer);
+	//SDL_SetRenderTarget(master_graphics->renderer, *status.level->stage.graphics.tex_target_ptr);
+	//SDL_RenderClear(master_graphics->renderer);
+	//SDL_SetRenderTarget(master_graphics->renderer, NULL);
 	stopmusic(status.audio);
-	//soundstop();
-	//pthread_mutex_lock( &track_mutex );
-	//volatile extern int music_ended;
-	//while(!music_ended) {
-	//	pthread_cond_wait( &cond_end, &track_mutex);
-	//}
-	//pthread_mutex_unlock( &track_mutex );
-	SDL_DestroyTexture(*status.level->stage.graphics.tex_target_ptr);
+
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
-	render_list_rm(&status.level->stage.graphics.render_node_head);
+
+	struct graphical_stage_child_struct *stage = &status.level->stage;
+	exit_graphical_stage_child(stage);
+	std_rm(&stage->std, &master_graphics->graphics.object_list_stack, &master_graphics->graphics, 1);
 }
+
 struct object_spawn_array_struct *level_init_object_spawn_arrays(void *level_setting_void, int num_lanes) {
 
 	config_setting_t *level_setting = level_setting_void;

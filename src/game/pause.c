@@ -12,6 +12,8 @@
 #include "clock.h"
 #include "audio.h"
 #include "pause.h"
+#include "transform.h"
+#include "object_logic.h"
 
 // Put struct declarations in structdef:
 
@@ -115,6 +117,19 @@ struct menu_struct *create_menu_struct(struct status_struct *status) {
 	
 
 	return pause_menu;
+}
+
+void menu_rm(struct menu_struct *menu, struct graphical_stage_struct *graphics) {
+
+	for (int i = 0; i < menu->num_items; i++) {
+		struct menu_item_struct item = menu->menu_items[i];
+		if (item.data) {
+			free(item.data);
+			/* Don't free animation here, free it from the menu's std_rm instead */
+		}
+	}
+	free(menu->menu_items);
+	std_rm(&menu->std, &graphics->object_list_stack, graphics, 1); /* Frees menu */
 }
 
 void update_text_texture(char *text, SDL_Texture **texture_ptr, struct graphics_struct *master_graphics) {
@@ -247,22 +262,22 @@ void spawn_menu_graphics(struct menu_struct *menu, struct visual_container_struc
 	menu->animation->container.inherit = &menu->menu_items[0].animation->container;
 }
 
-struct menu_struct *pause_init(struct graphical_stage_child_struct **pause_stage_ptr, SDL_Texture *levelcapture, struct status_struct *status) {
+struct menu_struct *pause_init(struct graphical_stage_child_struct **pause_stage_ptr, struct status_struct *status) {
 
 	pause_time(status->timing);
 	pausemusic_toggle(status->audio, status->timing);
 
 	*pause_stage_ptr = malloc(sizeof(struct graphical_stage_child_struct));
 	struct graphical_stage_child_struct *stage = *pause_stage_ptr;
-	struct graphical_stage_struct *graphics = &stage->graphics;
+	//struct graphical_stage_struct *graphics = &stage->graphics;
 	*stage = (struct graphical_stage_child_struct) {0};
 
 	struct graphics_struct *master_graphics = status->master_graphics;
 	spawn_graphical_stage_child(stage, master_graphics, &stage->std, "pausemenu");
 
 	/* Set the background texture as an object */
-
-	spawn_bg(graphics, master_graphics, levelcapture);
+	//spawn_bg(graphics, master_graphics, levelcapture);
+	/* Don't need to do this with texture_target alpha blending */
 
 	// Init Font ...
 
@@ -306,11 +321,11 @@ struct menu_struct *pause_init(struct graphical_stage_child_struct **pause_stage
 
 }
 
-int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, SDL_Texture *levelcapture, struct status_struct *status) {
+int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, struct status_struct *status) {
 
 	struct graphical_stage_child_struct **pause_stage_ptr = &pause_stage->stage;
 	if (!*pause_stage_ptr) {
-		pause_stage->menu = pause_init(pause_stage_ptr, levelcapture, status);
+		pause_stage->menu = pause_init(pause_stage_ptr, status);
 	}
 
 	enum menu_var_e action;
@@ -333,8 +348,8 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, SDL
 			if (menu->parent) {
 				menu = menu->parent;
 			} else {
-				unpause_time(status->timing);
-				pausemusic_toggle(status->audio, status->timing);
+
+				quit_pause_menu(status, pause_stage);
 				return R_LOOP_LEVEL;
 			}
 		}
@@ -374,19 +389,17 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, SDL
 	}
 
 	if (menu->cur_item < 0) {
-			menu->cur_item = menu->num_items - 1;
+		menu->cur_item = menu->num_items - 1;
 	}
-	
+
 	menu->cur_item %= menu->num_items;
-	
+
 	if (action == RESUME) {
-		unpause_time(status->timing);
-		pausemusic_toggle(status->audio, status->timing);
+		quit_pause_menu(status, pause_stage);
 		return R_LOOP_LEVEL;
 	}
 	else if (action == RESTART) {
-		unpause_time(status->timing);
-		stopmusic(status->audio);
+		quit_pause_menu(status, pause_stage);
 		return R_RESTART_LEVEL;
 	}
 	else if (action == QUITTOSTART) {
@@ -395,13 +408,11 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, SDL
 		for (int i = 0; i < menu->num_items; i++) {
 			//SDL_DestroyTexture(menu->graphics[i][0].texture);
 		}
-		unpause_time(status->timing);
-		stopmusic(status->audio);
+		quit_pause_menu(status, pause_stage);
 		return R_STARTSCREEN;
 	}
 	else if (action == QUITTODESKTOP) {
-		unpause_time(status->timing);
-		stopmusic(status->audio);
+		quit_pause_menu(status, pause_stage);
 		return R_QUIT_TO_DESKTOP;
 	}
 
@@ -411,4 +422,32 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, SDL
 	render_process(stage->graphics.object_list_stack, &stage->graphics, master_graphics, stage->graphics.tex_target_ptr, 0);
 	return R_PAUSE_LEVEL;
 
+}
+
+void quit_pause_menu(struct status_struct *status, struct menu_stage_struct *pause_stage) {
+	exit_graphical_stage_child(pause_stage->stage);
+
+	menu_rm(pause_stage->menu, &pause_stage->stage->graphics);
+	pause_stage->menu = NULL;
+	struct std *pause_std = &pause_stage->stage->std;
+	pause_stage->stage = NULL;
+
+
+	struct timeout_data_struct *timeout_data = malloc(sizeof(*timeout_data));
+	*timeout_data = (struct timeout_data_struct) {
+		.graphics = &status->master_graphics->graphics,
+		.start_time = status->timing->currentbeat,
+		.current_time = &status->timing->currentbeat,
+		.duration = 3,
+	};
+	pause_std->object_logic = object_logic_fadeout;
+	//pause_std->object_logic = object_logic_timeout;
+	pause_std->object_data = (void *) timeout_data;
+
+	//std_rm(pause_std, &status->master_graphics->graphics.object_list_stack, &status->master_graphics->graphics, 1);
+
+
+
+	pausemusic_toggle(status->audio, status->timing);
+	unpause_time(status->timing);
 }

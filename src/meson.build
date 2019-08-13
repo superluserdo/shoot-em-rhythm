@@ -4,16 +4,13 @@ project('shoot-em-rhythm', 'c')
 #add_global_arguments('-Wno-all', language : 'c')
 cc = meson.get_compiler('c')
 
-#inc = include_directories('./')
 inc = include_directories('include')
-#
 #subdir('include')
 #subdir('src')
 #subdir('test')
 
-cmd = run_command('get_all_mods.sh')
+cmd = run_command('../buildscripts/get_all_mods.sh')
 mod_sources = cmd.stdout().strip().split('\n')
-#e = executable('prog', sources)
 foreach mod_source : mod_sources
 	mod_name = mod_source.split('/')[-1].strip('.c')
 	message(mod_name)
@@ -23,11 +20,15 @@ foreach mod_source : mod_sources
 endforeach
 
 structdef_py = custom_target('structdef_py',
+  input : '../buildscripts/create_structdef_py.sh',
   output : 'structdef.py',
   #command : [comp, '@INPUT@', '@OUTPUT@'],
-  command : ['../src/create_structdef_py.sh'],
+  command : ['../buildscripts/create_structdef_py.sh'],
   install : true,
-  install_dir : 'subdir')
+  install_dir : '../scripts/')
+
+install_subdir('scripts',
+  install_dir : 'testdir')
 
 sources = files(
 	# Game:
