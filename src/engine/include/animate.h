@@ -1,3 +1,15 @@
+#ifndef _ENGINE_ANIMATE_H
+#define _ENGINE_ANIMATE_H
+#include <stdio.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <libconfig.h>
+#include "structdef_game.h"
+#include "helpers.h"
+#include "transform.h"
+#include "structure.h"
+#include "dict.h"
+
 /* Funcs */
 
 void print_object_list_stack(struct std_list *object_list_stack);
@@ -37,3 +49,4 @@ void rules_ui_counter(void *animvoid);
 
 void make_anchors_exposed(struct animation_struct *anim, int n);
 void de_update_containers(struct std_list *std_list_node);
+#endif

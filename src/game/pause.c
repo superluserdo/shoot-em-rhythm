@@ -5,7 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <libconfig.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "animate.h"
 #include "spawn.h"
@@ -15,7 +15,7 @@
 #include "transform.h"
 #include "object_logic.h"
 
-// Put struct declarations in structdef:
+// Put struct declarations in structdef_game:
 
 //struct pause_struct {
 //	struct std std;
@@ -425,12 +425,11 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, str
 }
 
 void quit_pause_menu(struct status_struct *status, struct menu_stage_struct *pause_stage) {
-	exit_graphical_stage_child(pause_stage->stage);
 
 	menu_rm(pause_stage->menu, &pause_stage->stage->graphics);
+	exit_graphical_stage_child(pause_stage->stage);
 	pause_stage->menu = NULL;
-	struct std *pause_std = &pause_stage->stage->std;
-	pause_stage->stage = NULL;
+	//pause_stage->stage = NULL;
 
 
 	struct timeout_data_struct *timeout_data = malloc(sizeof(*timeout_data));
@@ -440,11 +439,11 @@ void quit_pause_menu(struct status_struct *status, struct menu_stage_struct *pau
 		.current_time = &status->timing->currentbeat,
 		.duration = 3,
 	};
-	pause_std->object_logic = object_logic_fadeout;
-	//pause_std->object_logic = object_logic_timeout;
-	pause_std->object_data = (void *) timeout_data;
+	pause_stage->stage->std.object_logic = object_logic_fadeout;
+	//stage_std->object_logic = object_logic_timeout;
+	pause_stage->stage->std.object_data = (void *) timeout_data;
 
-	//std_rm(pause_std, &status->master_graphics->graphics.object_list_stack, &status->master_graphics->graphics, 1);
+	//std_rm(stage_std, &status->master_graphics->graphics.object_list_stack, &status->master_graphics->graphics, 1);
 
 
 

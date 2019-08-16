@@ -1,4 +1,5 @@
 #!/bin/sh
+cd `dirname $0`
 echo "Building structdef.py..."
 echo $(pwd)
 echo '#include <SDL2/SDL.h>\n#include <SDL2/SDL_image.h>' > sdl-incl.h

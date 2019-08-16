@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "dict.h"
 #define DICT_RESIZE_MULT 2
 

@@ -1,3 +1,5 @@
+#ifndef _ENGINE_DICT_H
+#define _ENGINE_DICT_H
 /* Dict types for generic_anim_dict (replacement of crappier generic_bank) */
 
 /*		str -> int	*/
@@ -38,3 +40,4 @@ void dict_void_set_val(struct dict_void *dict, const char *key, void *val);
 
 void dict_int_rm(struct dict_void *dict);
 void dict_void_rm(struct dict_void *dict);
+#endif

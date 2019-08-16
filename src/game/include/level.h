@@ -1,3 +1,20 @@
+#ifndef _GAME_LEVEL_H
+#define _GAME_LEVEL_H
+#include <stdio.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <libconfig.h>
+#include "structdef_game.h"
+#include "main.h"
+#include "audio.h"
+#include "clock.h"
+#include "helpers.h"
+#include "animate.h"
+#include "transform.h" // Can hopefully get rid of this soon
+#include "spawn.h"
+#include "object_logic.h"
+//#include "deprecated_funcs.h"
+
 #define PXPB 83.24
 #define SPRITE_PATH "../art/selfsprite.png"
 #define TILE_PATH "../art/selftile.png"
@@ -55,3 +72,4 @@ extern pthread_cond_t cond_end;
 extern pthread_mutex_t track_mutex; 
 
 void quitlevel(struct status_struct status);
+#endif

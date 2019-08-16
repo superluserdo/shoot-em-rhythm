@@ -20,3 +20,4 @@ void music_Finished();
 void soundstart(void);
 void soundstop(void);
 
+#endif

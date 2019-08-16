@@ -85,3 +85,7 @@ void free_b(void *ptr) {
 ------ 2019-04-23 ---------
 
 	>	Reverse order of object logic so that it starts on the one that spawned first
+
+------ 2019-08-15 ---------
+
+	>	Rethink the realloc idea to convert from stage child to std in exit_graphical_stage, as this causes valgrind to think that all instances of the std part have been freed

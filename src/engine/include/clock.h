@@ -1,3 +1,9 @@
+#ifndef _ENGINE_CLOCK_H
+#define _ENGINE_CLOCK_H
+#include <stdio.h>
+#include <SDL2/SDL.h>
+#include "structdef_game.h"
+
 void *frametimer(void *); /* DEPRECATED - Used to be the only clock function running 
 							 in a loop in its own thread - now split into multiple 
 							 functions called by the main thread */
@@ -8,3 +14,4 @@ int wait_to_present(struct time_struct *timing);
 void update_time(struct time_struct *timing);
 void pause_time(struct time_struct *timing);
 void unpause_time(struct time_struct *timing);
+#endif

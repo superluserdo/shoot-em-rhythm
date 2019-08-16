@@ -1,11 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <SDL2/SDL.h>
-#include "structdef.h"
-#include "main.h"
-#include "level.h"
 #include "helpers.h"
 
 void int2array(int number, int *array, int array_digits) {

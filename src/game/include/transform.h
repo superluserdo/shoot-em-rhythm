@@ -1,3 +1,5 @@
+#ifndef _GAME_TRANSFORM_H
+#define _GAME_TRANSFORM_H
 struct tr_resize_data {
 	float w;
 	float h;
@@ -66,3 +68,4 @@ void tr_constmult(struct float_rect *rect, int rect_bitmask, float ampl, float m
 int transform_add_check(struct animation_struct *animation, void *data, void (*func)());
 int transform_rm(struct animation_struct *animation, void (*func)());
 
+#endif

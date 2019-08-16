@@ -1,19 +1,4 @@
-#include <stdio.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <libconfig.h>
-#include "structdef.h"
-#include "main.h"
-#include "level.h"
-#include "music.h"
-#include "clock.h"
-#include "helpers.h"
 #include "animate.h"
-#include "transform.h"
-#include "structure.h"
-#include "dict.h"
 
 /* For debugging */
 

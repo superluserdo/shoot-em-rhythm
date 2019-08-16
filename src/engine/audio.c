@@ -1,9 +1,4 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_mixer.h>
-#include "structdef.h"
 #include "audio.h"
-#include "dict.h"
 
 void audio_func(struct audio_struct *audio) {
 	play_sounds(audio);

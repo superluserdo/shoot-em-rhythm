@@ -1,7 +1,4 @@
-#include <SDL2/SDL.h>
-#include "structdef.h"
 #include "structure.h"
-#include <assert.h>
 
 ////int declare_visual_structure(enum visual_structure_name_e name, enum visual_structure_name_e inherit, struct float_rect rect, struct visual_container_struct *visual_structure_list) {
 //int declare_visual_structure(char *name, struct visual_container_struct inherit, struct float_rect rect, struct visual_container_struct *visual_structure_list) {

@@ -1,3 +1,5 @@
+#ifndef _GAME_MAIN_H
+#define _GAME_MAIN_H
 #define ZOOM_MULT 2
 //#define NATIVE_RES_X 640
 #define NATIVE_RES_X 640
@@ -15,3 +17,4 @@ uint64_t rdtsc();
 void *(*funcptr)(struct status_struct *status);
 #define NUM_HOOK_LOCATIONS 3
 enum return_codes_e hooks_setup(struct program_struct *program);
+#endif

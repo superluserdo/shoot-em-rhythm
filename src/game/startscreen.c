@@ -3,9 +3,8 @@
 #include <semaphore.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
-#include "music.h"
 #include "clock.h"
 #define START_PATH0 "../art/startimgbg.png"
 #define START_PATH1 "../art/startimgtext1.png"

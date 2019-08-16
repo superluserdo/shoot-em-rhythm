@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "structure.h"
 #include "spawn.h"
@@ -125,7 +125,7 @@ void object_logic_monster(struct std *monster_std, void *data) {
 		}
 	}
 	if (monster->living.alive == 0 /*start-dying code or something */ ) {
-		struct animate_generic *generic = dict_void_get_val(status->level->stage.graphics.generic_anim_dict, "explosion");
+		struct animate_generic *generic = dict_void_get_val(status->level->stage->graphics.generic_anim_dict, "explosion");
 		if (!generic) {
 			fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", "explosion");
 			abort();
@@ -157,13 +157,13 @@ void object_logic_monster(struct std *monster_std, void *data) {
 		return;
 	}
 	if (monster->living.alive == -2 ) /* Finished dying */ {
-		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
+		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage->graphics.object_list_stack, &status->level->stage->graphics);
 		return;
 	}
 
 
 	if (pos_at_custom_anchor_hook(monster_std->container, 1, 0.5, (struct xy_struct) {status->master_graphics->width, status->master_graphics->height}).w < 0) {
-		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage.graphics.object_list_stack, &status->level->stage.graphics);
+		monster_struct_rm((struct monster_struct *)monster_std->self, &status->level->stage->graphics.object_list_stack, &status->level->stage->graphics);
 		return;
 	}
 

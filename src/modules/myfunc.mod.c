@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <SDL2/SDL.h>
-#include "structdef.h"
+#include "structdef_engine.h"
 void mainfunc();
 
 void myfunc(struct status_struct *status) {

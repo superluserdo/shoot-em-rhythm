@@ -4,65 +4,44 @@ project('shoot-em-rhythm', 'c')
 #add_global_arguments('-Wno-all', language : 'c')
 cc = meson.get_compiler('c')
 
-inc = include_directories('include')
-#subdir('include')
-#subdir('src')
-#subdir('test')
+subdir('engine')
+subdir('game')
 
-cmd = run_command('../buildscripts/get_all_mods.sh')
-mod_sources = cmd.stdout().strip().split('\n')
-foreach mod_source : mod_sources
-	mod_name = mod_source.split('/')[-1].strip('.c')
-	message(mod_name)
-	module = shared_library(mod_name, mod_source,
-	include_directories : inc,
- )
-endforeach
-
-structdef_py = custom_target('structdef_py',
-  input : '../buildscripts/create_structdef_py.sh',
-  output : 'structdef.py',
-  #command : [comp, '@INPUT@', '@OUTPUT@'],
-  command : ['../buildscripts/create_structdef_py.sh'],
-  install : true,
-  install_dir : '../scripts/')
-
-install_subdir('scripts',
-  install_dir : 'testdir')
-
-sources = files(
-	# Game:
-	'game/main.c', 
-	'game/startscreen.c',
-	'game/level.c',
-	'game/spawn.c',
-	'game/pause.c',
-	'game/object_logic.c',
-	'game/transform.c',
-	# Engine:
-	'engine/structure.c',
-	'engine/audio.c',
-	'engine/clock.c',
-	'engine/animate.c',
-	'engine/dict.c',
-	'engine/helpers.c',
-	'engine/rdtsc.c',
-)
-
-deps = [
-	dependency('SDL2'),
-	dependency('SDL2_image'),
-	dependency('SDL2_ttf'),
-	dependency('SDL2_mixer'),
-	dependency('python3'),
-	cc.find_library('dl'),
-	cc.find_library('m'),
-	cc.find_library('config'),
-]
-
-executable('shoot-em-rhythm', sources,
-	include_directories : inc,
-	dependencies : deps,
+executable('shoot-em-rhythm', sources_engine, sources_game,
+	include_directories : [inc_engine, inc_game],
+	dependencies : [deps_engine, deps_game],
 	install: true,
 	install_dir: '../bin/',
 )
+
+buildscripts_dir = join_paths(meson.source_root(),'../buildscripts')
+scripts_dir = join_paths(meson.source_root(),'../scripts')
+message('buildscripts_dir is :'+ buildscripts_dir)
+
+cmd = run_command(join_paths(buildscripts_dir, 'get_all_mods.sh'))
+message('Modules found:')
+mod_sources = cmd.stdout().strip().split('\n')
+foreach mod_source : mod_sources
+	mod_name = mod_source.split('/')[-1]
+	mod_name_stripped = mod_name.strip('.c')
+	mod_path = join_paths(meson.source_root(), 'modules', mod_name)
+	message(mod_name)
+	module = shared_library(mod_name_stripped, mod_path,
+	include_directories : inc_engine,
+ )
+endforeach
+
+path = join_paths(buildscripts_dir, 'create_structdef_py.sh')
+message('path is :'+ path)
+
+structdef_py = custom_target('structdef_py',
+  input : join_paths(buildscripts_dir, 'create_structdef_py.sh'),
+  output : 'structdef.py',
+  #command : [comp, '@INPUT@', '@OUTPUT@'],
+  command : [join_paths(buildscripts_dir, 'create_structdef_py.sh')],
+  install : true,
+  install_dir : scripts_dir)
+
+install_subdir(scripts_dir,
+  install_dir : 'testdir')
+

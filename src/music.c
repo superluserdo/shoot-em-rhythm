@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "music.h"
 #define SAMPLE_RATE 44100

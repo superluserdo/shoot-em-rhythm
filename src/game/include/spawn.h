@@ -1,3 +1,5 @@
+#ifndef _GAME_SPAWN_H
+#define _GAME_SPAWN_H
 //int spawn_hp(struct ui_bar *hp_ptr, struct dict_str_void *generic_anim_dict, SDL_Renderer *renderer);
 void spawn_player(struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, struct player_struct *player, struct visual_container_struct *container,  struct status_struct *status,  config_setting_t *player_setting, const char *name);
 void spawn_sword(struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, struct player_struct *player, struct sword_struct *sword, struct visual_container_struct *container, struct status_struct *status, const char *name);
@@ -23,3 +25,4 @@ void prepare_anim_ui(struct animation_struct *anim, struct status_struct *status
 void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *status);
 
 void exit_graphical_stage_child(struct graphical_stage_child_struct *stage);
+#endif

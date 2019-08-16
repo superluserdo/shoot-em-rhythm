@@ -1,23 +1,7 @@
 /*	For the interactive python interpreter	*/
 #include <Python.h>
 
-#include <stdio.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <libconfig.h>
-#include "structdef.h"
-#include "main.h"
 #include "level.h"
-#include "audio.h"
-#include "clock.h"
-#include "helpers.h"
-#include "animate.h"
-#include "transform.h" // Can hopefully get rid of this soon
-#include "spawn.h"
-#include "object_logic.h"
-//#include "deprecated_funcs.h"
 
 #define SWORD_WIDTH 32
 #define SWORD_HEIGHT 32 // Get rid of this, put it in animaions.cfg or something
@@ -48,14 +32,16 @@ int level_init (struct status_struct status) {
 	struct level_struct *level = status.level;
 	*level = (struct level_struct) {0};
 
-	spawn_graphical_stage_child(&level->stage, master_graphics, level, "level");
+	level->stage = malloc(sizeof(*level->stage));
+	*level->stage = (struct graphical_stage_child_struct) {0};
+	spawn_graphical_stage_child(level->stage, master_graphics, level, "level");
 
 	level->currentlevel = 1;
 	level->lanes.total = TOTAL_LANES;
 
 	struct lane_struct *lanes = &level->lanes;
 
-	struct std_list **object_list_stack_ptr = &level->stage.graphics.object_list_stack;
+	struct std_list **object_list_stack_ptr = &level->stage->graphics.object_list_stack;
 	level->monster_list_stacks = malloc(sizeof(*level->monster_list_stacks) * level->lanes.total);
 	for (int i = 0; i < level->lanes.total; i++) {
 		level->monster_list_stacks[i] = NULL;
@@ -135,16 +121,16 @@ int level_init (struct status_struct status) {
 
 	/*		Sprite		*/
 
-	struct graphical_stage_struct *graphics = &level->stage.graphics;
+	struct graphical_stage_struct *graphics = &level->stage->graphics;
 	graphics->num_images = 100; //TODO
 
 	/* Initialise the image dictionary and generic animation dictionary.
 	   Both are out-parameters here. */
-	rc = dicts_populate(&level->stage.graphics.generic_anim_dict, &level->stage.graphics.image_dict, &status, master_graphics->renderer);
+	rc = dicts_populate(&level->stage->graphics.generic_anim_dict, &level->stage->graphics.image_dict, &status, master_graphics->renderer);
 	if (rc == R_FAILURE) {
 		return R_FAILURE;
 	}
-	struct dict_void *generic_anim_dict = level->stage.graphics.generic_anim_dict;
+	struct dict_void *generic_anim_dict = level->stage->graphics.generic_anim_dict;
 
 	/* set sprite position */
 	master_graphics->screen = (struct visual_container_struct) {
@@ -395,6 +381,7 @@ int level_init (struct status_struct status) {
 	timing_zero(timing);
 	update_time(timing);
 
+	config_destroy(&cfg);
 	return R_LOOP_LEVEL;
 }
 
@@ -405,7 +392,7 @@ int level_loop(struct status_struct status) {
 	struct graphics_struct *master_graphics = status.master_graphics;
 	struct audio_struct *audio = status.audio;
 	struct level_struct *level = status.level;
-	struct graphical_stage_struct *graphics = &level->stage.graphics;
+	struct graphical_stage_struct *graphics = &level->stage->graphics;
 	struct level_var_struct *vars = level->vars;
 	struct player_struct *player = status.player;
 	struct laser_struct *laser = &level->laser;
@@ -707,7 +694,7 @@ int level_loop(struct status_struct status) {
 		graphics->rendercopyex_data = NULL;
 	}
 
-	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage.graphics.tex_target_ptr, timing->currentbeat);
+	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage->graphics.tex_target_ptr, timing->currentbeat);
 
 	//cpuend = rdtsc();
 	return R_LOOP_LEVEL; //loop
@@ -730,7 +717,7 @@ void quitlevel(struct status_struct status) {
 	timing->countbeats = 0;
 	timing->currentbeat = 0;
 
-	struct graphical_stage_child_struct *stage = &status.level->stage;
+	struct graphical_stage_child_struct *stage = status.level->stage;
 	exit_graphical_stage_child(stage);
 	std_rm(&stage->std, &master_graphics->graphics.object_list_stack, &master_graphics->graphics, 1);
 }

@@ -9,7 +9,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "animate.h"
 #include "level.h"
@@ -105,7 +105,7 @@ int main() {
 	}
 	master_graphics.renderer = renderer;
 
-	program.python_interpreter_enable = 1;
+	program.python_interpreter_enable = 0;
 	PyObject    *pModule ; 
 	if (program.python_interpreter_enable) {
 
@@ -244,6 +244,9 @@ int main() {
 
 	/* Release SDL resources. */
 	SDL_DestroyRenderer(renderer);
+	if (master_graphics.font) {
+		TTF_CloseFont(master_graphics.font);
+	}
 	SDL_DestroyWindow(win);
 	printf("Game Over.\n");
 	printf("(After %d frames)\n", timing.framecount);
@@ -394,6 +397,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 
 	}
 
+	config_destroy(&cfg);
 	return R_SUCCESS;
 }
 

@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <SDL2/SDL.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include "structdef.h"
 #include "clock.h"
-#include "main.h"
 
 void timing_init(struct time_struct *timing) {
 	/* Sets important timing variables like the startup time.

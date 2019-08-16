@@ -1,10 +1,9 @@
 #include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "level.h"
-#include "music.h"
 #include "transform.h"
 
 

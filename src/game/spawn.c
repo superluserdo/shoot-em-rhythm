@@ -4,10 +4,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <libconfig.h>
-#include "structdef.h"
+#include "structdef_game.h"
 #include "main.h"
 #include "level.h"
-#include "music.h"
 #include "clock.h"
 #include "helpers.h"
 #include "animate.h"
@@ -299,8 +298,8 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	struct monster_struct *new_flyinghamster = malloc(sizeof(struct monster_struct));
 	*new_flyinghamster = (struct monster_struct) {0};
 	new_flyinghamster->std.self = new_flyinghamster;
-	struct std_list **object_list_stack_ptr = &level->stage.graphics.object_list_stack;
-	struct dict_void *generic_anim_dict = level->stage.graphics.generic_anim_dict;
+	struct std_list **object_list_stack_ptr = &level->stage->graphics.object_list_stack;
+	struct dict_void *generic_anim_dict = level->stage->graphics.generic_anim_dict;
 
 	new_flyinghamster->name = "new_flyinghamster";
 
@@ -310,7 +309,7 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	new_flyinghamster->living.defence = 10;
 	new_flyinghamster->entrybeat = spawn_beat;
 
-	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, &status->level->stage.graphics, (const char *[]){"flying hamster", "smiley"}, 2);
+	graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, &status->level->stage->graphics, (const char *[]){"flying hamster", "smiley"}, 2);
 
 	/* Insert the monster into the lane's list of active monsters: */
 
@@ -579,12 +578,14 @@ void exit_graphical_stage_child(struct graphical_stage_child_struct *stage) {
 	render_list_rm(&graphics->render_node_head);
 	std_list_rm(&graphics->object_list_stack, graphics, 0);
 	dict_void_rm(graphics->generic_anim_dict);
-	dict_void_rm(graphics->image_dict);
+	//dict_void_rm(graphics->image_dict); // Already done by SLD_DestroyRenderer
 
 	/* Lose the stage from the graphical_stage_child_struct 
 	   to become just a std object */
-	struct std *std_from_stage = realloc(stage, sizeof(struct std));
-	std_from_stage->self = std_from_stage;
+	//struct std *std_from_stage = realloc(stage, sizeof(struct std));
+	//struct std *std_from_stage = &stage->std;
+	//std_from_stage->self = std_from_stage;
+
 }
 
 void destroy_graphical_stage_child(struct graphical_stage_child_struct *stage) {
