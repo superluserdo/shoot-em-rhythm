@@ -1,7 +1,7 @@
 #include "audio.h"
 
 void audio_func(struct audio_struct *audio) {
-	play_sounds(audio);
+	//play_sounds(audio);
 	audio_mute_toggle(audio);
 }
 
@@ -72,51 +72,67 @@ void queue_sound(struct audio_struct *audio, char *path, float vol) {
 		}
 		dict_void_add_keyval(audio->sound_dict, path, sound_val);
 	}
+
+	/* Find a channel */
+	int channel_found = 0;
+	int channel_i = 0;
+	for (int i = 0; i < audio->max_soundchannels; i++) {
+		if (!Mix_Playing(i)) {
+			channel_found = 1;
+			channel_i = i;
+			break;
+		}
+	}
+	if (!channel_found) {
+		fprintf(stderr, "No free sound channel. Evicting rightmost channel.\n");
+		/* Kick sound off furthest-left channel */
+		Mix_HaltChannel(0);
+		channel_i = 0;
+	}
+
+	if(Mix_PlayChannel(channel_i, sound_val->sound, 0) == -1) {
+		printf("Mix_PlayChannel: %s\n",Mix_GetError());
+		FILEINFO
+	}
 }
 
 void play_sounds(struct audio_struct *audio) {
-	int channels_playing[audio->max_soundchannels];
-	for (int i = 0; i < audio->max_soundchannels; i++) {
-		channels_playing[i] = -1;//Mix_Playing(i);
-	}
 
 	for (int i = 0; i < audio->sound_dict->num_entries; i++) {
 
 		struct sound_val_struct *sound_val = audio->sound_dict->entries[i].val;
+		fprintf(stderr, "Playing sound %d: %s\n", i, audio->sound_dict->entries[i].key);
 
 		/* Get volume */
 		float play_vol = sound_val->play_vol;
 		if (play_vol != 0) {
 			play_vol = play_vol > 1 ? 1: play_vol;
 			sound_val->play_vol = 0;
+		}
 
 		if ((!sound_val->sound) || (play_vol == 0)) {
 			continue;
 		}
 
-			/* Find a channel */
-			int channel_found = 0;
-			for (int j = 0; j < audio->max_soundchannels; j++) {
-				if (channels_playing[j] == -1) {
-					channels_playing[j] = Mix_Playing(j);
-				}
-
-				if (channels_playing[j] == 0) {
-					if(Mix_PlayChannel(j, sound_val->sound, 0) == -1) {
-						printf("Mix_PlayChannel: %s\n",Mix_GetError());
-						FILEINFO
-					}
-					channel_found = 1;
-					break;
-				}
-			}
-			if (!channel_found) {
-				Mix_HaltChannel(audio->max_soundchannels - 1);
-				/* Kick sound off furthest-right channel */
-				if(Mix_PlayChannel(audio->max_soundchannels - 1, sound_val->sound, 1) == 0) {
+		/* Find a channel */
+		int channel_found = 0;
+		for (int j = 0; j < audio->max_soundchannels; j++) {
+			if (!Mix_Playing(j)) {
+				if(Mix_PlayChannel(j, sound_val->sound, 0) == -1) {
 					printf("Mix_PlayChannel: %s\n",Mix_GetError());
 					FILEINFO
 				}
+				channel_found = 1;
+				break;
+			}
+		}
+		if (!channel_found) {
+			fprintf(stderr, "No free sound channel. Evicting rightmost channel.\n");
+			Mix_HaltChannel(audio->max_soundchannels - 1);
+			/* Kick sound off furthest-right channel */
+			if(Mix_PlayChannel(audio->max_soundchannels - 1, sound_val->sound, 1) == 0) {
+				printf("Mix_PlayChannel: %s\n",Mix_GetError());
+				FILEINFO
 			}
 		}
 	}

@@ -45,31 +45,6 @@ extern struct level_struct *level;
 /* Monsters */
 
 struct object_spawn_array_struct *level_init_object_spawn_arrays(void *level_setting_void, int num_lanes);
-int monsterlanenum[TOTAL_LANES];
-SDL_Rect rcMonster[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
-SDL_Rect rcMonsterSrc[3][TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
-
-struct monster_node *linkptrs_start[TOTAL_LANES];
-struct monster_node *linkptrs_end[TOTAL_LANES];
-
-//int (*moninfoptrs[3])[TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN][3];
-//(Deprecated)
-
-/* Items */
-
-int itemlanenum[3][TOTAL_LANES];
-SDL_Rect rcItem[3][TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN];
-SDL_Rect rcItemSrc[3][TOTAL_LANES][MAX_ITEMS_PER_LANE_PER_SCREEN];
-
-int (*iteminfoptrs[3])[TOTAL_LANES][MAX_MONS_PER_LANE_PER_SCREEN];
-
-/* Threading */
-
-extern pthread_mutex_t display_mutex;
-extern pthread_mutex_t clock_mutex;
-extern pthread_cond_t display_cond;
-extern pthread_cond_t cond_end;
-extern pthread_mutex_t track_mutex; 
 
 void quitlevel(struct status_struct status);
 #endif

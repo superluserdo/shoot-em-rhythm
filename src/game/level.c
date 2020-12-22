@@ -178,19 +178,6 @@ int level_init (struct status_struct status) {
 	/* Create "film strip" of sequential background screens */
 	level->currentscreen = 0;
 
-	if (NATIVE_RES_X % TILE_SIZE == 0) {
-		grid.x = NATIVE_RES_X / TILE_SIZE;
-	}
-	else {
-		grid.x = NATIVE_RES_X / TILE_SIZE + 1;
-	}
-	if (NATIVE_RES_Y % TILE_SIZE == 0) {
-		grid.y = NATIVE_RES_Y / TILE_SIZE;
-	}
-	else {
-		grid.y = NATIVE_RES_Y / TILE_SIZE + 1;
-	}
-
 	/*		HUD		*/
 
 	struct ui_struct *ui = malloc(sizeof(struct ui_struct));
@@ -450,6 +437,11 @@ int level_loop(struct status_struct status) {
 			audio->music_mute ^= 1;
 		}
 
+		if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_d) {
+			*master_graphics->debug_anchors ^= 1;
+			*master_graphics->debug_containers ^= 1;
+		}
+
 		if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_h){
 			lanes->currentlane = 0;
 		}
@@ -650,28 +642,6 @@ int level_loop(struct status_struct status) {
 
 	/* Clear screen */
 	SDL_RenderClear(renderer);
-	/* Copy textures to renderer	*/
-	for (int i = 0; i < grid.x * 3; i++){
-		for (int j = 0; j < grid.y; j++){
-			//SDL_RenderCopy(renderer, imgs->Timg, &rects->rcTSrc[i][j], &rcTile[i][j]);
-		}
-	}
-	for (int i = 0; i < grid.x * 3; i++){
-		for (int j = 0; j < grid.y; j++){
-			//SDL_RenderCopy(renderer, imgs->Timg, &rects->rcTSrcmid[i][j], &rcTilemid[i][j]);
-		}
-	}
-
-	if (laser->on){
-		for (int i = 0; i < 3; i++) {
-			//SDL_RenderCopy(renderer, imgs->Laserimg, &rects->rcLaserSrc[i], &rects->rcLaser[i]);
-		}
-	}
-
-	if ( player->sword ) {
-		//SDL_RenderCopy(renderer, imgs->Swordimg, &sword->rect_in, &sword->rect_out);
-	}
-
 	if (status.level->partymode) {
 		level->effects->angle ++;
 		level->effects->colournum += 5;

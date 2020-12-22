@@ -17,7 +17,8 @@
 struct xy_struct {
 	int x;
 	int y;
-} grid;
+};
+//} grid;
 
 struct size_ratio_struct {
 	float w;

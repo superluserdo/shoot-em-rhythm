@@ -324,7 +324,7 @@ struct menu_struct *pause_init(struct graphical_stage_child_struct **pause_stage
 int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, struct status_struct *status) {
 
 	struct graphical_stage_child_struct **pause_stage_ptr = &pause_stage->stage;
-	if (!*pause_stage_ptr) {
+	if (!*pause_stage_ptr || !pause_stage->menu) {
 		pause_stage->menu = pause_init(pause_stage_ptr, status);
 	}
 

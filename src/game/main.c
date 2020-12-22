@@ -376,7 +376,7 @@ enum return_codes_e hooks_setup(struct program_struct *program) {
 
 			char *error;
 			
-			funcptr = dlsym(lib_handle, func_name);
+			void *(*funcptr)(struct status_struct *status) = dlsym(lib_handle, func_name);
 			if ((error = dlerror()) != NULL) 
 			{
 			   fprintf(stderr, "%s\n", error);

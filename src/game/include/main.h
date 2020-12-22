@@ -14,7 +14,6 @@ void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture 
 uint64_t rdtsc();
 
 /* Module stuff */
-void *(*funcptr)(struct status_struct *status);
 #define NUM_HOOK_LOCATIONS 3
 enum return_codes_e hooks_setup(struct program_struct *program);
 #endif
