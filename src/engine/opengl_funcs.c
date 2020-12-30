@@ -92,7 +92,7 @@ unsigned int create_texture_shader(int n_v_snippets, const char **v_snippets,
 	return texture_shader;
 }
 
-int texture_from_path(char *path, struct glrenderer *renderer_UNUSED, unsigned int *texture) {
+int texture_from_path(unsigned int *texture, struct glrenderer *renderer_UNUSED, char *path) {
     glGenTextures(1, texture);
     glBindTexture(GL_TEXTURE_2D, *texture); 
      // set the texture wrapping parameters
@@ -105,7 +105,7 @@ int texture_from_path(char *path, struct glrenderer *renderer_UNUSED, unsigned i
 
 	SDL_Surface* surface = IMG_Load(path);
 	if (!surface) {
-		printf("no surface\n");
+		printf("No surface from path %s\n", path);
 		return 1;
 	}
 	int Mode1 = GL_RGB;
@@ -132,65 +132,6 @@ unsigned int create_texture(struct glrenderer *renderer_unused, int w, int h) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	return texture;
-}
-
-struct glrenderer new_glrenderer(int own_framebuffer, 
-		struct intrect viewport) {
-
-	unsigned int VAO, VBO, EBO;
-	unsigned int framebuffer = 0;
-
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
-			(void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-	/* FRAMEBUFFER STUFF */
-	unsigned int fb_texture = 0;
-	struct framebuffer *fb_struct = NULL;
-	if (own_framebuffer) {
-
-		fb_texture = create_texture(NULL, viewport.w, viewport.h);
-		glGenFramebuffers(1, &framebuffer);
-		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
-
-		fb_struct = calloc(sizeof(*fb_struct), 1);
-		*fb_struct = (struct framebuffer) {
-			.framebuffer = framebuffer,
-			.viewport = viewport,
-			.texture = fb_texture,
-		};
-
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);  // attach to currently bound framebuffer object
-
-		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0); /* default */
-
-	}
-
-	struct glrenderer renderer = {
-		.VAO = VAO,
-		.VBO = VBO,
-		.EBO = EBO,
-		.framebuffer = fb_struct,
-	};
-	return renderer;
 }
 
 void max_min_n(int n_nums, float *nums, float *max, float *min) {
@@ -391,7 +332,9 @@ struct globject *new_object(struct globject_list *object_list) {
 	return object;
 }
 
-struct globject *new_quad(struct floatrect rect, unsigned int texture, unsigned int texture_shader, struct globject_list *object_list, int sdl_coords) {
+struct globject *new_quad(struct floatrect rect, unsigned int texture, 
+		unsigned int texture_shader, struct globject_list *object_list, 
+		int sdl_coords) {
 
 	struct globject *object = new_object(object_list);
 
@@ -628,7 +571,7 @@ int graphics_init(struct graphics_struct *master_graphics) {
 		printf( "Unable to initialize OpenGL!\n" );
 		exit(1);
 	}
-	master_graphics->renderer = renderer;
+	master_graphics->graphics.renderer = fb_renderer;
 	return 0;
 }
 
@@ -637,10 +580,71 @@ struct glrenderer *make_renderer(char *texture_path,
 		int own_framebuffer, struct intrect viewport) {
 
 	struct glrenderer *renderer = calloc(sizeof(*renderer), 1);
-	*renderer = new_glrenderer(own_framebuffer, viewport);
-	renderer->render_target = render_target;
+
+	unsigned int VAO, VBO, EBO;
+	unsigned int framebuffer = 0;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    // position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
+			(void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+	/* FRAMEBUFFER STUFF */
+	unsigned int fb_texture = 0;
+	struct framebuffer *fb_struct = NULL;
+	if (own_framebuffer) {
+
+		fb_texture = create_texture(NULL, viewport.w, viewport.h);
+		glGenFramebuffers(1, &framebuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
+
+		fb_struct = calloc(sizeof(*fb_struct), 1);
+		*fb_struct = (struct framebuffer) {
+			.framebuffer = framebuffer,
+			.viewport = viewport,
+			.texture = fb_texture,
+		};
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);  // attach to currently bound framebuffer object
+
+		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0); /* default */
+
+		/* Create quad that will display framebuffer */
+		struct floatrect quad_rect = {
+			.x=0.1, .y=0.1, .w=0.8, .h=0.8
+		};
+		new_quad(quad_rect, fb_struct->texture, 
+				texture_shader_simple, &renderer->object_list, 0);
+	}
+
+	*renderer = (struct glrenderer) {
+		.VAO = VAO,
+		.VBO = VBO,
+		.EBO = EBO,
+		.framebuffer = fb_struct,
+		.render_target = render_target,
+	};
+
 	memcpy(renderer->clear_colour, clear_colour, sizeof(float)*4);
 
+#if 0
 	struct globject_list *object_list = &renderer->object_list;
 
 	struct floatrect rect_bg = {.x=0.35, .y=0.35, .w = 0.3, .h=0.3};
@@ -649,7 +653,7 @@ struct glrenderer *make_renderer(char *texture_path,
 	/* Get texture */
 	if (texture_path) {
 		unsigned int texture_hamster;
-		texture_from_path(texture_path, NULL, &texture_hamster);
+		texture_from_path(&texture_hamster, NULL, texture_path);
 		struct globject *bg_hamster = new_quad(rect_bg, texture_hamster, texture_shader_glow_behind, object_list, 1);
 		bg_hamster->uniforms = texture_shader_glow_uniforms;
 		struct globject *border = add_border_vertices(bg_hamster, object_list,
@@ -658,50 +662,14 @@ struct glrenderer *make_renderer(char *texture_path,
 
 		new_quad(rect, texture_hamster, texture_shader_simple, object_list, 1);
 	} else {
-		struct floatrect quad_rect = {
-			.x=0.1, .y=0.1, .w=0.8, .h=0.8
-		};
-		new_quad(quad_rect, renderer->framebuffer->texture, texture_shader_simple, object_list, 0);
 	}
-
-    //float vertices_quad[] = {
-    //    // positions     // texture coords
-    //     0.8f,  0.8f,    1.0f, 1.0f, // top right
-    //     0.8f, -0.8f,    1.0f, 0.0f, // bottom right
-    //    -0.8f, -0.8f,    0.0f, 0.0f, // bottom left
-    //    -0.8f,  0.8f,    0.0f, 1.0f  // top left 
-    //};
-    //unsigned int indices_quad[] = {
-    //    0, 1, 3, // first triangle
-    //    1, 2, 3  // second triangle
-    //};
-
-	///* Quad texture to be rendered to the screen */
-    //glGenVertexArrays(1, VAO_quad);
-    //glGenBuffers(1, VBO_quad);
-    //glGenBuffers(1, EBO_quad);
-
-    //glBindVertexArray(*VAO_quad);
-
-    //glBindBuffer(GL_ARRAY_BUFFER, *VBO_quad);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_quad), vertices_quad, GL_STATIC_DRAW);
-
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *EBO_quad);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_quad), indices_quad, GL_STATIC_DRAW);
-
-    //// position attribute
-    //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(0);
-    //// texture coord attribute
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
-	//		(void*)(2 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
+#endif
 
 	return renderer;
 }
 
 void clear_render_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
-	float *clear_colour = master_graphics->renderer->clear_colour;
+	float *clear_colour = master_graphics->graphics.renderer->clear_colour;
 	glClearColor(
 			clear_colour[0],
 			clear_colour[1],
@@ -711,7 +679,9 @@ void clear_render_target(struct graphics_struct *master_graphics, struct graphic
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void render_copy(struct globject *object, struct glrenderer *renderer) {
+//int render_copy(struct globject *object, struct glrenderer *renderer) {
+int render_copy(struct render_node *render_node, struct glrenderer *renderer) {
+	struct globject *object = &render_node->gl;
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * object->n_vertices, object->vertices, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * object->n_indices, object->indices, GL_STATIC_DRAW);
 
@@ -730,18 +700,20 @@ void render_copy(struct globject *object, struct glrenderer *renderer) {
 	}
 	glBindVertexArray(renderer->VAO);
 	glDrawElements(GL_TRIANGLES, object->n_indices, GL_UNSIGNED_INT, 0);
+	return 123;
 }
 
+#if 0
 void render(struct graphics_struct *master_graphics)
 {
 
-	struct glrenderer *renderer = master_graphics->renderer;
+	struct glrenderer *renderer = master_graphics->graphics.renderer;
     glBindVertexArray(renderer->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
 
 
-	change_render_target(master_graphics->renderer);
+	change_render_target(master_graphics->graphics.renderer);
 
 	clear_render_target(master_graphics, NULL);
 
@@ -757,6 +729,7 @@ void render(struct graphics_struct *master_graphics)
 		object = object->next;
 	}
 }
+#endif
 
 void checkCompileErrors(GLuint shader, const char *type)
 {
@@ -847,8 +820,8 @@ void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target
 		//		"new size:  w=%d, h=%d\n",
 		//		master_graphics->width,
 		//		master_graphics->height,
-		//		master_graphics->renderer->framebuffer->viewport.w,
-		//		master_graphics->renderer->framebuffer->viewport.h,
+		//		master_graphics->graphics.renderer->framebuffer->viewport.w,
+		//		master_graphics->graphics.renderer->framebuffer->viewport.h,
 		//		w, h);
 		master_graphics->width = w;
 		master_graphics->height = h;
@@ -857,17 +830,18 @@ void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target
 		default_viewport.h = h;
 
 		/* If rendering to a target (not screen), resize texTarget to new texture */
-		glDeleteTextures(1, &master_graphics->renderer->framebuffer->texture);
+		assert(master_graphics->graphics.renderer->framebuffer);
+		glDeleteTextures(1, &master_graphics->graphics.renderer->framebuffer->texture);
 
 		unsigned int new_fb_texture;
 		glGenTextures(1, &new_fb_texture);
 		glBindTexture(GL_TEXTURE_2D, new_fb_texture);
-		master_graphics->renderer->framebuffer->texture = new_fb_texture;
-		master_graphics->renderer->object_list.head->texture = new_fb_texture;
+		master_graphics->graphics.renderer->framebuffer->texture = new_fb_texture;
+		master_graphics->graphics.renderer->object_list.head->texture = new_fb_texture;
 		  
-		master_graphics->renderer->framebuffer->viewport.w = w;
-		master_graphics->renderer->framebuffer->viewport.h = h;
-		change_render_target(master_graphics->renderer);
+		master_graphics->graphics.renderer->framebuffer->viewport.w = w;
+		master_graphics->graphics.renderer->framebuffer->viewport.h = h;
+		change_render_target(master_graphics->graphics.renderer);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 

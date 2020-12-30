@@ -12,6 +12,9 @@
 #include "audio.h"
 #include "object_logic.h"
 
+//TODO: Remove
+#define FIXME_SWITCH 0
+
 void object_logic_player(struct std *player_std, void *data) {
 
 	struct status_struct *status = data;
@@ -181,6 +184,7 @@ void object_logic_timeout(struct std *std, void *data) {
 	}
 }
 
+#if FIXME_SWITCH
 void object_logic_fadeout(struct std *std, void *data) {
 
 	struct timeout_data_struct *timeout_data = data;
@@ -192,6 +196,7 @@ void object_logic_fadeout(struct std *std, void *data) {
 		std_rm(std, &timeout_data->graphics->object_list_stack, timeout_data->graphics, 1);
 	}
 }
+#endif
 
 void process_object_logics(struct std_list *object_list_stack) {
 	struct std_list *current_obj = object_list_stack;

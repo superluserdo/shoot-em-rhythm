@@ -125,7 +125,7 @@ int level_init (struct status_struct status) {
 
 	/* Initialise the image dictionary and generic animation dictionary.
 	   Both are out-parameters here. */
-	rc = dicts_populate(&level->stage->graphics.generic_anim_dict, &level->stage->graphics.image_dict, &status, master_graphics->renderer);
+	rc = dicts_populate(&level->stage->graphics.generic_anim_dict, &level->stage->graphics.image_dict, &status, master_graphics->graphics.renderer);
 	if (rc == R_FAILURE) {
 		return R_FAILURE;
 	}

@@ -66,11 +66,11 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			//int rc = 0;
 			//if (graphics->rendercopyex_data) {
 			//	struct rendercopyex_struct *data = graphics->rendercopyex_data;
-			//	rc = SDL_RenderCopyEx(master_graphics->renderer, node_ptr->img, node_ptr->rect_in,
+			//	rc = SDL_RenderCopyEx(master_graphics->graphics.renderer, node_ptr->img, node_ptr->rect_in,
 			//						data->dstrect, data->angle, data->center, data->flip);
 			//}
 			//else {
-				render_copy(node_ptr, master_graphics->renderer);
+				render_copy(node_ptr, master_graphics->graphics.renderer);
 			//}
 			//if (rc != 0) {
 			//	printf("%s\n", SDL_GetError());
@@ -85,7 +85,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 		if (*master_graphics->debug_anchors) {
 			int rc;
 			int anchor_width = 6;
-			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 255, 255);
+			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
 			if (node_ptr->animation->container.anchors_exposed) {
 				SDL_Rect anchor_exposed_rect = {
 					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
@@ -93,24 +93,24 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 					.w = anchor_width,
 					.h = anchor_width,
 				};
-				rc = SDL_RenderFillRect(master_graphics->renderer, &anchor_exposed_rect);
+				rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_exposed_rect);
 			}
-			SDL_SetRenderDrawColor(master_graphics->renderer, 255, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
 			SDL_Rect anchor_hook_rect = {
 				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
 				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
 				.w = anchor_width,
 				.h = anchor_width,
 			};
-			rc = SDL_RenderFillRect(master_graphics->renderer, &anchor_hook_rect);
+			rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_hook_rect);
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
 				FILEINFO
 			}
-			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
 		}
 		if (*master_graphics->debug_containers) {
-			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 255, 255);
+			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
 			struct visual_container_struct *container = &node_ptr->animation->container;
 
 			while (container) {
@@ -123,14 +123,14 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 					{abs_container.x, abs_container.y + abs_container.h},
 					{abs_container.x, abs_container.y},
 				};
-				int rc = SDL_RenderDrawLines(master_graphics->renderer, points, 5);
+				int rc = SDL_RenderDrawLines(master_graphics->graphics.renderer, points, 5);
 				if (rc != 0) {
 					printf("%s\n", SDL_GetError());
 					FILEINFO
 				}
 				container = container->inherit;
 			}
-			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
 		}
 #endif
 		node_ptr = node_ptr->next;
@@ -643,12 +643,11 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 	*generic_anim_dict_ptr = malloc(num_generics * sizeof(struct dict_void));
 	struct dict_void *generic_anim_dict = *generic_anim_dict_ptr;
 
-	//*image_dict_ptr = malloc(num_generics * sizeof(struct dict_void));
-	*image_dict_ptr = malloc(sizeof(struct dict_void));
-	struct dict_void *image_dict = *image_dict_ptr;
+	//*image_dict_ptr = malloc(sizeof(struct dict_void));
+	//struct dict_void *image_dict = *image_dict_ptr;
 
 	*generic_anim_dict = (struct dict_void) {0};
-	*image_dict = (struct dict_void) {0};
+	//*image_dict = (struct dict_void) {0};
 
 	struct animate_generic *generic_ptr;
 	config_setting_t *generic_setting;
@@ -753,7 +752,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 				return R_FAILURE;
 			}
 
-			dict_void_add_keyval(image_dict, img_name, texture);
+			//dict_void_add_keyval(image_dict, img_name, texture);
 
 			clip_ptr->img = texture;
 

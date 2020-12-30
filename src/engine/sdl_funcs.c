@@ -27,7 +27,7 @@ int graphics_init(struct graphics_struct *master_graphics) {
 	   	printf("%s  %d\n", info.name, info.flags&2);
 		}
 	}
-	master_graphics->renderer = renderer;
+	master_graphics->graphics.renderer = renderer;
 	return 0;
 
 }
@@ -62,14 +62,14 @@ void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target
 		/* If rendering to a target (not screen), resize texTarget to new texture */
 
 		if (*tex_target_ptr) {
-			SDL_Texture *texTarget_new = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
-			SDL_Texture *target_prev = SDL_GetRenderTarget(master_graphics->renderer);
-			SDL_SetRenderTarget(master_graphics->renderer, texTarget_new);
+			SDL_Texture *texTarget_new = SDL_CreateTexture(master_graphics->graphics.renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+			SDL_Texture *target_prev = SDL_GetRenderTarget(master_graphics->graphics.renderer);
+			SDL_SetRenderTarget(master_graphics->graphics.renderer, texTarget_new);
 
-			SDL_RenderClear(master_graphics->renderer);
-			SDL_RenderCopy(master_graphics->renderer, *tex_target_ptr, NULL, NULL);
+			SDL_RenderClear(master_graphics->graphics.renderer);
+			SDL_RenderCopy(master_graphics->graphics.renderer, *tex_target_ptr, NULL, NULL);
 
-			SDL_SetRenderTarget(master_graphics->renderer, target_prev);
+			SDL_SetRenderTarget(master_graphics->graphics.renderer, target_prev);
 			SDL_DestroyTexture(*tex_target_ptr);
 			*tex_target_ptr = texTarget_new;
 		}
@@ -77,8 +77,8 @@ void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target
 }
 
 void clear_render_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
-	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
-	SDL_RenderClear(master_graphics->renderer);
+	SDL_SetRenderTarget(master_graphics->graphics.renderer, *graphics->tex_target_ptr);
+	SDL_RenderClear(master_graphics->graphics.renderer);
 }
 
 int render_copy(struct render_node *node_ptr, SDL_Renderer *renderer) {
@@ -97,7 +97,7 @@ SDL_Texture *create_texture(renderer_t renderer, int width, int height) {
 }
 
 void present_screen(struct time_struct timing, struct graphics_struct *master_graphics) {
-	SDL_RenderPresent(master_graphics->renderer);
+	SDL_RenderPresent(master_graphics->graphics.renderer);
 }
 
 void set_render_target(SDL_Renderer *renderer, texture_t target) {
@@ -106,6 +106,6 @@ void set_render_target(SDL_Renderer *renderer, texture_t target) {
 
 void graphics_deinit(struct graphics_struct *master_graphics) {
 	/* Release SDL resources. */
-	SDL_DestroyRenderer(master_graphics->renderer);
+	SDL_DestroyRenderer(master_graphics->graphics.renderer);
 	SDL_DestroyWindow(master_graphics->window);
 }

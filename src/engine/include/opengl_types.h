@@ -35,19 +35,19 @@ struct globject {
 	unsigned int *indices;
 	unsigned int texture_shader;
 	void (*uniforms)(unsigned int texture_shader);
-	struct globject *next;
+	//struct globject *next;
 };
 
-struct globject_list {
-	struct globject *head;
-	struct globject *tail;
-};
+//struct globject_list {
+//	struct globject *head;
+//	struct globject *tail;
+//};
 
 struct glrenderer {
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
-	struct globject_list object_list;
+	//struct globject_list object_list;
 	float clear_colour[4];
 	struct framebuffer *framebuffer;
 	struct framebuffer *render_target;
@@ -56,4 +56,9 @@ struct glrenderer {
 
 typedef unsigned int texture_t;
 typedef struct glrenderer *renderer_t;
+
+#if defined _SDL_FUNCS_H || defined _SDL_TYPES_H
+#error "Incompatible headers mixed together!"
+#endif
+
 #endif

@@ -69,6 +69,7 @@ struct status_struct {
 struct graphical_stage_struct {
 	/* Something that has its own render target, animations, render nodes.
 	   E.g. level, startscreen, pause screen, etc. ``graphics`` has master. */
+	renderer_t renderer;
 	struct render_node *render_node_head;
 	struct render_node *render_node_tail;
 	struct rendercopyex_struct *rendercopyex_data;
@@ -78,6 +79,7 @@ struct graphical_stage_struct {
 	int num_images;
 	texture_t *tex_target_ptr;
 	struct graphics_struct *master_graphics;
+
 };
 
 struct graphical_stage_child_struct {
@@ -212,7 +214,6 @@ struct graphics_struct {
 	SDL_Window *window;
 	int width, height;
 	struct visual_container_struct screen;
-	renderer_t renderer;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
@@ -251,6 +252,9 @@ struct render_node {
 	struct animation_struct *animation;
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
+#if USE_OPENGL
+	struct globject gl;
+#endif
 };
 
 	/* z	Reserved for

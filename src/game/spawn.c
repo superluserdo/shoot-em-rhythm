@@ -381,10 +381,10 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 
 	std->animation->container = *std->container;
 
-	texture_t tex_target = create_texture(master_graphics->renderer, master_graphics->width, master_graphics->height);
+	texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
 
 	
-	//texture_t tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888,
+	//texture_t tex_target = SDL_CreateTexture(master_graphics->graphics.renderer, SDL_PIXELFORMAT_RGBA8888,
 	//		SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
 	/* Give this (render target) texture alpha blending so it can layer over other render targets */
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);

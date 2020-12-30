@@ -48,7 +48,9 @@ int main() {
 		.graphics.master_graphics = &master_graphics,
 	};
 
+#if FIXME_SWITCH
 	struct menu_stage_struct pause_stage = {0};
+#endif
 	
 	if (graphics_init(&master_graphics)) {
 		return 1;
@@ -81,7 +83,7 @@ int main() {
 	program.debug.test_render_list_robustness = 0;
 
 	//TODO: Put this and other SDL stuff into functions
-	SDL_Texture *screen_texture = NULL;
+	texture_t screen_texture = 0;
 	master_graphics.graphics.tex_target_ptr = &screen_texture;
 	
 	/* NOTE: I've moved timing out of its own thread into the main thread.
@@ -175,12 +177,12 @@ int main() {
 		else if ( returncode == R_STARTSCREEN ) {
 			returncode = startscreen(master_graphics.window, master_graphics.renderer, &status);
 		}
-#endif
 		else if ( returncode == R_PAUSE_LEVEL) {
 			returncode = pausefunc(master_graphics.renderer, &pause_stage,
 					//*status.level->stage.graphics.tex_target_ptr, 
 					&status);
 		}
+#endif
 		else if ( returncode == R_LOOP_LEVEL) {
 			returncode = level_loop(status);
 		}

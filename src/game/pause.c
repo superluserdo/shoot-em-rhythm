@@ -33,6 +33,10 @@
 //	SDL_Rect rect;
 //};
 
+//TODO: Remove
+#define FIXME_SWITCH 0
+
+#if FIXME_SWITCH
 struct menu_struct *create_menu_struct(struct status_struct *status) {
 
 	//TODO: Have something that can parse the pause.cfg file, but
@@ -450,3 +454,4 @@ void quit_pause_menu(struct status_struct *status, struct menu_stage_struct *pau
 	pausemusic_toggle(status->audio, status->timing);
 	unpause_time(status->timing);
 }
+#endif
