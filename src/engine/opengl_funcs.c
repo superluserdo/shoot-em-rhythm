@@ -700,7 +700,7 @@ struct glrenderer *make_renderer(char *texture_path,
 	return renderer;
 }
 
-void clear_render_target(struct graphics_struct *master_graphics) {
+void clear_render_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
 	float *clear_colour = master_graphics->renderer->clear_colour;
 	glClearColor(
 			clear_colour[0],
@@ -743,7 +743,7 @@ void render(struct graphics_struct *master_graphics)
 
 	change_render_target(master_graphics->renderer);
 
-	clear_render_target(master_graphics);
+	clear_render_target(master_graphics, NULL);
 
 	/* Face culling */
 	//glFrontFace(GL_CCW);

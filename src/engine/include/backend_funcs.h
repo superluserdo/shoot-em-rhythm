@@ -7,7 +7,7 @@
 #include "structdef_engine.h"
 
 int graphics_init(struct graphics_struct *master_graphics);
-void clear_render_target(struct graphics_struct *master_graphics);
+void clear_render_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics);
 void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr);
 int texture_from_path(texture_t *texture, renderer_t renderer, char *path);
 int render_copy(struct render_node *node_ptr, renderer_t renderer);
