@@ -250,47 +250,6 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 
 	return counter;
 }
-//int spawn_hp(struct ui_bar *hp_ptr, struct animate_generic **generic_anim_dict, SDL_Renderer *renderer) {
-//
-//	struct ui_bar hp = *hp_ptr;
-//	graphic_spawn(&hp.std, generic_anim_dict, renderer, (int[]){2,4}, 2);
-//
-//	hp.animation->next->native_offset.x = 29;
-//	hp.animation->next->native_offset.y = 6;
-//	
-//	hp.animation->next->rules_list->data = hp.animation->next;
-//	struct tr_bump_data *tmp_data = malloc(sizeof(struct tr_bump_data));
-//	*tmp_data = *(struct tr_bump_data *)hp.animation->next->rules_list->next->data;
-//	tmp_data->centre = malloc(sizeof(struct xy_struct));
-//	tmp_data->centre->x = hp.animation->rect_out.x + hp.animation->rect_out.w/2;
-//	tmp_data->centre->y = hp.animation->rect_out.y + hp.animation->rect_out.h/2;
-//	hp.animation->next->rules_list->next->data = tmp_data;
-//	hp.animation->next->transform_list->data = tmp_data;
-//	*hp_ptr = hp;
-//}
-
-//int spawn_sword(struct status_struct *status) {
-//	struct level_struct *level = status->level;
-//	struct sword_struct *sword = &level->sword;
-//	//graphic_spawn(&sword->std, generic_anim_dict, graphics, (enum graphic_type_e[]){OBJECT}, 5);
-//	sword->count = 0;
-//	sword->down = 0;
-//	sword->swing = 0;
-//	sword->swing = 0;
-//	sword->rect_in.w = SWORD_WIDTH;
-//	sword->rect_in.h = SWORD_HEIGHT;
-//	sword->rect_in.x = 0;
-//	sword->rect_in.y = 0;
-//
-//	sword->rect_out.x = player->animation->rect_out.x + player->animation->rect_out.w - 2 * ZOOM_MULT; //set preliminary values for the sword's dimensions (otherwise the beat predictor gets it wrong the first time)
-//	sword->rect_out.y = level->lanes->laneheight[level->lanes->currentlane] - ( SWORD_HEIGHT + 18 ) * ZOOM_MULT;
-//	sword->rect_out.w = sword->rect_in.w * ZOOM_MULT * 2;
-//	sword->rect_out.h = sword->rect_in.h * ZOOM_MULT * 2;
-//
-//	Swordimg = IMG_LoadTexture(renderer, SWORD_PATH);
-//	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture
-//	//SDL_Rect rcSword, rcSwordSrc;
-//}
 
 struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat) {
 	struct level_struct *level = status->level;

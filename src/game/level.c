@@ -9,6 +9,8 @@
 //TODO: Layers functionality. Include spawnLayer() function (above or below)
 /*	Global Variables	*/
 
+//TODO: Fix this stuff
+#define FIXME_SWITCH 0
 
 /* Time */
 
@@ -19,8 +21,6 @@ int level_init (struct status_struct status) {
 	/*	Get some structs	*/
 
 	struct graphics_struct *master_graphics = status.master_graphics;
-	SDL_Renderer *renderer = master_graphics->renderer;
-
 
 	/*	Some Variables	*/
 
@@ -117,7 +117,6 @@ int level_init (struct status_struct status) {
 
 	lanes->currentlane = lanes->total/2;
 
-	int w, h;
 
 	/*		Sprite		*/
 
@@ -170,10 +169,13 @@ int level_init (struct status_struct status) {
 
 	/*		Tiles		*/
 
+#if FIXME_SWITCH
 	// set tile position
-	SDL_Texture *Timg = IMG_LoadTexture(renderer, TILE_PATH);
+	int w, h;
+	SDL_Texture *Timg = IMG_LoadTexture(master_graphics->renderer, TILE_PATH);
 		
 	SDL_QueryTexture(Timg, NULL, NULL, &w, &h); // get the width and height of the texture
+#endif
 
 	/* Create "film strip" of sequential background screens */
 	level->currentscreen = 0;
@@ -306,8 +308,10 @@ int level_init (struct status_struct status) {
 	laser->turnon = 0;
 	laser->turnoff = 0;
 
-	SDL_Texture *Laserimg = IMG_LoadTexture(renderer, LASER_PATH);
+#if FIXME_SWITCH
+	SDL_Texture *Laserimg = IMG_LoadTexture(master_graphics->renderer, LASER_PATH);
 	SDL_QueryTexture(Laserimg, NULL, NULL, &w, &h); // get the width and height of the texture
+#endif
 
 	/* Sword */
 
@@ -324,7 +328,10 @@ int level_init (struct status_struct status) {
 	//graphic_spawn(&sword->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){SWORD}, 1);
 	spawn_sword(object_list_stack_ptr, generic_anim_dict, graphics, player, sword, &sword_container, &status, "sword");
 
-	SDL_Texture *Swordimg = IMG_LoadTexture(renderer, SWORD_PATH); SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture 
+#if FIXME_SWITCH
+	SDL_Texture *Swordimg = IMG_LoadTexture(master_graphics->renderer, SWORD_PATH);
+	SDL_QueryTexture(Swordimg, NULL, NULL, &w, &h); // get the width and height of the texture 
+#endif
 
 	/*		Maps & Mapstrips	*/
 
@@ -385,7 +392,6 @@ int level_loop(struct status_struct status) {
 	struct laser_struct *laser = &level->laser;
 	struct sword_struct *sword = &level->sword;
 	struct lane_struct *lanes = &level->lanes;
-	SDL_Renderer *renderer = master_graphics->renderer;
 	//uint64_t cpustart, cpuend;
 	struct time_struct *timing = status.timing;
 
@@ -641,7 +647,6 @@ int level_loop(struct status_struct status) {
 	}
 
 	/* Clear screen */
-	SDL_RenderClear(renderer);
 	if (status.level->partymode) {
 		level->effects->angle ++;
 		level->effects->colournum += 5;
@@ -650,7 +655,7 @@ int level_loop(struct status_struct status) {
 		int b = (level->effects->colournum + 200)%255;
 		SDL_SetTextureColorMod(*graphics->tex_target_ptr, r,g,b);
 		struct rendercopyex_struct rendercopyex_data = {
-			.renderer = renderer,
+			.renderer = master_graphics->renderer,
 			.texture = *graphics->tex_target_ptr,
 			.srcrect = NULL,
 			.dstrect = NULL,
@@ -664,7 +669,7 @@ int level_loop(struct status_struct status) {
 		graphics->rendercopyex_data = NULL;
 	}
 
-	render_process(graphics->object_list_stack, graphics, master_graphics, level->stage->graphics.tex_target_ptr, timing->currentbeat);
+	render_process(graphics->object_list_stack, graphics, master_graphics, timing->currentbeat);
 
 	//cpuend = rdtsc();
 	return R_LOOP_LEVEL; //loop

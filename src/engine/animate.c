@@ -42,15 +42,13 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 
 /* RENDER */
 
-void clear_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
+void clear_target_sdl(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
 	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
 	SDL_RenderClear(master_graphics->renderer);
 }
 
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat) {
 	query_resize(master_graphics, graphics->tex_target_ptr);
-
-	clear_target(master_graphics, graphics);
 
 	if (*master_graphics->debug_test_render_list_robustness) {
 		test_render_list_robustness(object_list_stack, graphics);
@@ -73,6 +71,8 @@ int render_copy(struct render_node *node_ptr) {
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
 
 	struct graphics_struct *master_graphics = graphics->master_graphics;
+	clear_target_sdl(master_graphics, graphics);
+
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			//int rc = 0;
@@ -312,17 +312,7 @@ struct render_node *create_render_node() {
 	if (new_node == NULL) {
 		printf("Error creating new rendering node :(\n");
 	}
-	new_node->prev = NULL;
-	new_node->next = NULL;
-	new_node->rect_in = NULL;
-	new_node->rect_out = (struct SDL_Rect) {0};
-	new_node->img = NULL;
-	new_node->customRenderFunc = NULL;
-	new_node->customRenderArgs = NULL;
-	new_node->renderer = NULL;
-	new_node->animation = NULL;
-	new_node->transform_list = NULL;
-	new_node->z = 0;
+	*new_node = (struct render_node) {0};
 	return new_node;
 }
 
@@ -939,7 +929,53 @@ void make_anchors_exposed(struct animation_struct *anim, int n) {
 	anim->container.num_anchors_exposed = n;
 }
 
-void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr) {
+#if USE_OPENGL
+void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr) {
+	/* Get (potentially updated) window dimensions */
+	int w, h;
+	SDL_GetWindowSize(gWindow, &w, &h);
+
+	if (((w != SCREEN_WIDTH) || (h != SCREEN_HEIGHT))) {
+		//printf("New size!\n"
+		//		"orig viewport: w=%d, h=%d\n"
+		//		"orig tex: w=%d, h=%d\n"
+		//		"new size:  w=%d, h=%d\n",
+		//		SCREEN_WIDTH, SCREEN_HEIGHT,
+		//		fb_renderer->framebuffer->viewport.w,
+		//		fb_renderer->framebuffer->viewport.h,
+		//		w, h);
+		SCREEN_WIDTH = w;
+		SCREEN_HEIGHT = h;
+
+		default_viewport.w = w;
+		default_viewport.h = h;
+
+		/* If rendering to a target (not screen), resize texTarget to new texture */
+		glDeleteTextures(1, &fb_renderer->framebuffer->texture);
+
+		unsigned int new_fb_texture;
+		glGenTextures(1, &new_fb_texture);
+		glBindTexture(GL_TEXTURE_2D, new_fb_texture);
+		fb_renderer->framebuffer->texture = new_fb_texture;
+		fb_renderer->object_list.head->texture = new_fb_texture;
+		  
+		fb_renderer->framebuffer->viewport.w = w;
+		fb_renderer->framebuffer->viewport.h = h;
+		change_render_target(fb_renderer->framebuffer);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, new_fb_texture, 0);  // attach to currently bound framebuffer object
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+	}
+}
+#else
+
+void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr) {
 
 	/* Get (potentially updated) window dimensions */
 	int w, h;
@@ -965,3 +1001,4 @@ void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_tar
 		}
 	}
 }
+#endif

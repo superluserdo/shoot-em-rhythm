@@ -419,7 +419,7 @@ int pausefunc(SDL_Renderer *renderer, struct menu_stage_struct *pause_stage, str
 	/* Set the cursor to the highlighted item */
 	menu->animation->container.inherit = &menu->menu_items[menu->cur_item].animation->container;
 
-	render_process(stage->graphics.object_list_stack, &stage->graphics, master_graphics, stage->graphics.tex_target_ptr, 0);
+	render_process(stage->graphics.object_list_stack, &stage->graphics, master_graphics, 0);
 	return R_PAUSE_LEVEL;
 
 }

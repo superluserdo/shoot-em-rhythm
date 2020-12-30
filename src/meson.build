@@ -4,6 +4,11 @@ project('shoot-em-rhythm', 'c')
 #add_global_arguments('-Wno-all', language : 'c')
 cc = meson.get_compiler('c')
 
+conf_data = configuration_data()
+conf_data.set10('USE_OPENGL', get_option('use-opengl'))
+message('Use opengl: ')
+message(get_option('use-opengl'))
+
 subdir('engine')
 subdir('game')
 
@@ -44,4 +49,3 @@ structdef_py = custom_target('structdef_py',
 
 install_subdir(scripts_dir,
   install_dir : 'testdir')
-

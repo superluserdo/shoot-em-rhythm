@@ -2,6 +2,7 @@
 #define _ENGINE_STRUCTDEF_H
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "config.h"
 
 #define MAX_SOUNDS_LIST 10
 #define MAX_ITEMS_PER_LANE_PER_SCREEN 20
@@ -11,6 +12,12 @@
 #define FILEINFO fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 #define VEC_RESIZE_MULTIPLIER 2
 
+#if USE_OPENGL
+hmm what;
+typedef unsigned int texture_t;
+#else
+typedef SDL_Texture *texture_t;
+#endif
 
 /*	Main	*/
 
@@ -74,7 +81,7 @@ struct graphical_stage_struct {
 	struct dict_void *image_dict;
 	struct std_list *object_list_stack;
 	int num_images;
-	SDL_Texture **tex_target_ptr;
+	texture_t *tex_target_ptr;
 	struct graphics_struct *master_graphics;
 };
 
@@ -210,7 +217,11 @@ struct graphics_struct {
 	SDL_Window *window;
 	int width, height;
 	struct visual_container_struct screen;
+#if USE_OPENGL
+	struct glrenderer *renderer;
+#else
 	SDL_Renderer *renderer;
+#endif
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
@@ -227,7 +238,7 @@ struct graphics_struct {
 
 struct rendercopyex_struct {
 	SDL_Renderer *renderer;
-	SDL_Texture *texture;
+	texture_t texture;
 	SDL_Rect *srcrect;
 	SDL_Rect *dstrect;
 	double angle;
@@ -240,11 +251,15 @@ struct render_node {
 	struct render_node *prev;
 	struct render_node *next;
 	SDL_Rect *rect_in;
-	SDL_Rect rect_out;//*rect_out;
-	SDL_Texture *img;
+	SDL_Rect rect_out;
+	texture_t img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
+#if USE_OPENGL
+	struct glrenderer *renderer;
+#else
 	SDL_Renderer *renderer;
+#endif
 	struct animation_struct *animation;
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
@@ -308,7 +323,7 @@ struct frame {
 };
 
 struct clip {
-	SDL_Texture *img;
+	texture_t img;
 	int num_frames;
 	struct frame *frames;
 	float container_scale_factor;
@@ -357,7 +372,7 @@ struct animation_struct {
 	struct animate_control *control;
 
 	/* GENERIC and TEXTURE modes only */
-	SDL_Texture *img;
+	texture_t img;
 
 	/* Container-related */
 	struct visual_container_struct container;

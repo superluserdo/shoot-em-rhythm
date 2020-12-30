@@ -19,12 +19,20 @@
 #include "object_logic.h"
 #include <libconfig.h>
 #include <dlfcn.h>
+#include "config.h"
+#if USE_OPENGL
+#include <GL/glew.h>
+#include <SDL2/SDL_opengl.h>
+#include "opengl_helpers.h"
+#else
+#endif
 
 void present_screen(struct time_struct timing, struct graphics_struct master_graphics) {
 	SDL_Delay(wait_to_present(&timing));
 	SDL_RenderPresent(master_graphics.renderer);
 }
-int graphics_init(struct graphics_struct *master_graphics) {
+
+int graphics_init_sdl(struct graphics_struct *master_graphics) {
 	// Initialize SDL.
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 		return 1;
@@ -52,7 +60,8 @@ int graphics_init(struct graphics_struct *master_graphics) {
 	return 0;
 
 }
-void graphics_deinit(struct graphics_struct *master_graphics) {
+
+void graphics_deinit_sdl(struct graphics_struct *master_graphics) {
 	/* Release SDL resources. */
 	SDL_DestroyRenderer(master_graphics->renderer);
 	if (master_graphics->font) {
@@ -69,14 +78,30 @@ int main() {
 	struct player_struct player = {0};
 	struct audio_struct audio = {0};
 	struct time_struct timing = {0};
-	struct graphics_struct master_graphics = {0};
 	struct program_struct program = {0};
+	struct graphics_struct master_graphics = {
+		.width = NATIVE_RES_X * ZOOM_MULT,
+		.height = NATIVE_RES_Y * ZOOM_MULT,
+		.debug_anchors = &program.debug.show_anchors,
+		.debug_containers = &program.debug.show_containers,
+		.debug_test_render_list_robustness = &program.debug.test_render_list_robustness,
+		.graphics.master_graphics = &master_graphics,
+	};
 
 	struct menu_stage_struct pause_stage = {0};
 	
-	if (graphics_init(&master_graphics)) {
+#if USE_OPENGL
+	if (init_sdl_opengl(&master_graphics)) {
 		return 1;
 	}
+	if (init_sdl_opengl(&master_graphics)) {
+		return 1;
+	}
+#else
+	if (graphics_init_sdl(&master_graphics)) {
+		return 1;
+	}
+#endif
 
 	if (audio_init(&audio) == R_FAILURE) {
 		return R_FAILURE;
@@ -100,15 +125,9 @@ int main() {
 	timing.fpsanim = 30;
 	timing.fpsglobal = 60;
 	timing_init(&timing);
-	master_graphics.width = NATIVE_RES_X * ZOOM_MULT;
-	master_graphics.height = NATIVE_RES_Y * ZOOM_MULT;
 	program.debug.show_anchors = 0;
 	program.debug.show_containers = 0;
 	program.debug.test_render_list_robustness = 0;
-	master_graphics.debug_anchors = &program.debug.show_anchors;
-	master_graphics.debug_containers = &program.debug.show_containers;
-	master_graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
-	master_graphics.graphics.master_graphics = &master_graphics;
 
 	//TODO: Put this and other SDL stuff into functions
 	SDL_Texture *screen_texture = NULL;
@@ -259,7 +278,9 @@ int main() {
 		Py_Finalize() ;
 	}
 
-	graphics_deinit(&master_graphics);
+#if !(USE_OPENGL)
+	graphics_deinit_sdl(&master_graphics);
+#endif
 	printf("Game Over.\n");
 	printf("(After %d frames)\n", timing.framecount);
 	//pthread_mutex_lock(&quit_mutex);
