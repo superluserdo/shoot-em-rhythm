@@ -45,7 +45,7 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 /* RENDER */
 
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat) {
-	query_resize(master_graphics, graphics->tex_target_ptr);
+	query_resize(master_graphics);
 
 	if (*master_graphics->debug_test_render_list_robustness) {
 		test_render_list_robustness(object_list_stack, graphics);
@@ -70,7 +70,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			//						data->dstrect, data->angle, data->center, data->flip);
 			//}
 			//else {
-				render_copy(node_ptr, master_graphics->graphics.renderer);
+				render_copy(node_ptr, graphics->renderer);
 			//}
 			//if (rc != 0) {
 			//	printf("%s\n", SDL_GetError());
@@ -288,20 +288,11 @@ int render_list_rm(struct render_node **node_ptr_ptr) {
 			}
 			free(ptr_tmp);
 		}
-		node_ptr->animation->render_node = NULL;
+		//node_ptr->animation->render_node = NULL;
 		free(node_ptr);
 	}
 	*node_ptr_ptr = NULL;
 	return 0;
-}
-
-struct render_node *create_render_node() {
-	struct render_node *new_node = malloc(sizeof(struct render_node));
-	if (new_node == NULL) {
-		printf("Error creating new rendering node :(\n");
-	}
-	*new_node = (struct render_node) {0};
-	return new_node;
 }
 
 /* ANIMATE */
@@ -443,6 +434,8 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				}
 
 				render_node->rect_out = abs_rect;
+				update_quad_vertices_sdl(container->rect_out_screen_scale, render_node);
+				
 				//render_node = render_node->next;
 				render_node_count++;
 			}
@@ -547,7 +540,7 @@ void update_render_node(struct animation_struct *animation, struct render_node *
 		r_node->rect_in = NULL;
 	}
 
-	r_node->img = animation->img;
+	r_node->texture = animation->img;
 }
 
 int generate_render_node(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
@@ -578,7 +571,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 		/* Only get generic anim and make render node if
 		   animation type is not:
 		   - "ser_container" (glorified container), or 
-		   - "ser_texture" (animated texure without generic) */
+		   - "ser_texture" (animated texture without generic) */
 
 		enum animate_mode_e animate_mode;
 		if (strcmp(animation_type_array[i], "ser_container") == 0) {

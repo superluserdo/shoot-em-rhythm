@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include "opengl_types.h"
 #include "structdef_engine.h"
+#include "backend_funcs.h"
 
 //Starts up SDL, creates window, and initializes OpenGL
 int init_sdl_opengl(struct graphics_struct *master_graphics);
@@ -14,13 +15,12 @@ void get_texture_size(unsigned int texture, int *w, int *h);
 
 void checkCompileErrors(GLuint shader, const char *type);
 
-struct globject *new_object(struct globject_list *object_list);
+//struct globject *new_object(struct globject_list *object_list);
 
-void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target);
+//void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target);
 
-struct globject *new_quad(struct floatrect rect, unsigned int texture, 
-		unsigned int prog_ID, struct globject_list *object_list, 
-		int sdl_coordinates);
+struct render_node *new_quad(struct float_rect rect, unsigned int texture, 
+		unsigned int texture_shader, int sdl_coords);
 
 unsigned int texture_from_image(char *path);
 

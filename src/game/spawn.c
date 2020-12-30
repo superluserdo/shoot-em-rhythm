@@ -381,7 +381,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 
 	std->animation->container = *std->container;
 
-	texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
+	//texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
 
 	
 	//texture_t tex_target = SDL_CreateTexture(master_graphics->graphics.renderer, SDL_PIXELFORMAT_RGBA8888,
@@ -389,8 +389,17 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	/* Give this (render target) texture alpha blending so it can layer over other render targets */
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
 
-	std->animation->img = tex_target;
-	texture_t *tex_target_ptr = &std->animation->img;
+	struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
+
+	if( !renderer)
+	{
+		printf( "Unable to create a new renderer object!\n" );
+		exit(1);
+	}
+	graphics->renderer = renderer;
+
+	//std->animation->img = tex_target;
+	//texture_t *tex_target_ptr = &std->animation->img;
 
 #if 0
 	struct frame *frame = malloc(sizeof(*frame));
@@ -427,7 +436,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	graphics->master_graphics = master_graphics;
 
 	/* Set the level's texture to draw to */
-	graphics->tex_target_ptr = tex_target_ptr;
+	//graphics->tex_target_ptr = tex_target_ptr;
 }
 
 //TODO	Write recursive destructors for each struct type

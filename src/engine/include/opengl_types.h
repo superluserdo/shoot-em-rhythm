@@ -2,14 +2,7 @@
 #define _OPENGL_TYPES_H
 #include <GL/glew.h>
 
-struct floatrect {
-	float x;
-	float y;
-	float w;
-	float h;
-};
-
-struct intrect {
+struct int_rect {
 	int x;
 	int y;
 	int w;
@@ -18,25 +11,21 @@ struct intrect {
 
 struct framebuffer {
 	unsigned int framebuffer;
-	struct intrect viewport;
+	struct int_rect viewport;
 	unsigned int texture;
 };
 
-struct glrenderer *make_renderer(char *texture_path, 
-		struct framebuffer *render_target, float clear_colour[4],
-		int own_framebuffer, struct intrect viewport);
-
-struct globject {
-	unsigned int texture;
-	unsigned int n_vertices;
-	//size_t vert_stride; //TODO
-	float *vertices;
-	unsigned int n_indices;
-	unsigned int *indices;
-	unsigned int texture_shader;
-	void (*uniforms)(unsigned int texture_shader);
-	//struct globject *next;
-};
+//struct globject {
+//	unsigned int texture;
+//	unsigned int n_vertices;
+//	//size_t vert_stride; //TODO
+//	float *vertices;
+//	unsigned int n_indices;
+//	unsigned int *indices;
+//	unsigned int texture_shader;
+//	void (*uniforms)(unsigned int texture_shader);
+//	//struct globject *next;
+//};
 
 //struct globject_list {
 //	struct globject *head;

@@ -77,7 +77,6 @@ struct graphical_stage_struct {
 	struct dict_void *image_dict;
 	struct std_list *object_list_stack;
 	int num_images;
-	texture_t *tex_target_ptr;
 	struct graphics_struct *master_graphics;
 
 };
@@ -182,10 +181,10 @@ struct time_struct {
 };
 
 struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
-	double x;
-	double y;
-	double w;
-	double h;
+	float x;
+	float y;
+	float w;
+	float h;
 };
 enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
 
@@ -246,14 +245,22 @@ struct render_node {
 	struct render_node *next;
 	SDL_Rect *rect_in;
 	SDL_Rect rect_out;
-	texture_t img;
+	//texture_t img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
 	struct animation_struct *animation;
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
 #if USE_OPENGL
-	struct globject gl;
+	// Formerly struct globject gl;
+	unsigned int texture;
+	unsigned int n_vertices;
+	//size_t vert_stride; //TODO
+	float *vertices;
+	unsigned int n_indices;
+	unsigned int *indices;
+	unsigned int texture_shader;
+	void (*uniforms)(unsigned int texture_shader);
 #endif
 };
 

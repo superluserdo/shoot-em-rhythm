@@ -12,7 +12,7 @@ unsigned int texture_shader_simple = 0;
 unsigned int texture_shader_white = 0;
 unsigned int texture_shader_glow_behind = 0;
 unsigned int texture_shader_glow = 0;
-struct intrect default_viewport = {0, 0, 640, 640};
+struct int_rect default_viewport = {0, 0, 640, 640};
 
 void get_texture_size(unsigned int texture, int *w, int *h) {
 	int miplevel = 0;
@@ -24,7 +24,7 @@ void get_texture_size(unsigned int texture, int *w, int *h) {
 void change_render_target(struct glrenderer *target_renderer) {
 	struct framebuffer *target = target_renderer->framebuffer;
 	int framebuffer;
-	struct intrect viewport;
+	struct int_rect viewport;
 	if (target) {
 		framebuffer = target->framebuffer;
 		viewport = target->viewport;
@@ -159,28 +159,29 @@ void max_min_n(int n_nums, float *nums, float *max, float *min) {
 	*min = (min_1 < min_2) ? min_1 : min_2;
 }
 
-struct globject *add_border_vertices(struct globject *object, struct globject_list *object_list,
+//struct globject *add_border_vertices(struct globject *object, struct globject_list *object_list,
+struct render_node *add_border_vertices(struct render_node *node, struct graphical_stage_struct *graphics,
 		unsigned int texture_shader,
 		float frac_up, float frac_left, float frac_down, float frac_right) {
 
-	assert(object->n_vertices == 4);
+	assert(node->n_vertices == 4);
 	float x_max_old, x_min_old, y_max_old, y_min_old;
 
-	max_min_n(object->n_vertices,
+	max_min_n(node->n_vertices,
 			(float []){
-			object->vertices[0],
-			object->vertices[4],
-			object->vertices[8],
-			object->vertices[12],
+			node->vertices[0],
+			node->vertices[4],
+			node->vertices[8],
+			node->vertices[12],
 			},
 			&x_max_old, &x_min_old);
 
-	max_min_n(object->n_vertices,
+	max_min_n(node->n_vertices,
 			(float []){
-			object->vertices[1],
-			object->vertices[5],
-			object->vertices[9],
-			object->vertices[13],
+			node->vertices[1],
+			node->vertices[5],
+			node->vertices[9],
+			node->vertices[13],
 			},
 			&y_max_old, &y_min_old);
 
@@ -230,19 +231,17 @@ struct globject *add_border_vertices(struct globject *object, struct globject_li
 
 	memcpy(indices, indices_stack, sizeof(indices_stack));
 
-	struct globject *object_new = new_object(object_list);
-	object_new->vertices = vertices;
-	object_new->n_vertices = 4*4;
-	object_new->indices = indices;
-	object_new->n_indices = 8*6;
-	object_new->texture_shader = texture_shader;
+	struct render_node *node_new = calloc(sizeof(*node), 1);
+	node_new->vertices = vertices;
+	node_new->n_vertices = 4*4;
+	node_new->indices = indices;
+	node_new->n_indices = 8*6;
+	node_new->texture_shader = texture_shader;
 
-	insert_object_after(object_list, object_new, object);
-
-	return object_new;
+	return node_new;
 }
 
-void update_quad_vertices_sdl(struct floatrect rect, struct globject *object) {
+void update_quad_vertices_sdl(struct float_rect rect, struct render_node *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -265,16 +264,16 @@ void update_quad_vertices_sdl(struct floatrect rect, struct globject *object) {
         1, 2, 3  // second triangle
     };
 
-	object->n_vertices = 4;
-	object->vertices = realloc(object->vertices, sizeof(float) * 4*4);
-	object->n_indices = 6;
-	object->indices = realloc(object->indices, sizeof(unsigned int) * 3*2);
+	node->n_vertices = 4;
+	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
+	node->n_indices = 6;
+	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
-	memcpy(object->vertices, vertices, sizeof(vertices));
-	memcpy(object->indices, indices, sizeof(indices));
+	memcpy(node->vertices, vertices, sizeof(vertices));
+	memcpy(node->indices, indices, sizeof(indices));
 }
 
-void update_quad_vertices_opengl(struct floatrect rect, struct globject *object) {
+void update_quad_vertices_opengl(struct float_rect rect, struct render_node *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -297,15 +296,16 @@ void update_quad_vertices_opengl(struct floatrect rect, struct globject *object)
         1, 2, 3  // second triangle
     };
 
-	object->n_vertices = 4;
-	object->vertices = realloc(object->vertices, sizeof(float) * 4*4);
-	object->n_indices = 6;
-	object->indices = realloc(object->indices, sizeof(unsigned int) * 3*2);
+	node->n_vertices = 4;
+	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
+	node->n_indices = 6;
+	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
-	memcpy(object->vertices, vertices, sizeof(vertices));
-	memcpy(object->indices, indices, sizeof(indices));
+	memcpy(node->vertices, vertices, sizeof(vertices));
+	memcpy(node->indices, indices, sizeof(indices));
 }
 
+#if 0
 void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target) {
 	/* Add object to end of list */
 	if (!object_list->head) {
@@ -321,33 +321,24 @@ void insert_object_after(struct globject_list *object_list, struct globject *obj
 		object_list->tail = object;
 	}
 }
+#endif
 
-struct globject *new_object(struct globject_list *object_list) {
-	struct globject *object = calloc(sizeof(*object), 1);
-
-	*object = (struct globject) {0};
-
-	insert_object_after(object_list, object, NULL);
-
-	return object;
-}
-
-struct globject *new_quad(struct floatrect rect, unsigned int texture, 
-		unsigned int texture_shader, struct globject_list *object_list, 
+struct render_node *new_quad(struct float_rect rect, unsigned int texture, 
+		unsigned int texture_shader,
 		int sdl_coords) {
 
-	struct globject *object = new_object(object_list);
+	struct render_node *node = calloc(sizeof(*node), 1);
 
-	object->texture = texture;
-	object->texture_shader = texture_shader;
+	node->texture = texture;
+	node->texture_shader = texture_shader;
 
 	if (sdl_coords) {
-		update_quad_vertices_sdl(rect, object);
+		update_quad_vertices_sdl(rect, node);
 	} else {
-		update_quad_vertices_opengl(rect, object);
+		update_quad_vertices_opengl(rect, node);
 	}
 
-	return object;
+	return node;
 }
 
 int init_sdl_opengl(struct graphics_struct *master_graphics) {
@@ -560,13 +551,13 @@ int graphics_init(struct graphics_struct *master_graphics) {
 	if (init_sdl_opengl(master_graphics)) {
 		return 1;
 	}
-	struct glrenderer *fb_renderer = make_renderer(NULL, 0, 
+	struct glrenderer *fb_renderer = make_renderer(0, 
 			(float []){0.8f, 0.8f, 0.3f, 1.0f}, 1, 
-			(struct intrect){0, 0, master_graphics->width, master_graphics->height});
+			(struct int_rect){0, 0, master_graphics->width, master_graphics->height});
 	
-	struct glrenderer *renderer = make_renderer("window.png", fb_renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct intrect){0});
+	//struct glrenderer *renderer = make_renderer(fb_renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
 
-	if( !renderer || !fb_renderer)
+	if( !fb_renderer)
 	{
 		printf( "Unable to initialize OpenGL!\n" );
 		exit(1);
@@ -575,9 +566,8 @@ int graphics_init(struct graphics_struct *master_graphics) {
 	return 0;
 }
 
-struct glrenderer *make_renderer(char *texture_path, 
-		struct framebuffer *render_target, float clear_colour[4],
-		int own_framebuffer, struct intrect viewport) {
+struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_colour[4],
+		int own_framebuffer, struct int_rect viewport) {
 
 	struct glrenderer *renderer = calloc(sizeof(*renderer), 1);
 
@@ -627,11 +617,10 @@ struct glrenderer *make_renderer(char *texture_path,
 		glBindFramebuffer(GL_FRAMEBUFFER, 0); /* default */
 
 		/* Create quad that will display framebuffer */
-		struct floatrect quad_rect = {
+		struct float_rect quad_rect = {
 			.x=0.1, .y=0.1, .w=0.8, .h=0.8
 		};
-		new_quad(quad_rect, fb_struct->texture, 
-				texture_shader_simple, &renderer->object_list, 0);
+		new_quad(quad_rect, fb_struct->texture, texture_shader_simple, 0);
 	}
 
 	*renderer = (struct glrenderer) {
@@ -647,8 +636,8 @@ struct glrenderer *make_renderer(char *texture_path,
 #if 0
 	struct globject_list *object_list = &renderer->object_list;
 
-	struct floatrect rect_bg = {.x=0.35, .y=0.35, .w = 0.3, .h=0.3};
-	struct floatrect rect = {.x=0.0, .y=0.0, .w = 0.5, .h=0.5};
+	struct float_rect rect_bg = {.x=0.35, .y=0.35, .w = 0.3, .h=0.3};
+	struct float_rect rect = {.x=0.0, .y=0.0, .w = 0.5, .h=0.5};
 
 	/* Get texture */
 	if (texture_path) {
@@ -680,31 +669,34 @@ void clear_render_target(struct graphics_struct *master_graphics, struct graphic
 }
 
 //int render_copy(struct globject *object, struct glrenderer *renderer) {
-int render_copy(struct render_node *render_node, struct glrenderer *renderer) {
-	struct globject *object = &render_node->gl;
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * object->n_vertices, object->vertices, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * object->n_indices, object->indices, GL_STATIC_DRAW);
+int render_copy(struct render_node *node, struct glrenderer *renderer) {
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, object->texture);
+	if (node->texture >= 0) {
+		glBindTexture(GL_TEXTURE_2D, node->texture);
+	} else{ 
+		glBindTexture(GL_TEXTURE_2D, renderer->framebuffer->texture);
+	}
 
 	if (renderer->do_wireframe) {
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 		glUseProgram(texture_shader_white); 
 	} else {
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-		glUseProgram(object->texture_shader); 
-		if (object->uniforms) {
-			object->uniforms(object->texture_shader);
+		glUseProgram(node->texture_shader); 
+		if (node->uniforms) {
+			node->uniforms(node->texture_shader);
 		}
 	}
 	glBindVertexArray(renderer->VAO);
-	glDrawElements(GL_TRIANGLES, object->n_indices, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, node->n_indices, GL_UNSIGNED_INT, 0);
 	return 123;
 }
 
 #if 0
-void render(struct graphics_struct *master_graphics)
+void render_list_opengl(struct graphics_struct *master_graphics)
 {
 
 	struct glrenderer *renderer = master_graphics->graphics.renderer;
@@ -808,7 +800,7 @@ void printShaderLog( GLuint shader )
 	}
 }
 
-void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr) {
+void query_resize(struct graphics_struct *master_graphics) {
 	/* Get (potentially updated) window dimensions */
 	int w, h;
 	SDL_GetWindowSize(master_graphics->window, &w, &h);
@@ -837,7 +829,7 @@ void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target
 		glGenTextures(1, &new_fb_texture);
 		glBindTexture(GL_TEXTURE_2D, new_fb_texture);
 		master_graphics->graphics.renderer->framebuffer->texture = new_fb_texture;
-		master_graphics->graphics.renderer->object_list.head->texture = new_fb_texture;
+		//master_graphics->graphics.renderer->object_list.head->texture = new_fb_texture;
 		  
 		master_graphics->graphics.renderer->framebuffer->viewport.w = w;
 		master_graphics->graphics.renderer->framebuffer->viewport.h = h;
