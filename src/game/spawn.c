@@ -15,6 +15,7 @@
 #include "spawn.h"
 #include "object_logic.h"
 #include "dict.h"
+#include "backend_funcs.h"
 
 void prepare_anim_character(struct animation_struct *anim, struct status_struct *status) {
 	anim->rules_list = malloc(sizeof(struct rule_node));
@@ -380,7 +381,11 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 
 	std->animation->container = *std->container;
 
-	SDL_Texture *tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
+	texture_t tex_target = create_texture(master_graphics->renderer, master_graphics->width, master_graphics->height);
+
+	
+	//texture_t tex_target = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888,
+	//		SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
 	/* Give this (render target) texture alpha blending so it can layer over other render targets */
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
 
@@ -423,14 +428,11 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 
 	/* Set the level's texture to draw to */
 	graphics->tex_target_ptr = tex_target_ptr;
-	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
-	SDL_SetRenderTarget(master_graphics->renderer, NULL);
-	SDL_RenderClear(master_graphics->renderer);
 }
 
 //TODO	Write recursive destructors for each struct type
 
-void spawn_bg(struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture *bg_texture) {
+void spawn_bg(struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, texture_t bg_texture) {
 	/* Spawn a texture as the background of a stage */
 	struct std *bg_std = malloc(sizeof(*bg_std));
 	*bg_std = (struct std) {0};

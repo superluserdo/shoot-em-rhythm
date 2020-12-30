@@ -13,7 +13,9 @@ sources_engine_list = [
 	]
 
 if get_option('use-opengl')
-	sources_engine_list += 'opengl_helpers.c'
+	sources_engine_list += 'opengl_funcs.c'
+else
+	sources_engine_list += 'sdl_funcs.c'
 endif
 
 sources_engine = files(sources_engine_list)

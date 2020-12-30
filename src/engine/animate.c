@@ -1,4 +1,6 @@
 #include "animate.h"
+#include "backend_types.h"
+#include "backend_funcs.h"
 
 /* For debugging */
 
@@ -42,11 +44,6 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 
 /* RENDER */
 
-void clear_target_sdl(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
-	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
-	SDL_RenderClear(master_graphics->renderer);
-}
-
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat) {
 	query_resize(master_graphics, graphics->tex_target_ptr);
 
@@ -59,30 +56,21 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 
 }
 
-int render_copy(struct render_node *node_ptr) {
-	int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
-	if (rc != 0) {
-		printf("%s\n", SDL_GetError());
-		FILEINFO
-	}
-	return rc;
-
-}
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
 
 	struct graphics_struct *master_graphics = graphics->master_graphics;
-	clear_target_sdl(master_graphics, graphics);
+	clear_render_target(master_graphics, graphics);
 
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			//int rc = 0;
 			//if (graphics->rendercopyex_data) {
 			//	struct rendercopyex_struct *data = graphics->rendercopyex_data;
-			//	rc = SDL_RenderCopyEx(node_ptr->renderer, node_ptr->img, node_ptr->rect_in,
+			//	rc = SDL_RenderCopyEx(master_graphics->renderer, node_ptr->img, node_ptr->rect_in,
 			//						data->dstrect, data->angle, data->center, data->flip);
 			//}
 			//else {
-				render_copy(node_ptr);
+				render_copy(node_ptr, master_graphics->renderer);
 			//}
 			//if (rc != 0) {
 			//	printf("%s\n", SDL_GetError());
@@ -97,7 +85,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 		if (*master_graphics->debug_anchors) {
 			int rc;
 			int anchor_width = 6;
-			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
+			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 255, 255);
 			if (node_ptr->animation->container.anchors_exposed) {
 				SDL_Rect anchor_exposed_rect = {
 					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
@@ -105,24 +93,24 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 					.w = anchor_width,
 					.h = anchor_width,
 				};
-				rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_exposed_rect);
+				rc = SDL_RenderFillRect(master_graphics->renderer, &anchor_exposed_rect);
 			}
-			SDL_SetRenderDrawColor(node_ptr->renderer, 255, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->renderer, 255, 0, 0, 255);
 			SDL_Rect anchor_hook_rect = {
 				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
 				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
 				.w = anchor_width,
 				.h = anchor_width,
 			};
-			rc = SDL_RenderFillRect(node_ptr->renderer, &anchor_hook_rect);
+			rc = SDL_RenderFillRect(master_graphics->renderer, &anchor_hook_rect);
 			if (rc != 0) {
 				printf("%s\n", SDL_GetError());
 				FILEINFO
 			}
-			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 0, 255);
 		}
 		if (*master_graphics->debug_containers) {
-			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 255, 255);
+			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 255, 255);
 			struct visual_container_struct *container = &node_ptr->animation->container;
 
 			while (container) {
@@ -135,14 +123,14 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 					{abs_container.x, abs_container.y + abs_container.h},
 					{abs_container.x, abs_container.y},
 				};
-				int rc = SDL_RenderDrawLines(node_ptr->renderer, points, 5);
+				int rc = SDL_RenderDrawLines(master_graphics->renderer, points, 5);
 				if (rc != 0) {
 					printf("%s\n", SDL_GetError());
 					FILEINFO
 				}
 				container = container->inherit;
 			}
-			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(master_graphics->renderer, 0, 0, 0, 255);
 		}
 #endif
 		node_ptr = node_ptr->next;
@@ -565,14 +553,11 @@ void update_render_node(struct animation_struct *animation, struct render_node *
 int generate_render_node(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
 	/* Creates, populates, and inserts a rendering node	*/
 
-	struct graphics_struct *master_graphics = graphics->master_graphics;
-
 	struct render_node *r_node = malloc(sizeof(struct render_node));
 	*r_node = (struct render_node) {0};
 
 	update_render_node(animation, r_node);
 
-	r_node->renderer = master_graphics->renderer;
 	r_node->animation = animation;
 	r_node->customRenderFunc = NULL;
 	node_insert_z_over(graphics, r_node, animation->z);
@@ -630,28 +615,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	return 0;
 }
 
-#if USE_OPENGL
-int texture_from_path(texture_t *texture, struct glrenderer *renderer, char *path);
-#else
-int texture_from_path(texture_t *texture, SDL_Renderer *renderer, char *path) {
-		if (path) {
-			*texture = IMG_LoadTexture(renderer, path);
-		}
-		else {
-			printf("Could not find valid image file \"%s\"\n", path);
-			FILEINFO
-			return R_FAILURE;
-		}
-		if (!(*texture)) {
-			printf("Error loading image file: \"%s\"\n", path);
-			FILEINFO
-			return R_FAILURE;
-		}
-		return R_SUCCESS;
-}
-#endif
-
-int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
+int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, renderer_t renderer) {
 	/* Allocates and initialises dicts for generic animations
 	   and image textures */
 
@@ -932,77 +896,3 @@ void make_anchors_exposed(struct animation_struct *anim, int n) {
 	anim->container.anchors_exposed = anchors_exposed;
 	anim->container.num_anchors_exposed = n;
 }
-
-#if USE_OPENGL
-void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr) {
-	/* Get (potentially updated) window dimensions */
-	int w, h;
-	SDL_GetWindowSize(gWindow, &w, &h);
-
-	if (((w != SCREEN_WIDTH) || (h != SCREEN_HEIGHT))) {
-		//printf("New size!\n"
-		//		"orig viewport: w=%d, h=%d\n"
-		//		"orig tex: w=%d, h=%d\n"
-		//		"new size:  w=%d, h=%d\n",
-		//		SCREEN_WIDTH, SCREEN_HEIGHT,
-		//		fb_renderer->framebuffer->viewport.w,
-		//		fb_renderer->framebuffer->viewport.h,
-		//		w, h);
-		SCREEN_WIDTH = w;
-		SCREEN_HEIGHT = h;
-
-		default_viewport.w = w;
-		default_viewport.h = h;
-
-		/* If rendering to a target (not screen), resize texTarget to new texture */
-		glDeleteTextures(1, &fb_renderer->framebuffer->texture);
-
-		unsigned int new_fb_texture;
-		glGenTextures(1, &new_fb_texture);
-		glBindTexture(GL_TEXTURE_2D, new_fb_texture);
-		fb_renderer->framebuffer->texture = new_fb_texture;
-		fb_renderer->object_list.head->texture = new_fb_texture;
-		  
-		fb_renderer->framebuffer->viewport.w = w;
-		fb_renderer->framebuffer->viewport.h = h;
-		change_render_target(fb_renderer->framebuffer);
-
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, new_fb_texture, 0);  // attach to currently bound framebuffer object
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-	}
-}
-#else
-
-void query_resize(struct graphics_struct *master_graphics, texture_t *tex_target_ptr) {
-
-	/* Get (potentially updated) window dimensions */
-	int w, h;
-	SDL_GetWindowSize(master_graphics->window, &w, &h);
-
-	if ((w != master_graphics->width) || (h != master_graphics->height)) {
-		master_graphics->width = w;
-		master_graphics->height = h;
-
-		/* If rendering to a target (not screen), resize texTarget to new texture */
-
-		if (*tex_target_ptr) {
-			SDL_Texture *texTarget_new = SDL_CreateTexture(master_graphics->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
-			SDL_Texture *target_prev = SDL_GetRenderTarget(master_graphics->renderer);
-			SDL_SetRenderTarget(master_graphics->renderer, texTarget_new);
-
-			SDL_RenderClear(master_graphics->renderer);
-			SDL_RenderCopy(master_graphics->renderer, *tex_target_ptr, NULL, NULL);
-
-			SDL_SetRenderTarget(master_graphics->renderer, target_prev);
-			SDL_DestroyTexture(*tex_target_ptr);
-			*tex_target_ptr = texTarget_new;
-		}
-	}
-}
-#endif

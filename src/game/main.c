@@ -23,53 +23,12 @@
 #if USE_OPENGL
 #include <GL/glew.h>
 #include <SDL2/SDL_opengl.h>
-#include "opengl_helpers.h"
+#include "opengl_funcs.h"
 #else
 #endif
+#include "backend_funcs.h"
 #define FIXME_SWITCH 0
 
-void present_screen(struct time_struct timing, struct graphics_struct master_graphics) {
-	SDL_Delay(wait_to_present(&timing));
-	SDL_RenderPresent(master_graphics.renderer);
-}
-
-int graphics_init_sdl(struct graphics_struct *master_graphics) {
-	// Initialize SDL.
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
-		return 1;
-
-	SDL_Window *win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, 
-			master_graphics->width, master_graphics->height, 
-			SDL_WINDOW_RESIZABLE);
-	master_graphics->window = win;
-	SDL_Renderer *renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-	if (renderer == NULL) {
-		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", 
-				SDL_GetError());
-		
-		/* Print driver info if renderer creation fails */
-		SDL_RendererInfo info;
-		int num = SDL_GetNumRenderDrivers();
-		printf("There are %d usable render drivers\n", num);
-		printf("Driver  SDL_RendererFlags\n");
-		for (int i = 0; i < num; i++) {
-	   	if (SDL_GetRenderDriverInfo(i,&info) == 0)
-	   	printf("%s  %d\n", info.name, info.flags&2);
-		}
-	}
-	master_graphics->renderer = renderer;
-	return 0;
-
-}
-
-void graphics_deinit_sdl(struct graphics_struct *master_graphics) {
-	/* Release SDL resources. */
-	SDL_DestroyRenderer(master_graphics->renderer);
-	if (master_graphics->font) {
-		TTF_CloseFont(master_graphics->font);
-	}
-	SDL_DestroyWindow(master_graphics->window);
-}
 int main() {
 
 
@@ -91,18 +50,9 @@ int main() {
 
 	struct menu_stage_struct pause_stage = {0};
 	
-#if USE_OPENGL
-	if (init_sdl_opengl(&master_graphics)) {
+	if (graphics_init(&master_graphics)) {
 		return 1;
 	}
-	if (init_sdl_opengl(&master_graphics)) {
-		return 1;
-	}
-#else
-	if (graphics_init_sdl(&master_graphics)) {
-		return 1;
-	}
-#endif
 
 	if (audio_init(&audio) == R_FAILURE) {
 		return R_FAILURE;
@@ -250,7 +200,8 @@ int main() {
 				&master_graphics.graphics, &master_graphics, 
 				timing.currentbeat);
 
-		present_screen(timing, master_graphics);
+		SDL_Delay(wait_to_present(&timing));
+		present_screen(timing, &master_graphics);
 		update_time(&timing);
 
 	}
@@ -281,9 +232,11 @@ int main() {
 		Py_Finalize() ;
 	}
 
-#if !(USE_OPENGL)
-	graphics_deinit_sdl(&master_graphics);
-#endif
+	graphics_deinit(&master_graphics);
+	if (master_graphics.font) {
+		TTF_CloseFont(master_graphics.font);
+	}
+
 	printf("Game Over.\n");
 	printf("(After %d frames)\n", timing.framecount);
 	//pthread_mutex_lock(&quit_mutex);

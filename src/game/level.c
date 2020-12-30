@@ -356,7 +356,7 @@ int level_init (struct status_struct status) {
 		fprintf(stderr, "Couldn't find track for level\n");
 		FILEINFO
 	} else {
-		playmusic(&status, newtrack, 1.0);
+		playmusic(&status, newtrack, 0.2);
 	}
 
 	/* Snazzy Effects */
@@ -647,6 +647,7 @@ int level_loop(struct status_struct status) {
 	}
 
 	/* Clear screen */
+#if FIXME_SWITCH
 	if (status.level->partymode) {
 		level->effects->angle ++;
 		level->effects->colournum += 5;
@@ -668,6 +669,7 @@ int level_loop(struct status_struct status) {
 	else {
 		graphics->rendercopyex_data = NULL;
 	}
+#endif
 
 	render_process(graphics->object_list_stack, graphics, master_graphics, timing->currentbeat);
 

@@ -8,7 +8,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr, str
 struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct visual_container_struct *container, int lane, float spawn_beat);
 //void spawn_graphical_stage(struct std *std, struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics, void *self, const char *name);
 void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, struct graphics_struct *master_graphics, void *self, const char *name);
-void spawn_bg(struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture *bg_texture);
+void spawn_bg(struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, texture_t bg_texture);
 void set_anchor_hook(struct visual_container_struct *container, float x, float y);
 
 void monster_struct_rm(struct monster_struct *monster, struct std_list **stack_ptr, struct graphical_stage_struct *graphics);

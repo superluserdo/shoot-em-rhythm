@@ -12,12 +12,7 @@
 #define FILEINFO fprintf(stderr, "In %s, line %d\n", __FILE__, __LINE__);
 #define VEC_RESIZE_MULTIPLIER 2
 
-#if USE_OPENGL
-hmm what;
-typedef unsigned int texture_t;
-#else
-typedef SDL_Texture *texture_t;
-#endif
+#include "backend_types.h"
 
 /*	Main	*/
 
@@ -217,11 +212,7 @@ struct graphics_struct {
 	SDL_Window *window;
 	int width, height;
 	struct visual_container_struct screen;
-#if USE_OPENGL
-	struct glrenderer *renderer;
-#else
-	SDL_Renderer *renderer;
-#endif
+	renderer_t renderer;
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
@@ -238,7 +229,7 @@ struct graphics_struct {
 
 #if (!USE_OPENGL)
 struct rendercopyex_struct {
-	SDL_Renderer *renderer;
+	renderer_t renderer;
 	texture_t texture;
 	SDL_Rect *srcrect;
 	SDL_Rect *dstrect;
@@ -257,11 +248,6 @@ struct render_node {
 	texture_t img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
-#if USE_OPENGL
-	struct glrenderer *renderer;
-#else
-	SDL_Renderer *renderer;
-#endif
 	struct animation_struct *animation;
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.

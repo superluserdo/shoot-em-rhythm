@@ -1,8 +1,6 @@
 #ifndef _ENGINE_ANIMATE_H
 #define _ENGINE_ANIMATE_H
 #include <stdio.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 #include <libconfig.h>
 #include "structdef_game.h"
 #include "helpers.h"
@@ -20,7 +18,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 //void render_process(struct graphics_struct *graphics, struct time_struct *timing);
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat);
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics);
-void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr);
 
 int node_insert_over(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest);
 int node_insert_under(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest);
@@ -31,10 +28,8 @@ struct render_node *create_render_node();
 int render_node_rm(struct graphical_stage_struct *graphics, struct render_node *node_ptr);
 int render_list_rm(struct render_node **node_ptr_ptr);
 
-int texture_from_path(SDL_Texture **texture, SDL_Renderer *renderer, char *path);
-
 struct dict_void *generic_anim_dict_populate(struct dict_void *image_dict, struct status_struct *status);
-int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer);
+int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, renderer_t renderer);
 
 struct animation_struct *new_animation(struct std *std, enum animate_mode_e animate_mode, struct animate_generic *generic);
 int generate_render_node(struct animation_struct *specific, struct graphical_stage_struct *graphics);
