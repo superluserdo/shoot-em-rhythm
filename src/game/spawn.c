@@ -390,7 +390,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
 
 	std->animation->img = tex_target;
-	SDL_Texture **tex_target_ptr = &std->animation->img;
+	texture_t *tex_target_ptr = &std->animation->img;
 
 #if 0
 	struct frame *frame = malloc(sizeof(*frame));
