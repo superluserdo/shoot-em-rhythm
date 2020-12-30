@@ -630,7 +630,10 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	return 0;
 }
 
-int texture_from_path(SDL_Texture **texture, SDL_Renderer *renderer, char *path) {
+#if USE_OPENGL
+int texture_from_path(texture_t *texture, struct glrenderer *renderer, char *path);
+#else
+int texture_from_path(texture_t *texture, SDL_Renderer *renderer, char *path) {
 		if (path) {
 			*texture = IMG_LoadTexture(renderer, path);
 		}
@@ -646,6 +649,7 @@ int texture_from_path(SDL_Texture **texture, SDL_Renderer *renderer, char *path)
 		}
 		return R_SUCCESS;
 }
+#endif
 
 int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
 	/* Allocates and initialises dicts for generic animations
@@ -774,13 +778,13 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			char *img_name = malloc(len+1);
 			strncpy(img_name, img_dummy, len+1);
 
-			SDL_Texture *texture = NULL;
 			char *path_prefix = "art/";
 			int maxnamelen = 50;
 			char *path_prefix_long = malloc(sizeof(path_prefix) + maxnamelen);
 			strncpy(path_prefix_long, path_prefix, maxnamelen);
 			char *path = strncat(path_prefix_long, img_name, maxnamelen);
 
+			texture_t texture;
 			if (texture_from_path(&texture, renderer, path) != R_SUCCESS) {
 				return R_FAILURE;
 			}

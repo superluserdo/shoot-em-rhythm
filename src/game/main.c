@@ -26,6 +26,7 @@
 #include "opengl_helpers.h"
 #else
 #endif
+#define FIXME_SWITCH 0
 
 void present_screen(struct time_struct timing, struct graphics_struct master_graphics) {
 	SDL_Delay(wait_to_present(&timing));
@@ -220,9 +221,11 @@ int main() {
 		else if ( returncode == R_FAILURE ) {
 			return R_FAILURE;
 		}
+#if FIXME_SWITCH
 		else if ( returncode == R_STARTSCREEN ) {
 			returncode = startscreen(master_graphics.window, master_graphics.renderer, &status);
 		}
+#endif
 		else if ( returncode == R_PAUSE_LEVEL) {
 			returncode = pausefunc(master_graphics.renderer, &pause_stage,
 					//*status.level->stage.graphics.tex_target_ptr, 

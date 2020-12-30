@@ -236,6 +236,7 @@ struct graphics_struct {
 
 /* Custom Rendering (SDL_RenderCopyEx()) arguments struct */
 
+#if (!USE_OPENGL)
 struct rendercopyex_struct {
 	SDL_Renderer *renderer;
 	texture_t texture;
@@ -245,6 +246,7 @@ struct rendercopyex_struct {
 	SDL_Point *center;
 	SDL_RendererFlip flip;
 };
+#endif
 
 struct render_node {
 

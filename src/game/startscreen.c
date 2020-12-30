@@ -10,6 +10,9 @@
 #define START_PATH1 "../art/startimgtext1.png"
 #define START_PATH2 "../art/startimgtext2.png"
 
+#define FIXME_SWITCH 0
+
+#if FIXME_SWITCH
 int startscreen(SDL_Window *win, SDL_Renderer *renderer, struct status_struct *status) {
 
 	//pthread_t soundthread;
@@ -108,3 +111,4 @@ void quitstart(SDL_Texture *startimgbg, SDL_Texture *startimgtext1, SDL_Texture 
 	SDL_DestroyTexture(startimgtext1);
 	SDL_DestroyTexture(startimgtext2);
 }
+#endif
