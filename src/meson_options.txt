@@ -1,0 +1,1 @@
+option('use-opengl', type: 'boolean', value: true, description: 'Use the openGL backend for rendering rather than SDL')
