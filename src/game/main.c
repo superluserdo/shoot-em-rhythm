@@ -20,14 +20,48 @@
 #include <libconfig.h>
 #include <dlfcn.h>
 
-int main() {
-
-
-	SDL_Window *win = NULL;
-	SDL_Renderer *renderer = NULL;
+void present_screen(struct time_struct timing, struct graphics_struct master_graphics) {
+	SDL_Delay(wait_to_present(&timing));
+	SDL_RenderPresent(master_graphics.renderer);
+}
+int graphics_init(struct graphics_struct *master_graphics) {
 	// Initialize SDL.
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 		return 1;
+
+	SDL_Window *win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, 
+			master_graphics->width, master_graphics->height, 
+			SDL_WINDOW_RESIZABLE);
+	master_graphics->window = win;
+	SDL_Renderer *renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	if (renderer == NULL) {
+		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", 
+				SDL_GetError());
+		
+		/* Print driver info if renderer creation fails */
+		SDL_RendererInfo info;
+		int num = SDL_GetNumRenderDrivers();
+		printf("There are %d usable render drivers\n", num);
+		printf("Driver  SDL_RendererFlags\n");
+		for (int i = 0; i < num; i++) {
+	   	if (SDL_GetRenderDriverInfo(i,&info) == 0)
+	   	printf("%s  %d\n", info.name, info.flags&2);
+		}
+	}
+	master_graphics->renderer = renderer;
+	return 0;
+
+}
+void graphics_deinit(struct graphics_struct *master_graphics) {
+	/* Release SDL resources. */
+	SDL_DestroyRenderer(master_graphics->renderer);
+	if (master_graphics->font) {
+		TTF_CloseFont(master_graphics->font);
+	}
+	SDL_DestroyWindow(master_graphics->window);
+}
+int main() {
+
 
 	/*	Initialise the basic game state struct	*/
 
@@ -40,6 +74,10 @@ int main() {
 
 	struct menu_stage_struct pause_stage = {0};
 	
+	if (graphics_init(&master_graphics)) {
+		return 1;
+	}
+
 	if (audio_init(&audio) == R_FAILURE) {
 		return R_FAILURE;
 	}
@@ -72,6 +110,7 @@ int main() {
 	master_graphics.debug_test_render_list_robustness = &program.debug.test_render_list_robustness;
 	master_graphics.graphics.master_graphics = &master_graphics;
 
+	//TODO: Put this and other SDL stuff into functions
 	SDL_Texture *screen_texture = NULL;
 	master_graphics.graphics.tex_target_ptr = &screen_texture;
 	
@@ -83,27 +122,6 @@ int main() {
 	//	printf("ya dun goofed. return code is %d\n.", rc);
 	//	exit(-1);
 	//}
-
-	win = SDL_CreateWindow("TOM'S SUPER COOL GAME", 100, 100, 
-			master_graphics.width, master_graphics.height, 
-			SDL_WINDOW_RESIZABLE);
-	master_graphics.window = win;
-	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-	if (renderer == NULL) {
-		fprintf(stderr,"SDL_CreateRenderer failed. Error message: '%s\n'", 
-				SDL_GetError());
-		
-		/* Print driver info if renderer creation fails */
-		SDL_RendererInfo info;
-		int num = SDL_GetNumRenderDrivers();
-		printf("There are %d usable render drivers\n", num);
-		printf("Driver  SDL_RendererFlags\n");
-		for (int i = 0; i < num; i++) {
-	   	if (SDL_GetRenderDriverInfo(i,&info) == 0)
-	   	printf("%s  %d\n", info.name, info.flags&2);
-		}
-	}
-	master_graphics.renderer = renderer;
 
 	program.python_interpreter_enable = 0;
 	PyObject    *pModule ; 
@@ -161,7 +179,7 @@ int main() {
 		return R_FAILURE;
 	}
 
-	enum  return_codes_e returncode = startscreen(win, renderer, &status);
+	enum  return_codes_e returncode = R_SUCCESS;//startscreen(master_graphics.window, master_graphics.renderer, &status);
 
 	/*	The Main Game Loop */
 	while (1) {
@@ -184,10 +202,10 @@ int main() {
 			return R_FAILURE;
 		}
 		else if ( returncode == R_STARTSCREEN ) {
-			returncode = startscreen(win, renderer, &status);
+			returncode = startscreen(master_graphics.window, master_graphics.renderer, &status);
 		}
 		else if ( returncode == R_PAUSE_LEVEL) {
-			returncode = pausefunc(renderer, &pause_stage,
+			returncode = pausefunc(master_graphics.renderer, &pause_stage,
 					//*status.level->stage.graphics.tex_target_ptr, 
 					&status);
 		}
@@ -208,10 +226,9 @@ int main() {
 
 		render_process(master_graphics.graphics.object_list_stack, 
 				&master_graphics.graphics, &master_graphics, 
-				master_graphics.graphics.tex_target_ptr, timing.currentbeat);
+				timing.currentbeat);
 
-		SDL_Delay(wait_to_present(&timing));
-		SDL_RenderPresent(master_graphics.renderer);
+		present_screen(timing, master_graphics);
 		update_time(&timing);
 
 	}
@@ -242,12 +259,7 @@ int main() {
 		Py_Finalize() ;
 	}
 
-	/* Release SDL resources. */
-	SDL_DestroyRenderer(renderer);
-	if (master_graphics.font) {
-		TTF_CloseFont(master_graphics.font);
-	}
-	SDL_DestroyWindow(win);
+	graphics_deinit(&master_graphics);
 	printf("Game Over.\n");
 	printf("(After %d frames)\n", timing.framecount);
 	//pthread_mutex_lock(&quit_mutex);

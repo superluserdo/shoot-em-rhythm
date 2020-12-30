@@ -42,11 +42,15 @@ void test_render_list_robustness(struct std_list *object_list_stack, struct grap
 
 /* RENDER */
 
-void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, float currentbeat) {
-	query_resize(master_graphics, tex_target_ptr);
-
-	SDL_SetRenderTarget(master_graphics->renderer, *tex_target_ptr);
+void clear_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
+	SDL_SetRenderTarget(master_graphics->renderer, *graphics->tex_target_ptr);
 	SDL_RenderClear(master_graphics->renderer);
+}
+
+void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat) {
+	query_resize(master_graphics, graphics->tex_target_ptr);
+
+	clear_target(master_graphics, graphics);
 
 	if (*master_graphics->debug_test_render_list_robustness) {
 		test_render_list_robustness(object_list_stack, graphics);
@@ -57,28 +61,39 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 
 }
 
+int render_copy(struct render_node *node_ptr) {
+	int rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
+	if (rc != 0) {
+		printf("%s\n", SDL_GetError());
+		FILEINFO
+	}
+	return rc;
+
+}
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
 
 	struct graphics_struct *master_graphics = graphics->master_graphics;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
-			int rc;
-			if (graphics->rendercopyex_data) {
-				struct rendercopyex_struct *data = graphics->rendercopyex_data;
-				rc = SDL_RenderCopyEx(node_ptr->renderer, node_ptr->img, node_ptr->rect_in,
-									data->dstrect, data->angle, data->center, data->flip);
-			}
-			else {
-				rc = SDL_RenderCopy(node_ptr->renderer, node_ptr->img, node_ptr->rect_in, &node_ptr->rect_out);
-			}
-			if (rc != 0) {
-				printf("%s\n", SDL_GetError());
-				FILEINFO
-			}
+			//int rc = 0;
+			//if (graphics->rendercopyex_data) {
+			//	struct rendercopyex_struct *data = graphics->rendercopyex_data;
+			//	rc = SDL_RenderCopyEx(node_ptr->renderer, node_ptr->img, node_ptr->rect_in,
+			//						data->dstrect, data->angle, data->center, data->flip);
+			//}
+			//else {
+				render_copy(node_ptr);
+			//}
+			//if (rc != 0) {
+			//	printf("%s\n", SDL_GetError());
+			//	FILEINFO
+			//}
 		}
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
+		//TODO: reenable
+#if 0
 		if (*master_graphics->debug_anchors) {
 			int rc;
 			int anchor_width = 6;
@@ -129,6 +144,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			}
 			SDL_SetRenderDrawColor(node_ptr->renderer, 0, 0, 0, 255);
 		}
+#endif
 		node_ptr = node_ptr->next;
 
 	}
@@ -624,6 +640,23 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, stru
 	return 0;
 }
 
+int texture_from_path(SDL_Texture **texture, SDL_Renderer *renderer, char *path) {
+		if (path) {
+			*texture = IMG_LoadTexture(renderer, path);
+		}
+		else {
+			printf("Could not find valid image file \"%s\"\n", path);
+			FILEINFO
+			return R_FAILURE;
+		}
+		if (!(*texture)) {
+			printf("Error loading image file: \"%s\"\n", path);
+			FILEINFO
+			return R_FAILURE;
+		}
+		return R_SUCCESS;
+}
+
 int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer) {
 	/* Allocates and initialises dicts for generic animations
 	   and image textures */
@@ -757,17 +790,8 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			char *path_prefix_long = malloc(sizeof(path_prefix) + maxnamelen);
 			strncpy(path_prefix_long, path_prefix, maxnamelen);
 			char *path = strncat(path_prefix_long, img_name, maxnamelen);
-			if (path) {
-				texture = IMG_LoadTexture(renderer, path);
-			}
-			else {
-				printf("Could not find valid image file \"%s\"\n", path);
-				FILEINFO
-				return R_FAILURE;
-			}
-			if (!texture) {
-				printf("Error loading image file: \"%s\"\n", path);
-				FILEINFO
+
+			if (texture_from_path(&texture, renderer, path) != R_SUCCESS) {
 				return R_FAILURE;
 			}
 

@@ -18,7 +18,7 @@ int advanceFrames(struct render_node *render_node_head, float currentbeat);
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat);
 
 //void render_process(struct graphics_struct *graphics, struct time_struct *timing);
-void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr, float currentbeat);
+void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat);
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics);
 void query_resize(struct graphics_struct *master_graphics, SDL_Texture **tex_target_ptr);
 
@@ -30,6 +30,8 @@ struct render_node *create_render_node();
 
 int render_node_rm(struct graphical_stage_struct *graphics, struct render_node *node_ptr);
 int render_list_rm(struct render_node **node_ptr_ptr);
+
+int texture_from_path(SDL_Texture **texture, SDL_Renderer *renderer, char *path);
 
 struct dict_void *generic_anim_dict_populate(struct dict_void *image_dict, struct status_struct *status);
 int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, SDL_Renderer *renderer);
