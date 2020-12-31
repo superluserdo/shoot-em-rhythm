@@ -313,6 +313,16 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	return node_new;
 }
 
+void update_quad_vertices(struct float_rect rect_in, struct float_rect rect_out, 
+		struct render_node *node, enum y_convention_e y_convention) {
+
+	if (y_convention == Y_SDL) {
+		update_quad_vertices_sdl(rect_in, rect_out, node);
+	} else {
+		update_quad_vertices_opengl(rect_in, rect_out, node);
+	}
+}
+
 void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------

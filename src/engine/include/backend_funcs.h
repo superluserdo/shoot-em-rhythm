@@ -18,6 +18,8 @@ void render_list(struct graphics_struct *master_graphics);
 
 struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_colour[4],
 		int own_framebuffer, struct int_rect viewport);
+void update_quad_vertices(struct float_rect rect_in, struct float_rect rect_out, 
+		struct render_node *node, enum y_convention_e y_convention);
 void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node);
 void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node);
 void change_renderer(struct glrenderer *renderer);

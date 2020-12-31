@@ -186,6 +186,9 @@ struct float_rect { // Floating-point analogue to the (int) pixel-based SDL_Rect
 	float w;
 	float h;
 };
+
+enum y_convention_e {Y_SDL, Y_OPENGL};
+
 enum visual_structure_name_e {SCREEN, LEVEL_UI_TOP, LEVEL_PLAY_AREA};
 
 enum aspctr_lock_e {WH_INDEPENDENT, W_DOMINANT, H_DOMINANT};
@@ -374,6 +377,7 @@ struct animation_struct {
 
 	/* GENERIC and TEXTURE modes only */
 	texture_t img;
+	enum y_convention_e img_y_convention;
 
 	/* Container-related */
 	struct visual_container_struct container;

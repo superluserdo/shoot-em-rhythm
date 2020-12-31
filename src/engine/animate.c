@@ -447,7 +447,7 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 					render_node->rect_in = malloc(sizeof(*render_node->rect_in));
 					*render_node->rect_in = (struct float_rect) {0, 0, 1, 1};
 				}
-				update_quad_vertices_sdl(*render_node->rect_in, render_node->rect_out, render_node);
+				update_quad_vertices(*render_node->rect_in, render_node->rect_out, render_node, animation->img_y_convention);
 				
 				//render_node = render_node->next;
 				render_node_count++;

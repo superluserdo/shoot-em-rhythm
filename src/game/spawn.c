@@ -386,6 +386,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	std->animation->container = *std->container;
 
 	std->animation->img = master_graphics->graphics.renderer->framebuffer->texture;
+	std->animation->img_y_convention = Y_OPENGL;
 
 	//texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
 
