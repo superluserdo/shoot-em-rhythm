@@ -198,9 +198,9 @@ int main() {
 
 		process_object_logics(master_graphics.graphics.object_list_stack);
 
-		//render_process(master_graphics.graphics.object_list_stack, 
-		//		&master_graphics.graphics, &master_graphics, 
-		//		timing.currentbeat);
+		render_process(master_graphics.graphics.object_list_stack, 
+				&master_graphics.graphics, &master_graphics, 
+				timing.currentbeat);
 
 		SDL_Delay(wait_to_present(&timing));
 		present_screen(timing, &master_graphics);

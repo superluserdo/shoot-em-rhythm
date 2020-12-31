@@ -7,6 +7,7 @@
 int node_ptr_count = 0;
 int rule_node_count = 0;
 int transform_node_count = 0;
+int skip_tmp = 0;
 
 void print_object_list_stack(struct std_list *object_list_stack) {
 	struct std_list *object = object_list_stack;
@@ -60,6 +61,11 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
 
 	//printf("---------------- Calling renderlist() again -------------------\n");
+	if  (&graphics->master_graphics->graphics == graphics) {
+		skip_tmp = 1;
+	} else {
+		skip_tmp = 0;
+	}
 	change_renderer(graphics->renderer);
 
 	while (node_ptr != NULL) {
@@ -544,7 +550,10 @@ int generate_render_node(struct animation_struct *animation, struct graphical_st
 	return 0;
 }
 
-int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, const char* animation_type_array[], int num_anims) {
+int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, 
+		struct dict_void *generic_anim_dict, 
+		struct graphical_stage_struct *graphics, 
+		const char* animation_type_array[], int num_anims) {
 
 	std_stack_push(object_list_stack_ptr, std, &std->object_stack_location);
 

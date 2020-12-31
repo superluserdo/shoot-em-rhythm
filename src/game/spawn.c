@@ -371,15 +371,21 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	std->name = name;
 	std->container = malloc(sizeof(*std->container));
 	*std->container = (struct visual_container_struct) {
-		.inherit = NULL,
-		.rect_out_parent_scale = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
+		//.inherit = NULL,
+		.inherit = &master_graphics->screen,
+		//.rect_out_parent_scale = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
+		.rect_out_parent_scale = (struct float_rect) { .x = 0.1, .y = 0.1, .w = 0.8, .h = 0.8},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
 	std->self = self;
 
-	graphic_spawn(std, &master_graphics->graphics.object_list_stack, master_graphics->graphics.generic_anim_dict, &master_graphics->graphics, (const char *[]){"ser_texture"}, 1);
+	graphic_spawn(std, &master_graphics->graphics.object_list_stack, 
+			master_graphics->graphics.generic_anim_dict, 
+			&master_graphics->graphics, (const char *[]){"ser_texture"}, 1);
 
 	std->animation->container = *std->container;
+
+	std->animation->img = master_graphics->graphics.renderer->framebuffer->texture;
 
 	//texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
 
@@ -390,10 +396,10 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
 
 	//TODO: Swap back
-	//struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
-	struct glrenderer *renderer = make_renderer(0, 
-			(float []){0.8f, 0.8f, 0.3f, 1.0f}, 1, 
-			(struct int_rect){0, 0, master_graphics->width, master_graphics->height});
+	struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
+	//struct glrenderer *renderer = make_renderer(0, 
+	//		(float []){0.3f, 0.3f, 0.3f, 1.0f}, 1, 
+	//		(struct int_rect){0, 0, master_graphics->width/2, master_graphics->height/2});
 
 	if( !renderer)
 	{

@@ -7,6 +7,8 @@
 #include "structdef_engine.h"
 #include "opengl_funcs.h"
 
+extern int skip_tmp; //TODO: Remove
+
 #define DEBUG 0
 struct float_rect rect_fullsize = {
 	.x = 0,
@@ -58,6 +60,7 @@ void get_texture_size(unsigned int texture, int *w, int *h) {
 }
 
 void change_renderer(struct glrenderer *renderer) {
+
 
     glBindVertexArray(renderer->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
@@ -390,7 +393,6 @@ void insert_object_after(struct globject_list *object_list, struct globject *obj
 		object_list->tail = object;
 	}
 }
-#endif
 
 struct render_node *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
 		unsigned int texture_shader,
@@ -415,6 +417,7 @@ struct render_node *new_quad(struct float_rect rect_in, struct float_rect rect_o
 
 	return node;
 }
+#endif
 
 int init_sdl_opengl(struct graphics_struct *master_graphics) {
 
@@ -671,7 +674,7 @@ int graphics_init(struct graphics_struct *master_graphics) {
 	if (initGL()) {
 		return 1;
 	}
-	struct glrenderer *fb_renderer = make_renderer(0, 
+	struct glrenderer *fb_renderer = make_renderer(NULL, 
 			(float []){0.8f, 0.8f, 0.3f, 1.0f}, 1, 
 			(struct int_rect){0, 0, master_graphics->width, master_graphics->height});
 	
@@ -712,13 +715,10 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	unsigned int fb_texture = 0;
 	struct framebuffer *fb_struct = NULL;
 
-	//TODO: Remove this line
-	own_framebuffer = 0;
-
 	if (own_framebuffer) {
 
 		fb_texture = create_texture(NULL, viewport.w, viewport.h);
-		//glGenFramebuffers(1, &framebuffer);
+		glGenFramebuffers(1, &framebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
 
 		fb_struct = calloc(sizeof(*fb_struct), 1);
@@ -742,12 +742,12 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0); /* default */
 
-		/* Create quad that will display framebuffer */
-		struct float_rect quad_rect = {
-			.x=0.1, .y=0.1, .w=0.8, .h=0.8
-		};
-		
-		new_quad(rect_fullsize, quad_rect, fb_struct->texture, texture_shader_simple, 0);
+		///* Create quad that will display framebuffer */
+		//struct float_rect quad_rect = {
+		//	.x=0.1, .y=0.1, .w=0.8, .h=0.8
+		//};
+		//
+		//new_quad(rect_fullsize, quad_rect, fb_struct->texture, texture_shader_simple, 0);
 	}
 
 	*renderer = (struct glrenderer) {
@@ -826,29 +826,6 @@ int render_copy_tmp(struct render_node *node, struct glrenderer *renderer) {
 }
 
 int render_copy(struct render_node *node, struct glrenderer *renderer) {
-	//
-    glBindVertexArray(renderer->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
-
-	struct framebuffer *fb_target = renderer->render_target;
-	int framebuffer;
-	struct int_rect viewport;
-	if (fb_target) {
-		framebuffer = fb_target->framebuffer;
-		viewport = fb_target->viewport;
-	} else {
-		framebuffer = 0;
-		viewport = default_viewport;
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	glViewport(
-			viewport.x,
-			viewport.y,
-			viewport.w,
-			viewport.h);
-	//
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
 	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
