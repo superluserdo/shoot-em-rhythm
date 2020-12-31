@@ -33,7 +33,6 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 
 struct animation_struct *new_animation(struct std *std, enum animate_mode_e animate_mode, struct animate_generic *generic);
 int generate_render_node(struct animation_struct *specific, struct graphical_stage_struct *graphics);
-void update_render_node(struct animation_struct *specific, struct render_node *r_node);
 
 int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr, struct dict_void *generic_anim_dict, struct graphical_stage_struct *graphics, const char* animation_type_array[], int num_anims);
 		

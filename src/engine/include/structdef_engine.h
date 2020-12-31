@@ -243,8 +243,8 @@ struct render_node {
 
 	struct render_node *prev;
 	struct render_node *next;
-	SDL_Rect *rect_in;
-	SDL_Rect rect_out;
+	struct float_rect *rect_in;
+	struct float_rect rect_out;
 	//texture_t img;
 	int (*customRenderFunc)(void*);
 	void *customRenderArgs;
@@ -316,13 +316,15 @@ struct ui_struct {
 enum layer_mode_e { TIGHT, GLOBAL };
 
 struct frame {
-	SDL_Rect rect;
+	struct float_rect rect;
 	struct xy_struct anchor_hook; /* The position of the texture that "hooks" onto anchors */
 	float duration;
 };
 
 struct clip {
 	texture_t img;
+	int img_w;
+	int img_h;
 	int num_frames;
 	struct frame *frames;
 	float container_scale_factor;

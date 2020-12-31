@@ -7,33 +7,89 @@
 #include "structdef_engine.h"
 #include "opengl_funcs.h"
 
+#define DEBUG 0
+struct float_rect rect_fullsize = {
+	.x = 0,
+	.y = 0,
+	.w = 1,
+	.h = 1,
+};
+
+float vertices_fullsize[] = {-1, 1, 1, 1, -1, 1, 1, 0, -1, 1, 0, 0, -1, 1, 0, 1};
+float vertices_tmp[] = {
+	// Have to load textures "upside down" since SDL and openGL
+	// have opposite y conventions
+	/*
+	x positions             y positions              texture coords (SDL)
+	*/
+	-1.0+2*(0.1+0.8), 1.0-2*(0.1+0.8),   1.0f, 1.0f, // bottom right
+	-1.0+2*(0.1+0.8), 1.0-2*(0.1),          1.0f, 0.0f, // top right
+	-1.0+2*(0.1),        1.0-2*(0.1),          0.0f, 0.0f, // top left
+	-1.0+2*(0.1),        1.0-2*(0.1+0.8),   0.0f, 1.0f  // bottom left 
+	// 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
+	// 0.5f, -0.5f,    1.0f, 1.0f, // top right
+	//-0.5f, -0.5f,    0.0f, 1.0f, // top left
+	//-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
+};
+unsigned int indices_tmp[] = {
+	0, 1, 3, // first triangle
+	1, 2, 3  // second triangle
+};
+unsigned int texture_tmp = 0;
+unsigned int VAO_tmp, VBO_tmp, EBO_tmp = 0;
+
+
 //Screen dimension constants
 unsigned int texture_shader_simple = 0;
 unsigned int texture_shader_white = 0;
 unsigned int texture_shader_glow_behind = 0;
 unsigned int texture_shader_glow = 0;
-struct int_rect default_viewport = {0, 0, 640, 640};
+struct int_rect default_viewport = {0, 0, 1280, 720};
 
 void get_texture_size(unsigned int texture, int *w, int *h) {
 	int miplevel = 0;
 	glBindTexture(GL_TEXTURE_2D, texture);
+#if DEBUG
+	FILEINFO
+	printf("			Binding texture %d\n", texture);
+#endif
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_WIDTH, w);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_HEIGHT, h);
 }
 
-void change_render_target(struct glrenderer *target_renderer) {
-	struct framebuffer *target = target_renderer->framebuffer;
+void change_renderer(struct glrenderer *renderer) {
+
+    glBindVertexArray(renderer->VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
+#if DEBUG
+	FILEINFO
+	printf("			Binding VAO %d\n", renderer->VAO);
+	printf("			Binding VBO %d\n", renderer->VBO);
+	printf("			Binding EBO %d\n", renderer->EBO);
+#endif
+
+	change_render_target(renderer);
+	clear_render_target(renderer);
+}
+
+void change_render_target(struct glrenderer *renderer) {
+	struct framebuffer *fb_target = renderer->render_target;
 	int framebuffer;
 	struct int_rect viewport;
-	if (target) {
-		framebuffer = target->framebuffer;
-		viewport = target->viewport;
+	if (fb_target) {
+		framebuffer = fb_target->framebuffer;
+		viewport = fb_target->viewport;
 	} else {
 		framebuffer = 0;
 		viewport = default_viewport;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+#if DEBUG
+	FILEINFO
+	printf("			Binding framebuffer %d\n", framebuffer);
+#endif
 	glViewport(
 			viewport.x,
 			viewport.y,
@@ -85,16 +141,20 @@ unsigned int create_texture_shader(int n_v_snippets, const char **v_snippets,
 
 
 	glLinkProgram(texture_shader);
-	checkCompileErrors(texture_shader, "PROGRAM");
+	//checkCompileErrors(texture_shader, "PROGRAM");
 
 	glDeleteShader(vertex);
 	glDeleteShader(fragment);
 	return texture_shader;
 }
 
-int texture_from_path(unsigned int *texture, struct glrenderer *renderer_UNUSED, char *path) {
+int texture_from_path(unsigned int *texture, int *w, int *h, char *path) {
     glGenTextures(1, texture);
     glBindTexture(GL_TEXTURE_2D, *texture); 
+#if DEBUG
+	FILEINFO
+	printf("			Binding texture %d\n", *texture);
+#endif
      // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -118,6 +178,11 @@ int texture_from_path(unsigned int *texture, struct glrenderer *renderer_UNUSED,
 	 
 	glTexImage2D(GL_TEXTURE_2D, 0, Mode1, surface->w, surface->h, 0, Mode1, GL_UNSIGNED_BYTE, surface->pixels);
     glBindTexture(GL_TEXTURE_2D, 0); //default
+
+	if (w && h) {
+		*w = surface->w;
+		*h = surface->h;
+	}
 	return 0;
 }
 
@@ -125,6 +190,10 @@ unsigned int create_texture(struct glrenderer *renderer_unused, int w, int h) {
 	unsigned int texture = 0;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
+#if DEBUG
+	FILEINFO
+	printf("			Binding texture %d\n", texture);
+#endif
 	  
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
@@ -241,7 +310,7 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	return node_new;
 }
 
-void update_quad_vertices_sdl(struct float_rect rect, struct render_node *node) {
+void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -250,10 +319,10 @@ void update_quad_vertices_sdl(struct float_rect rect, struct render_node *node) 
         /*
 		x positions             y positions              texture coords (SDL)
 		*/
-        -1.0+2*(rect.x+rect.w), 1.0-2*(rect.y+rect.h),   1.0f, 1.0f, // bottom right
-        -1.0+2*(rect.x+rect.w), 1.0-2*(rect.y),          1.0f, 0.0f, // top right
-        -1.0+2*(rect.x),        1.0-2*(rect.y),          0.0f, 0.0f, // top left
-        -1.0+2*(rect.x),        1.0-2*(rect.y+rect.h),   0.0f, 1.0f  // bottom left 
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   rect_in.x+rect_in.w, rect_in.y+rect_in.h, //1.0f, 1.0f, // bottom right
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y,           //1.0f, 0.0f, // top right
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y,           //0.0f, 0.0f, // top left
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y+rect_in.h, //0.0f, 1.0f  // bottom left 
         // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
         // 0.5f, -0.5f,    1.0f, 1.0f, // top right
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
@@ -273,7 +342,7 @@ void update_quad_vertices_sdl(struct float_rect rect, struct render_node *node) 
 	memcpy(node->indices, indices, sizeof(indices));
 }
 
-void update_quad_vertices_opengl(struct float_rect rect, struct render_node *node) {
+void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -282,10 +351,10 @@ void update_quad_vertices_opengl(struct float_rect rect, struct render_node *nod
         /*
 		x positions             y positions              texture coords (opengl)
 		*/
-        -1.0+2*(rect.x+rect.w), 1.0-2*(rect.y+rect.h),   1.0f, 0.0f, // bottom right
-        -1.0+2*(rect.x+rect.w), 1.0-2*(rect.y),          1.0f, 1.0f, // top right
-        -1.0+2*(rect.x),        1.0-2*(rect.y),          0.0f, 1.0f, // top left
-        -1.0+2*(rect.x),        1.0-2*(rect.y+rect.h),   0.0f, 0.0f  // bottom left 
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   1.0f, 0.0f, // bottom right
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              1.0f, 1.0f, // top right
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              0.0f, 1.0f, // top left
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   0.0f, 0.0f  // bottom left 
         // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
         // 0.5f, -0.5f,    1.0f, 1.0f, // top right
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
@@ -323,7 +392,7 @@ void insert_object_after(struct globject_list *object_list, struct globject *obj
 }
 #endif
 
-struct render_node *new_quad(struct float_rect rect, unsigned int texture, 
+struct render_node *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
 		unsigned int texture_shader,
 		int sdl_coords) {
 
@@ -331,11 +400,17 @@ struct render_node *new_quad(struct float_rect rect, unsigned int texture,
 
 	node->texture = texture;
 	node->texture_shader = texture_shader;
+	node->rect_out = (struct float_rect) {
+		.x = rect_out.x,
+		.y = rect_out.y,
+		.w = rect_out.w,
+		.h = rect_out.h,
+	};
 
 	if (sdl_coords) {
-		update_quad_vertices_sdl(rect, node);
+		update_quad_vertices_sdl(rect_in, rect_out, node);
 	} else {
-		update_quad_vertices_opengl(rect, node);
+		update_quad_vertices_opengl(rect_in, rect_out, node);
 	}
 
 	return node;
@@ -360,7 +435,8 @@ int init_sdl_opengl(struct graphics_struct *master_graphics) {
 	//Create window
 	SDL_Window *window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED, master_graphics->width, master_graphics->height, 
-			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
+			SDL_WINDOW_OPENGL );
+			//SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
 	if( window == NULL )
 	{
 		printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
@@ -394,8 +470,24 @@ int init_sdl_opengl(struct graphics_struct *master_graphics) {
 	return 0;
 }
 
-void initGL(void)
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
 {
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
+int initGL(void)
+{
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, NULL);
 	/* Enable transparency */
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -535,28 +627,54 @@ void initGL(void)
 		"void main()\n"
 		"{ \n"
 		"	FragColor = texture(screentexture, TexCoord);\n"
-		"	//FragColor = vec4(0);\n"
 		"}"
 	};
 	texture_shader_simple = create_texture_shader(1, &vShaderCode, 1, &fShaderCode);
 	texture_shader_white = create_texture_shader(1, &vShaderCode, 1, &fShaderCode_white);
 	texture_shader_glow_behind = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animate_behind_texture, fShaderCode_glow_animated});
 	texture_shader_glow = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animated, fShaderCode_glow_animated});
+
+
+
+	// TMP
+	if (texture_from_path(&texture_tmp, NULL, NULL, "art/hamster.png")) {
+		exit(1);
+	}
+	/* Quad texture to be rendered to the screen */
+    glGenVertexArrays(1, &VAO_tmp);
+    glGenBuffers(1, &VBO_tmp);
+    glGenBuffers(1, &EBO_tmp);
+
+    glBindVertexArray(VAO_tmp);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_tmp);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_tmp), vertices_tmp, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tmp);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tmp), indices_tmp, GL_STATIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
+			(void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+	return 0;
 }
 
 int graphics_init(struct graphics_struct *master_graphics) {
 	if (init_sdl_opengl(master_graphics)) {
 		return 1;
 	}
-	if (init_sdl_opengl(master_graphics)) {
+	if (initGL()) {
 		return 1;
 	}
 	struct glrenderer *fb_renderer = make_renderer(0, 
 			(float []){0.8f, 0.8f, 0.3f, 1.0f}, 1, 
 			(struct int_rect){0, 0, master_graphics->width, master_graphics->height});
 	
-	//struct glrenderer *renderer = make_renderer(fb_renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
-
 	if( !fb_renderer)
 	{
 		printf( "Unable to initialize OpenGL!\n" );
@@ -593,10 +711,14 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	/* FRAMEBUFFER STUFF */
 	unsigned int fb_texture = 0;
 	struct framebuffer *fb_struct = NULL;
+
+	//TODO: Remove this line
+	own_framebuffer = 0;
+
 	if (own_framebuffer) {
 
 		fb_texture = create_texture(NULL, viewport.w, viewport.h);
-		glGenFramebuffers(1, &framebuffer);
+		//glGenFramebuffers(1, &framebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
 
 		fb_struct = calloc(sizeof(*fb_struct), 1);
@@ -610,6 +732,10 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);  // attach to currently bound framebuffer object
+#if DEBUG
+		FILEINFO
+		printf("			Attaching texture %d to framebuffer %d\n", fb_texture, framebuffer);
+#endif
 
 		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 			printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
@@ -620,7 +746,8 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 		struct float_rect quad_rect = {
 			.x=0.1, .y=0.1, .w=0.8, .h=0.8
 		};
-		new_quad(quad_rect, fb_struct->texture, texture_shader_simple, 0);
+		
+		new_quad(rect_fullsize, quad_rect, fb_struct->texture, texture_shader_simple, 0);
 	}
 
 	*renderer = (struct glrenderer) {
@@ -642,14 +769,14 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	/* Get texture */
 	if (texture_path) {
 		unsigned int texture_hamster;
-		texture_from_path(&texture_hamster, NULL, texture_path);
-		struct globject *bg_hamster = new_quad(rect_bg, texture_hamster, texture_shader_glow_behind, object_list, 1);
+		texture_from_path(&texture_hamster, NULL, NULL, texture_path);
+		struct globject *bg_hamster = new_quad(rect_fullsize, rect_bg, texture_hamster, texture_shader_glow_behind, object_list, 1);
 		bg_hamster->uniforms = texture_shader_glow_uniforms;
 		struct globject *border = add_border_vertices(bg_hamster, object_list,
 			texture_shader_glow, 0.5, 0.5, 0.5, 0.5);
 		border->uniforms = texture_shader_glow_uniforms;
 
-		new_quad(rect, texture_hamster, texture_shader_simple, object_list, 1);
+		new_quad(rect_fullsize, rect, texture_hamster, texture_shader_simple, object_list, 1);
 	} else {
 	}
 #endif
@@ -657,8 +784,8 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	return renderer;
 }
 
-void clear_render_target(struct graphics_struct *master_graphics, struct graphical_stage_struct *graphics) {
-	float *clear_colour = master_graphics->graphics.renderer->clear_colour;
+void clear_render_target(struct glrenderer *renderer) {
+	float *clear_colour = renderer->clear_colour;
 	glClearColor(
 			clear_colour[0],
 			clear_colour[1],
@@ -669,15 +796,77 @@ void clear_render_target(struct graphics_struct *master_graphics, struct graphic
 }
 
 //int render_copy(struct globject *object, struct glrenderer *renderer) {
-int render_copy(struct render_node *node, struct glrenderer *renderer) {
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
+int render_copy_tmp(struct render_node *node, struct glrenderer *renderer) {
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0,0,1280,640);
+
+    glBindVertexArray(VAO_tmp);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_tmp);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tmp);
+
+	glClearColor(0.5,0.5,0.5,1);
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
-	if (node->texture >= 0) {
+	glBindTexture(GL_TEXTURE_2D, texture_tmp);
+
+	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	glUseProgram(texture_shader_simple); 
+	glBindVertexArray(VAO_tmp);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
+	return 0;
+}
+
+int render_copy(struct render_node *node, struct glrenderer *renderer) {
+	//
+    glBindVertexArray(renderer->VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
+
+	struct framebuffer *fb_target = renderer->render_target;
+	int framebuffer;
+	struct int_rect viewport;
+	if (fb_target) {
+		framebuffer = fb_target->framebuffer;
+		viewport = fb_target->viewport;
+	} else {
+		framebuffer = 0;
+		viewport = default_viewport;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	glViewport(
+			viewport.x,
+			viewport.y,
+			viewport.w,
+			viewport.h);
+	//
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, indices_tmp, GL_STATIC_DRAW);
+
+	glActiveTexture(GL_TEXTURE0);
+	if (!renderer->framebuffer) {
 		glBindTexture(GL_TEXTURE_2D, node->texture);
+#if DEBUG
+		FILEINFO
+	printf("			Binding normal texture %d\n", node->texture);
+#endif
 	} else{ 
 		glBindTexture(GL_TEXTURE_2D, renderer->framebuffer->texture);
+#if DEBUG
+		FILEINFO
+	printf("			Binding fb texture %d\n", renderer->framebuffer->texture);
+#endif
 	}
 
 	if (renderer->do_wireframe) {
@@ -690,9 +879,33 @@ int render_copy(struct render_node *node, struct glrenderer *renderer) {
 			node->uniforms(node->texture_shader);
 		}
 	}
-	glBindVertexArray(renderer->VAO);
+	//
+	glUseProgram(texture_shader_simple); 
+	//
+#if DEBUG
+	FILEINFO
+	printf("			Binding VAO %d\n", renderer->VAO);
+#endif
 	glDrawElements(GL_TRIANGLES, node->n_indices, GL_UNSIGNED_INT, 0);
-	return 123;
+
+	//
+
+    //glBindVertexArray(renderer->VAO);
+    //glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
+
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
+
+	//glBindTexture(GL_TEXTURE_2D, texture_tmp);
+
+	//glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	//glUseProgram(texture_shader_simple); 
+	//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
+
+	return 0;
 }
 
 #if 0
@@ -805,6 +1018,9 @@ void query_resize(struct graphics_struct *master_graphics) {
 	int w, h;
 	SDL_GetWindowSize(master_graphics->window, &w, &h);
 
+	//assert(master_graphics->graphics.renderer->framebuffer);
+	return;
+
 	if (((w != master_graphics->width) || (h != master_graphics->height))) {
 		//printf("New size!\n"
 		//		"orig viewport: w=%d, h=%d\n"
@@ -822,7 +1038,6 @@ void query_resize(struct graphics_struct *master_graphics) {
 		default_viewport.h = h;
 
 		/* If rendering to a target (not screen), resize texTarget to new texture */
-		assert(master_graphics->graphics.renderer->framebuffer);
 		glDeleteTextures(1, &master_graphics->graphics.renderer->framebuffer->texture);
 
 		unsigned int new_fb_texture;
@@ -854,3 +1069,26 @@ void present_screen(struct time_struct timing, struct graphics_struct *master_gr
 void graphics_deinit(struct graphics_struct *master_graphics) {
 	//TODO
 }
+
+void update_render_node(struct animation_struct *animation, struct render_node *r_node) {
+	/* Configuration of render node based on its owner animation struct
+	   that happens on generation and every frame afterwards */
+	if (animation->animate_mode == GENERIC) {
+		struct animate_control *control = animation->control;
+		struct animate_generic *generic = control->generic;
+		struct float_rect *rect_in = &generic->clips[control->clip]->frames[control->frame].rect;
+
+		/* If rect_in is {0}, make node's rect_in NULL (use whole texture) */
+		if (!rect_in->x && !rect_in->y && !rect_in->w && !rect_in->h) {
+			r_node->rect_in = NULL;
+		} else {
+			r_node->rect_in = rect_in;
+		}
+
+	} else {
+		r_node->rect_in = NULL;
+	}
+
+	r_node->texture = animation->img;
+}
+

@@ -9,7 +9,7 @@
 int init_sdl_opengl(struct graphics_struct *master_graphics);
 
 //Initializes rendering program and clear color
-void initGL(void);
+int initGL(void);
 
 void get_texture_size(unsigned int texture, int *w, int *h);
 
@@ -19,8 +19,9 @@ void checkCompileErrors(GLuint shader, const char *type);
 
 //void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target);
 
-struct render_node *new_quad(struct float_rect rect, unsigned int texture, 
-		unsigned int texture_shader, int sdl_coords);
+struct render_node *new_quad(struct float_rect rect_in, 
+		struct float_rect rect_out,
+		unsigned int texture, unsigned int texture_shader, int sdl_coords);
 
 unsigned int texture_from_image(char *path);
 
@@ -29,4 +30,5 @@ void change_render_target(struct glrenderer *renderer);
 //Renders quad to the screen
 void render(struct graphics_struct *master_graphics);
 
+void update_render_node(struct animation_struct *specific, struct render_node *r_node);
 #endif

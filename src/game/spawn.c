@@ -389,7 +389,11 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	/* Give this (render target) texture alpha blending so it can layer over other render targets */
 	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
 
-	struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
+	//TODO: Swap back
+	//struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
+	struct glrenderer *renderer = make_renderer(0, 
+			(float []){0.8f, 0.8f, 0.3f, 1.0f}, 1, 
+			(struct int_rect){0, 0, master_graphics->width, master_graphics->height});
 
 	if( !renderer)
 	{

@@ -52,14 +52,15 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 	}
 
 	advance_frames_and_create_render_list(object_list_stack, graphics, currentbeat);
+
 	renderlist(graphics->render_node_head, graphics);
 
 }
 
 int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
 
-	struct graphics_struct *master_graphics = graphics->master_graphics;
-	clear_render_target(master_graphics, graphics);
+	//printf("---------------- Calling renderlist() again -------------------\n");
+	change_renderer(graphics->renderer);
 
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
@@ -393,7 +394,9 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			}
 
 			/* Convert from container-scale relative width to global scale absolute width */
-			SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->master_graphics->width, graphics->master_graphics->height});
+			struct float_rect abs_rect = decascade_visual_container(container, (struct xy_struct) {graphics->master_graphics->width, graphics->master_graphics->height});
+			//SDL_Rect abs_rect = visual_container_to_pixels(container, (struct xy_struct) {graphics->master_graphics->width, graphics->master_graphics->height});
+
 
 			/*	Revert the container's rect_out_parent_scale back to the pretransform one for the next frame: */
 			container->rect_out_parent_scale = rect_out_parent_scale_pretransform;
@@ -434,7 +437,11 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				}
 
 				render_node->rect_out = abs_rect;
-				update_quad_vertices_sdl(container->rect_out_screen_scale, render_node);
+				if (!render_node->rect_in) {
+					render_node->rect_in = malloc(sizeof(*render_node->rect_in));
+					*render_node->rect_in = (struct float_rect) {0, 0, 1, 1};
+				}
+				update_quad_vertices_sdl(*render_node->rect_in, render_node->rect_out, render_node);
 				
 				//render_node = render_node->next;
 				render_node_count++;
@@ -519,28 +526,6 @@ struct animation_struct *new_animation(struct std *std, enum animate_mode_e anim
 	animation->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
 
 	return animation;
-}
-
-void update_render_node(struct animation_struct *animation, struct render_node *r_node) {
-	/* Configuration of render node based on its owner animation struct
-	   that happens on generation and every frame afterwards */
-	if (animation->animate_mode == GENERIC) {
-		struct animate_control *control = animation->control;
-		struct animate_generic *generic = control->generic;
-		SDL_Rect *rect_in = &generic->clips[control->clip]->frames[control->frame].rect;
-
-		/* If rect_in is {0}, make node's rect_in NULL (use whole texture) */
-		if (!rect_in->x && !rect_in->y && !rect_in->w && !rect_in->h) {
-			r_node->rect_in = NULL;
-		} else {
-			r_node->rect_in = rect_in;
-		}
-
-	} else {
-		r_node->rect_in = NULL;
-	}
-
-	r_node->texture = animation->img;
 }
 
 int generate_render_node(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
@@ -741,13 +726,16 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 			char *path = strncat(path_prefix_long, img_name, maxnamelen);
 
 			texture_t texture;
-			if (texture_from_path(&texture, renderer, path) != R_SUCCESS) {
+			int img_w, img_h;
+			if (texture_from_path(&texture, &img_w, &img_h, path) != R_SUCCESS) {
 				return R_FAILURE;
 			}
 
 			//dict_void_add_keyval(image_dict, img_name, texture);
 
 			clip_ptr->img = texture;
+			clip_ptr->img_w = img_w;
+			clip_ptr->img_h = img_h;
 
 			frames_setting = config_setting_lookup(clip_setting, "frames");
 			if (frames_setting == NULL) {
@@ -774,10 +762,14 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 					FILEINFO
 					return R_FAILURE;
 				}
-				frame_array[k].rect.x = config_setting_get_int_elem(rect_setting, 0);
-				frame_array[k].rect.y = config_setting_get_int_elem(rect_setting, 1);
-				frame_array[k].rect.w = config_setting_get_int_elem(rect_setting, 2);
-				frame_array[k].rect.h = config_setting_get_int_elem(rect_setting, 3);
+				frame_array[k].rect.x = (float)config_setting_get_int_elem(rect_setting, 0) 
+					/ (float)img_w;
+				frame_array[k].rect.y = (float)config_setting_get_int_elem(rect_setting, 1) 
+					/ (float)img_h;
+				frame_array[k].rect.w = (float)config_setting_get_int_elem(rect_setting, 2) 
+					/ (float)img_w;
+				frame_array[k].rect.h = (float)config_setting_get_int_elem(rect_setting, 3) 
+					/ (float)img_h;
 				double dub;
 				config_setting_lookup_float(frame_setting, "duration", &dub);
 				frame_array[k].duration = (float)dub;

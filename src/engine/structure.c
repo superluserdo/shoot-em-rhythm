@@ -38,7 +38,7 @@
 //	return 0;
 //}
 
-struct float_rect decascade_visual_container(struct visual_container_struct *container, struct xy_struct screen_size, float *aspctr_inherit) {
+struct float_rect decascade_visual_container_recurse(struct visual_container_struct *container, struct xy_struct screen_size, float *aspctr_inherit) {
 	if (!container->inherit) {
 		*aspctr_inherit = (float) screen_size.x / screen_size.y;
 		return (struct float_rect) {.x=0, .y=0, .w=1, .h=1};
@@ -47,7 +47,7 @@ struct float_rect decascade_visual_container(struct visual_container_struct *con
 	}
 	struct float_rect rect = container->rect_out_parent_scale;
 	struct float_rect new_rect = {0};
-	struct float_rect parent_rect = decascade_visual_container(container->inherit, screen_size, aspctr_inherit);
+	struct float_rect parent_rect = decascade_visual_container_recurse(container->inherit, screen_size, aspctr_inherit);
 
 	/* Set width & height */
 	enum aspctr_lock_e aspctr_lock = container->aspctr_lock;
@@ -100,16 +100,19 @@ SDL_Rect float_rect_to_pixels(struct float_rect *float_rect, struct xy_struct sc
 	return pix_rect;
 }
 
-SDL_Rect visual_container_to_pixels(struct visual_container_struct *relative_container, struct xy_struct screen_size) {
+struct float_rect decascade_visual_container(struct visual_container_struct *container, struct xy_struct screen_size) {
 	float aspctr_inherit;
-	struct float_rect float_rect = decascade_visual_container(relative_container, screen_size, &aspctr_inherit);
+	return decascade_visual_container_recurse(container, screen_size, &aspctr_inherit);
+}
+
+SDL_Rect visual_container_to_pixels(struct visual_container_struct *relative_container, struct xy_struct screen_size) {
+	struct float_rect float_rect = decascade_visual_container(relative_container, screen_size);
 	return float_rect_to_pixels(&float_rect, screen_size);
 }
 
 int container_test_overlap_x(struct visual_container_struct *container_1, struct visual_container_struct *container_2, struct xy_struct screen_size) {
-	float aspctr_inherit;
-	struct float_rect decascade_1 = decascade_visual_container(container_1, screen_size, &aspctr_inherit);
-	struct float_rect decascade_2 = decascade_visual_container(container_2, screen_size, &aspctr_inherit);
+	struct float_rect decascade_1 = decascade_visual_container(container_1, screen_size);
+	struct float_rect decascade_2 = decascade_visual_container(container_2, screen_size);
 	if (
 		((decascade_1.x > decascade_2.x) && (decascade_1.x < decascade_2.x + decascade_2.w)) ||
 		((decascade_2.x > decascade_1.x) && (decascade_2.x < decascade_1.x + decascade_1.w))
@@ -121,9 +124,8 @@ int container_test_overlap_x(struct visual_container_struct *container_1, struct
 }
 
 int container_test_overlap_y(struct visual_container_struct *container_1, struct visual_container_struct *container_2, struct xy_struct screen_size) {
-	float aspctr_inherit;
-	struct float_rect decascade_1 = decascade_visual_container(container_1, screen_size, &aspctr_inherit);
-	struct float_rect decascade_2 = decascade_visual_container(container_2, screen_size, &aspctr_inherit);
+	struct float_rect decascade_1 = decascade_visual_container(container_1, screen_size);
+	struct float_rect decascade_2 = decascade_visual_container(container_2, screen_size);
 	if (
 		((decascade_1.y > decascade_2.y) && (decascade_1.y < decascade_2.y + decascade_2.h)) ||
 		((decascade_2.y > decascade_1.y) && (decascade_2.y < decascade_1.y + decascade_1.h))
@@ -166,13 +168,11 @@ struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struc
 
 		/* Get up-to-date aspect ratios */
 		if (!container->screen_scale_uptodate) {
-			float aspctr_inherit;
-			decascade_visual_container(container, screen_size, &aspctr_inherit);
+			decascade_visual_container(container, screen_size);
 		}
 
 		if (!container->inherit->screen_scale_uptodate) {
-			float aspctr_inherit;
-			decascade_visual_container(container, screen_size, &aspctr_inherit);
+			decascade_visual_container(container, screen_size);
 		}
 
 		custom_pos.w = old_pos.w + (custom_anchor_hook.w - old_anchor_hook.w) 
