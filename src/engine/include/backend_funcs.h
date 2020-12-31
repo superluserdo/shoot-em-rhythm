@@ -23,4 +23,5 @@ void update_quad_vertices(struct float_rect rect_in, struct float_rect rect_out,
 void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node);
 void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node);
 void change_renderer(struct glrenderer *renderer);
+int draw_box(struct float_rect float_rect, struct glrenderer *renderer);
 #endif

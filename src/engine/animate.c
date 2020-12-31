@@ -87,59 +87,62 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 		else {
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
-		//TODO: reenable
-#if 0
-		if (*master_graphics->debug_anchors) {
-			int rc;
-			int anchor_width = 6;
-			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
-			if (node_ptr->animation->container.anchors_exposed) {
-				SDL_Rect anchor_exposed_rect = {
-					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
-					.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
-					.w = anchor_width,
-					.h = anchor_width,
-				};
-				rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_exposed_rect);
-			}
-			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
-			SDL_Rect anchor_hook_rect = {
-				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
-				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
-				.w = anchor_width,
-				.h = anchor_width,
-			};
-			rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_hook_rect);
-			if (rc != 0) {
-				printf("%s\n", SDL_GetError());
-				FILEINFO
-			}
-			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
-		}
-		if (*master_graphics->debug_containers) {
-			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
+
+		//if (*master_graphics->debug_anchors) {
+		//	int rc;
+		//	int anchor_width = 6;
+		//	//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
+		//	if (node_ptr->animation->container.anchors_exposed) {
+		//		SDL_Rect anchor_exposed_rect = {
+		//			.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
+		//			.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
+		//			.w = anchor_width,
+		//			.h = anchor_width,
+		//		};
+		//		rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_exposed_rect);
+		//	}
+		//	SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
+		//	SDL_Rect anchor_hook_rect = {
+		//		.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
+		//		.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
+		//		.w = anchor_width,
+		//		.h = anchor_width,
+		//	};
+		//	rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_hook_rect);
+		//	if (rc != 0) {
+		//		printf("%s\n", SDL_GetError());
+		//		FILEINFO
+		//	}
+		//	SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
+		//}
+		if (*graphics->master_graphics->debug_containers) {
+			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
 			struct visual_container_struct *container = &node_ptr->animation->container;
 
 			while (container) {
-				SDL_Rect abs_container = visual_container_to_pixels(container,
-										(struct xy_struct){master_graphics->width, master_graphics->height});
-				SDL_Point points[5] = {
-					{abs_container.x, abs_container.y},
-					{abs_container.x + abs_container.w, abs_container.y},
-					{abs_container.x + abs_container.w, abs_container.y + abs_container.h},
-					{abs_container.x, abs_container.y + abs_container.h},
-					{abs_container.x, abs_container.y},
-				};
-				int rc = SDL_RenderDrawLines(master_graphics->graphics.renderer, points, 5);
-				if (rc != 0) {
-					printf("%s\n", SDL_GetError());
-					FILEINFO
-				}
+				struct float_rect float_rect = decascade_visual_container(container,
+						(struct xy_struct){graphics->master_graphics->width, graphics->master_graphics->height});
+				//SDL_Rect abs_container = visual_container_to_pixels(container,
+				//		(struct xy_struct){master_graphics->width, master_graphics->height});
+				draw_box(float_rect, graphics->renderer);
+										
+				//SDL_Point points[5] = {
+				//	{abs_container.x, abs_container.y},
+				//	{abs_container.x + abs_container.w, abs_container.y},
+				//	{abs_container.x + abs_container.w, abs_container.y + abs_container.h},
+				//	{abs_container.x, abs_container.y + abs_container.h},
+				//	{abs_container.x, abs_container.y},
+				//};
+				//int rc = SDL_RenderDrawLines(master_graphics->graphics.renderer, points, 5);
+				//if (rc != 0) {
+				//	printf("%s\n", SDL_GetError());
+				//	FILEINFO
+				//}
 				container = container->inherit;
 			}
-			SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
+			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
 		}
-#endif
+
 		node_ptr = node_ptr->next;
 
 	}

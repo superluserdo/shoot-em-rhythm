@@ -33,13 +33,7 @@ float vertices_tmp[] = {
 	//-0.5f, -0.5f,    0.0f, 1.0f, // top left
 	//-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
 };
-unsigned int indices_tmp[] = {
-	0, 1, 3, // first triangle
-	1, 2, 3  // second triangle
-};
-unsigned int texture_tmp = 0;
-unsigned int VAO_tmp, VBO_tmp, EBO_tmp = 0;
-
+unsigned int indices_box[] = {0, 1, 2, 3, 0};
 
 //Screen dimension constants
 unsigned int texture_shader_simple = 0;
@@ -448,8 +442,8 @@ int init_sdl_opengl(struct graphics_struct *master_graphics) {
 	//Create window
 	SDL_Window *window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED, master_graphics->width, master_graphics->height, 
-			SDL_WINDOW_OPENGL );
-			//SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
+			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
+			//SDL_WINDOW_OPENGL );
 	if( window == NULL )
 	{
 		printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
@@ -647,33 +641,6 @@ int initGL(void)
 	texture_shader_glow_behind = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animate_behind_texture, fShaderCode_glow_animated});
 	texture_shader_glow = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animated, fShaderCode_glow_animated});
 
-
-
-	// TMP
-	if (texture_from_path(&texture_tmp, NULL, NULL, "art/hamster.png")) {
-		exit(1);
-	}
-	/* Quad texture to be rendered to the screen */
-    glGenVertexArrays(1, &VAO_tmp);
-    glGenBuffers(1, &VBO_tmp);
-    glGenBuffers(1, &EBO_tmp);
-
-    glBindVertexArray(VAO_tmp);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_tmp);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_tmp), vertices_tmp, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tmp);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices_tmp), indices_tmp, GL_STATIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
-			(void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
 	return 0;
 }
 
@@ -805,41 +772,31 @@ void clear_render_target(struct glrenderer *renderer) {
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-//int render_copy(struct globject *object, struct glrenderer *renderer) {
-int render_copy_tmp(struct render_node *node, struct glrenderer *renderer) {
 
+int draw_box(struct float_rect float_rect, struct glrenderer *renderer) {
+    float vertices_box[] = {
+		// Have to load textures "upside down" since SDL and openGL
+		// have opposite y conventions
+        /*
+		x positions             y positions              texture coords (SDL)
+		*/
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, // bottom right
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, // top right
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, // top left
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f  // bottom left 
+    };
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0,0,1280,640);
-
-    glBindVertexArray(VAO_tmp);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_tmp);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_tmp);
-
-	glClearColor(0.5,0.5,0.5,1);
-
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
-
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 5, indices_box, GL_STATIC_DRAW);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture_tmp);
-
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	glUseProgram(texture_shader_simple); 
-	glBindVertexArray(VAO_tmp);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
+	glUseProgram(texture_shader_white); 
+	glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
 	return 0;
 }
 
 int render_copy(struct render_node *node, struct glrenderer *renderer) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, indices_tmp, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
 	if (!renderer->framebuffer) {
@@ -1005,9 +962,6 @@ void query_resize(struct graphics_struct *master_graphics) {
 	int w, h;
 	SDL_GetWindowSize(master_graphics->window, &w, &h);
 
-	//assert(master_graphics->graphics.renderer->framebuffer);
-	return;
-
 	if (((w != master_graphics->width) || (h != master_graphics->height))) {
 		//printf("New size!\n"
 		//		"orig viewport: w=%d, h=%d\n"
@@ -1042,6 +996,7 @@ void query_resize(struct graphics_struct *master_graphics) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+		glBindFramebuffer(GL_FRAMEBUFFER, master_graphics->graphics.renderer->framebuffer->framebuffer);    
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, new_fb_texture, 0);  // attach to currently bound framebuffer object
 		glBindTexture(GL_TEXTURE_2D, 0);
 
