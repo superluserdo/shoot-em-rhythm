@@ -22,8 +22,8 @@ struct framebuffer {
 //	float *vertices;
 //	unsigned int n_indices;
 //	unsigned int *indices;
-//	unsigned int texture_shader;
-//	void (*uniforms)(unsigned int texture_shader);
+//	unsigned int shader;
+//	void (*uniforms)(unsigned int shader);
 //	//struct globject *next;
 //};
 
@@ -45,6 +45,15 @@ struct glrenderer {
 
 typedef unsigned int texture_t;
 typedef struct glrenderer *renderer_t;
+
+struct shaders_struct {
+	int simple;
+	int white;
+	int debug;
+	int solid;
+	int glow_behind;
+	int glow;
+};
 
 #if defined _SDL_FUNCS_H || defined _SDL_TYPES_H
 #error "Incompatible headers mixed together!"

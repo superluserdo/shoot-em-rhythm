@@ -262,8 +262,8 @@ struct render_node {
 	float *vertices;
 	unsigned int n_indices;
 	unsigned int *indices;
-	unsigned int texture_shader;
-	void (*uniforms)(unsigned int texture_shader);
+	unsigned int shader;
+	void (*uniforms)(unsigned int shader);
 #endif
 };
 

@@ -26,4 +26,8 @@ void change_renderer(struct glrenderer *renderer);
 int draw_box_solid_colour(struct float_rect float_rect, float colour[4]);
 int draw_square(float x, float y, float w, float colour[4]);
 int draw_box_lines(struct float_rect float_rect);
+void shader_glow_uniforms(unsigned int shader);
+struct render_node *add_border_vertices(struct render_node *node,
+		struct graphical_stage_struct *graphics, unsigned int shader,
+		float frac_up, float frac_left, float frac_down, float frac_right);
 #endif

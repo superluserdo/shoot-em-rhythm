@@ -480,7 +480,7 @@ int level_loop(struct status_struct status) {
 
 		if( e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_a )
 		{
-			master_graphics->graphics.renderer->do_wireframe ^= 1;
+			//master_graphics->graphics.renderer->do_wireframe ^= 1;
 			graphics->renderer->do_wireframe ^= 1;
 			printf("Wireframe mode on: %d\n", graphics->renderer->do_wireframe);
 		}

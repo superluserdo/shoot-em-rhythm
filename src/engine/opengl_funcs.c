@@ -18,21 +18,6 @@ struct float_rect rect_fullsize = {
 };
 
 float vertices_fullsize[] = {-1, 1, 1, 1, -1, 1, 1, 0, -1, 1, 0, 0, -1, 1, 0, 1};
-float vertices_tmp[] = {
-	// Have to load textures "upside down" since SDL and openGL
-	// have opposite y conventions
-	/*
-	x positions             y positions              texture coords (SDL)
-	*/
-	-1.0+2*(0.1+0.8), 1.0-2*(0.1+0.8),   1.0f, 1.0f, // bottom right
-	-1.0+2*(0.1+0.8), 1.0-2*(0.1),          1.0f, 0.0f, // top right
-	-1.0+2*(0.1),        1.0-2*(0.1),          0.0f, 0.0f, // top left
-	-1.0+2*(0.1),        1.0-2*(0.1+0.8),   0.0f, 1.0f  // bottom left 
-	// 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
-	// 0.5f, -0.5f,    1.0f, 1.0f, // top right
-	//-0.5f, -0.5f,    0.0f, 1.0f, // top left
-	//-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
-};
 unsigned int indices_box[] = {0, 1, 2, 3, 0};
 unsigned int indices_quad[] = {
 	0, 1, 3, // first triangle
@@ -40,11 +25,7 @@ unsigned int indices_quad[] = {
 };
 
 //Screen dimension constants
-unsigned int texture_shader_simple = 0;
-unsigned int texture_shader_white = 0;
-unsigned int texture_shader_solid = 0;
-unsigned int texture_shader_glow_behind = 0;
-unsigned int texture_shader_glow = 0;
+struct shaders_struct shaders = {0};
 struct int_rect default_viewport = {0, 0, 1280, 720};
 
 void get_texture_size(unsigned int texture, int *w, int *h) {
@@ -106,7 +87,7 @@ void change_render_target(struct glrenderer *renderer) {
 	//		viewport.h);
 }
 
-void texture_shader_glow_uniforms(unsigned int shader) {
+void shader_glow_uniforms(unsigned int shader) {
 	/* Make sure glUseProgram(shader) is called first! */
 	int time_loc = glGetUniformLocation(shader, "time");
 	int r_disc_loc = glGetUniformLocation(shader, "r_disc");
@@ -116,11 +97,13 @@ void texture_shader_glow_uniforms(unsigned int shader) {
 	//	time = 2.0 - time;
 	//}
 	glUniform1f(time_loc, time);
-	glUniform1f(r_disc_loc, 0.58);
-	glUniform1f(r_rays_loc, 1.0);
+	//glUniform1f(r_disc_loc, 0.58);
+	//glUniform1f(r_rays_loc, 1.0);
+	glUniform1f(r_disc_loc, 0.58*0.5);
+	glUniform1f(r_rays_loc, 1.0*0.5);
 }
 
-unsigned int create_texture_shader(int n_v_snippets, const char **v_snippets, 
+unsigned int create_shader(int n_v_snippets, const char **v_snippets, 
 		int n_f_snippets, const char **f_snippets) {
 	unsigned int vertex, fragment;
 
@@ -137,17 +120,17 @@ unsigned int create_texture_shader(int n_v_snippets, const char **v_snippets,
 
 
 	/* Full shader */
-	unsigned int texture_shader = glCreateProgram();
-	glAttachShader(texture_shader, vertex);
-	glAttachShader(texture_shader, fragment);
+	unsigned int shader = glCreateProgram();
+	glAttachShader(shader, vertex);
+	glAttachShader(shader, fragment);
 
 
-	glLinkProgram(texture_shader);
-	//checkCompileErrors(texture_shader, "PROGRAM");
+	glLinkProgram(shader);
+	//checkCompileErrors(shader, "PROGRAM");
 
 	glDeleteShader(vertex);
 	glDeleteShader(fragment);
-	return texture_shader;
+	return shader;
 }
 
 int texture_from_path(unsigned int *texture, int *w, int *h, char *path) {
@@ -232,7 +215,7 @@ void max_min_n(int n_nums, float *nums, float *max, float *min) {
 
 //struct globject *add_border_vertices(struct globject *object, struct globject_list *object_list,
 struct render_node *add_border_vertices(struct render_node *node, struct graphical_stage_struct *graphics,
-		unsigned int texture_shader,
+		unsigned int shader,
 		float frac_up, float frac_left, float frac_down, float frac_right) {
 
 	assert(node->n_vertices == 4);
@@ -241,18 +224,18 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	max_min_n(node->n_vertices,
 			(float []){
 			node->vertices[0],
-			node->vertices[4],
-			node->vertices[8],
+			node->vertices[6],
 			node->vertices[12],
+			node->vertices[18],
 			},
 			&x_max_old, &x_min_old);
 
 	max_min_n(node->n_vertices,
 			(float []){
 			node->vertices[1],
-			node->vertices[5],
-			node->vertices[9],
+			node->vertices[7],
 			node->vertices[13],
+			node->vertices[20],
 			},
 			&y_max_old, &y_min_old);
 
@@ -271,13 +254,15 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	float tex_xs[4] = {-frac_left, 0, 1, 1+frac_right};
 	float tex_ys[4] = {-frac_down, 0, 1, 1+frac_up};
 
-    float *vertices = calloc(sizeof(*vertices),4*4*4);
+    float *vertices = calloc(sizeof(*vertices),6*4*4);
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
-			vertices[4*(i*4+j)] = xs[i];
-			vertices[4*(i*4+j)+1] = ys[j];
-			vertices[4*(i*4+j)+2] = tex_xs[i];
-			vertices[4*(i*4+j)+3] = tex_ys[3-j];
+			vertices[4*(i*6+j)] = xs[i];
+			vertices[4*(i*6+j)+1] = ys[j];
+			vertices[4*(i*6+j)+2] = tex_xs[i];
+			vertices[4*(i*6+j)+3] = tex_ys[3-j];
+			vertices[4*(i*6+j)+4] = tex_xs[i];
+			vertices[4*(i*6+j)+5] = tex_ys[3-j];
 		}
 	}
 
@@ -307,7 +292,7 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	node_new->n_vertices = 4*4;
 	node_new->indices = indices;
 	node_new->n_indices = 8*6;
-	node_new->texture_shader = texture_shader;
+	node_new->shader = shader;
 
 	return node_new;
 }
@@ -329,12 +314,12 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
 		// Have to load textures "upside down" since SDL and openGL
 		// have opposite y conventions
         /*
-		x positions             y positions              texture coords (SDL)
+		x positions                     y positions                      texture coords (SDL)                      shader coords
 		*/
-        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   rect_in.x+rect_in.w, rect_in.y+rect_in.h, //1.0f, 1.0f, // bottom right
-        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y,           //1.0f, 0.0f, // top right
-        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y,           //0.0f, 0.0f, // top left
-        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y+rect_in.h, //0.0f, 1.0f  // bottom left 
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   rect_in.x+rect_in.w, rect_in.y+rect_in.h, 1.0, 0.0, // bottom right
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y,           1.0, 1.0, // top right
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y,           0.0, 1.0, // top left
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y+rect_in.h, 0.0, 0.0, // bottom left 
         // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
         // 0.5f, -0.5f,    1.0f, 1.0f, // top right
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
@@ -342,7 +327,7 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
     };
 
 	node->n_vertices = 4;
-	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
+	node->vertices = realloc(node->vertices, sizeof(vertices));
 	node->n_indices = 6;
 	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
@@ -359,10 +344,10 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
         /*
 		x positions             y positions              texture coords (opengl)
 		*/
-        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   1.0f, 0.0f, // bottom right
-        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              1.0f, 1.0f, // top right
-        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              0.0f, 1.0f, // top left
-        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   0.0f, 0.0f  // bottom left 
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y+rect_out.h),   rect_in.x+rect_in.w, rect_in.y,           1.0, 0.0, // bottom right
+        -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y+rect_in.h, 1.0, 1.0, // top right
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y+rect_in.h, 0.0, 1.0, // top left
+        -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y,           0.0, 0.0, // bottom left 
         // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
         // 0.5f, -0.5f,    1.0f, 1.0f, // top right
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
@@ -370,7 +355,7 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
     };
 
 	node->n_vertices = 4;
-	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
+	node->vertices = realloc(node->vertices, sizeof(vertices));
 	node->n_indices = 6;
 	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
@@ -396,13 +381,13 @@ void insert_object_after(struct globject_list *object_list, struct globject *obj
 }
 
 struct render_node *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
-		unsigned int texture_shader,
+		unsigned int shader,
 		int sdl_coords) {
 
 	struct render_node *node = calloc(sizeof(*node), 1);
 
 	node->texture = texture;
-	node->texture_shader = texture_shader;
+	node->shader = shader;
 	node->rect_out = (struct float_rect) {
 		.x = rect_out.x,
 		.y = rect_out.y,
@@ -501,13 +486,16 @@ int initGL(void)
 		"#version 330 core\n"
 		"layout (location = 0) in vec2 aPos;\n"
 		"layout (location = 1) in vec2 aTexCoord;\n"
+		"layout (location = 2) in vec2 aShaderCoord;\n"
 
 		"out vec2 TexCoord;\n"
+		"out vec2 ShaderCoord;\n"
 
 		"void main()\n"
 		"{\n"
 		"	gl_Position = vec4(aPos, 0.0, 1.0);\n"
 		"	TexCoord = aTexCoord;\n"
+		"	ShaderCoord = aShaderCoord;\n"
 		"}"
 	};
 	//const char *fShaderCode_mix = {
@@ -532,17 +520,18 @@ int initGL(void)
 		"out vec4 FragColor;\n"
 
 		"in vec2 TexCoord;\n"
+		"in vec2 ShaderCoord;\n"
 		"in vec4 gl_FragCoord;"
 
 		"uniform sampler2D screentexture;\n"
 		"uniform float time;\n"
 
-		"vec4 shader_animated(vec2 TexCoord, float time);\n"
+		"vec4 shader_animated(vec2 ShaderCoord, float time);\n"
 		"void main()\n"
 		"{ \n"
 		"	vec4 InColor = texture(screentexture, TexCoord);\n"
 		"	if (InColor.w < 1) {\n"
-		"		FragColor = shader_animated(TexCoord, time);\n"
+		"		FragColor = shader_animated(ShaderCoord, time);\n"
 		"		if (InColor.w > 0) {\n"
 		"			// Must combine both alpha textures properly:\n"
 		"			float newalpha = InColor.w + FragColor.w*(1-InColor.w);\n"
@@ -560,16 +549,16 @@ int initGL(void)
 		"#version 330 core\n"
 		"out vec4 FragColor;\n"
 
-		"in vec2 TexCoord;\n"
+		"in vec2 ShaderCoord;\n"
 		"in vec4 gl_FragCoord;"
 
 		"uniform sampler2D screentexture;\n"
 		"uniform float time;\n"
 
-		"vec4 shader_animated(vec2 TexCoord, float time);\n"
+		"vec4 shader_animated(vec2 ShaderCoord, float time);\n"
 		"void main()\n"
 		"{ \n"
-		"	FragColor = shader_animated(TexCoord, time);\n"
+		"	FragColor = shader_animated(ShaderCoord, time);\n"
 		"}"
 	};
 
@@ -578,12 +567,12 @@ int initGL(void)
 		"uniform float r_disc;\n"
 		"uniform float r_rays;\n"
 
-		"vec4 shader_animated(vec2 TexCoord, float time)\n"
+		"vec4 shader_animated(vec2 ShaderCoord, float time)\n"
 		"{ \n"
-		"	float dist = sqrt(pow((0.5-TexCoord.x),2) + pow((0.5-TexCoord.y),2));\n"
+		"	float dist = sqrt(pow((0.5-ShaderCoord.x),2) + pow((0.5-ShaderCoord.y),2));\n"
 		"\n"
 		"	float edge = r_disc*(1-0.15+0.15*sin(time));// * time*0.5;\n"
-		"	float angle = atan((0.5-TexCoord.y) / (0.5-TexCoord.x));\n"
+		"	float angle = atan((0.5-ShaderCoord.y) / (0.5-ShaderCoord.x));\n"
 		"	angle = angle * 10 +mod(time*8, 2*3.14159);\n"
 		"	float i = dist / edge;\n"
 		"	i = (i < 1) ? pow(i,1) : pow(2,-(i-1)*10);\n"
@@ -600,7 +589,7 @@ int initGL(void)
 		"	float k = i + j;\n"
 		"	k = (i+j/2);\n"
 		"	return vec4(1, 1, 1, k);\n"
-		"	//return vec4(TexCoord.x, TexCoord.y, 0, 1);\n"
+		"	//return vec4(ShaderCoord.x, ShaderCoord.y, 0, 1);\n"
 		"}"
 	};
 
@@ -616,6 +605,21 @@ int initGL(void)
 		"void main()\n"
 		"{ \n"
 		"	FragColor = vec4(1, 1, 1, 1);\n"
+		"}"
+	};
+
+	const char *fShaderCode_debug = {
+		"#version 330 core\n"
+		"out vec4 FragColor;\n"
+
+		"in vec2 TexCoord;\n"
+		"in vec4 gl_FragCoord;"
+
+		"uniform sampler2D screentexture;\n"
+
+		"void main()\n"
+		"{ \n"
+		"	FragColor = vec4(TexCoord.x, TexCoord.y, 1, 1);\n"
 		"}"
 	};
 
@@ -648,11 +652,12 @@ int initGL(void)
 		"	FragColor = texture(screentexture, TexCoord);\n"
 		"}"
 	};
-	texture_shader_simple = create_texture_shader(1, &vShaderCode, 1, &fShaderCode);
-	texture_shader_white = create_texture_shader(1, &vShaderCode, 1, &fShaderCode_white);
-	texture_shader_solid = create_texture_shader(1, &vShaderCode, 1, &fShaderCode_solid);
-	texture_shader_glow_behind = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animate_behind_texture, fShaderCode_glow_animated});
-	texture_shader_glow = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animated, fShaderCode_glow_animated});
+	shaders.simple = create_shader(1, &vShaderCode, 1, &fShaderCode);
+	shaders.white = create_shader(1, &vShaderCode, 1, &fShaderCode_white);
+	shaders.debug = create_shader(1, &vShaderCode, 1, &fShaderCode_debug);
+	shaders.solid = create_shader(1, &vShaderCode, 1, &fShaderCode_solid);
+	shaders.glow_behind = create_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animate_behind_texture, fShaderCode_glow_animated});
+	shaders.glow = create_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animated, fShaderCode_glow_animated});
 
 	return 0;
 }
@@ -694,12 +699,15 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
     // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 
 			(void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 
+			(void*)(4 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
 	/* FRAMEBUFFER STUFF */
 	unsigned int fb_texture = 0;
@@ -737,7 +745,7 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 		//	.x=0.1, .y=0.1, .w=0.8, .h=0.8
 		//};
 		//
-		//new_quad(rect_fullsize, quad_rect, fb_struct->texture, texture_shader_simple, 0);
+		//new_quad(rect_fullsize, quad_rect, fb_struct->texture, shaders.simple, 0);
 	}
 
 	*renderer = (struct glrenderer) {
@@ -760,13 +768,13 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	if (texture_path) {
 		unsigned int texture_hamster;
 		texture_from_path(&texture_hamster, NULL, NULL, texture_path);
-		struct globject *bg_hamster = new_quad(rect_fullsize, rect_bg, texture_hamster, texture_shader_glow_behind, object_list, 1);
-		bg_hamster->uniforms = texture_shader_glow_uniforms;
+		struct globject *bg_hamster = new_quad(rect_fullsize, rect_bg, texture_hamster, shaders.glow_behind, object_list, 1);
+		bg_hamster->uniforms = shader_glow_uniforms;
 		struct globject *border = add_border_vertices(bg_hamster, object_list,
-			texture_shader_glow, 0.5, 0.5, 0.5, 0.5);
-		border->uniforms = texture_shader_glow_uniforms;
+			shaders.glow, 0.5, 0.5, 0.5, 0.5);
+		border->uniforms = shader_glow_uniforms;
 
-		new_quad(rect_fullsize, rect, texture_hamster, texture_shader_simple, object_list, 1);
+		new_quad(rect_fullsize, rect, texture_hamster, shaders.simple, object_list, 1);
 	} else {
 	}
 #endif
@@ -799,16 +807,16 @@ int draw_box_lines(struct float_rect float_rect) {
         /*
 		x positions             y positions              texture coords (SDL)
 		*/
-        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, // bottom right
-        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, // top right
-        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, // top left
-        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f  // bottom left 
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, 1.0, 0.0, // bottom right
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, 1.0, 1.0, // top right
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, 0.0, 1.0, // top left
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f, 0.0, 0.0, // bottom left 
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, vertices_box, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 5, indices_box, GL_STATIC_DRAW);
 	glActiveTexture(GL_TEXTURE0);
-	glUseProgram(texture_shader_white); 
+	glUseProgram(shaders.white); 
 	glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
 	return 0;
 }
@@ -820,18 +828,18 @@ int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
         /*
 		x positions             y positions              texture coords (SDL)
 		*/
-        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, // bottom right
-        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, // top right
-        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, // top left
-        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f  // bottom left 
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, 1.0, 0.0, // bottom right
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, 1.0, 1.0, // top right
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, 0.0, 1.0, // top left
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f, 0.0, 0.0, // bottom left 
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, vertices_box, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_quad, GL_STATIC_DRAW);
 	glActiveTexture(GL_TEXTURE0);
-	glUseProgram(texture_shader_solid); 
+	glUseProgram(shaders.solid); 
 
-	int test_colour_loc = glGetUniformLocation(texture_shader_solid, "colour");
+	int test_colour_loc = glGetUniformLocation(shaders.solid, "colour");
 	glUniform4fv(test_colour_loc, 1, colour);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -839,7 +847,7 @@ int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
 }
 
 int render_copy(struct render_node *node, struct glrenderer *renderer) {
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -859,16 +867,15 @@ int render_copy(struct render_node *node, struct glrenderer *renderer) {
 
 	if (renderer->do_wireframe) {
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-		glUseProgram(texture_shader_white); 
+		glUseProgram(shaders.white); 
 	} else {
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-		glUseProgram(node->texture_shader); 
+		glUseProgram(node->shader); 
 		if (node->uniforms) {
-			node->uniforms(node->texture_shader);
+			node->uniforms(node->shader);
 		}
 	}
 	//
-	glUseProgram(texture_shader_simple); 
 	//
 #if DEBUG
 	FILEINFO
@@ -877,20 +884,6 @@ int render_copy(struct render_node *node, struct glrenderer *renderer) {
 	glDrawElements(GL_TRIANGLES, node->n_indices, GL_UNSIGNED_INT, 0);
 
 	//
-
-    //glBindVertexArray(renderer->VAO);
-    //glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
-
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_tmp, GL_STATIC_DRAW);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_tmp, GL_STATIC_DRAW);
-
-	//glBindTexture(GL_TEXTURE_2D, texture_tmp);
-
-	//glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	//glUseProgram(texture_shader_simple); 
-	//	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
 
 
 	return 0;

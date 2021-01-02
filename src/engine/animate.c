@@ -2,6 +2,8 @@
 #include "backend_types.h"
 #include "backend_funcs.h"
 
+extern struct shaders_struct shaders;
+
 /* For debugging */
 
 int node_ptr_count = 0;
@@ -546,15 +548,30 @@ struct animation_struct *new_animation(struct std *std, enum animate_mode_e anim
 int generate_render_node(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
 	/* Creates, populates, and inserts a rendering node	*/
 
-	struct render_node *r_node = malloc(sizeof(struct render_node));
-	*r_node = (struct render_node) {0};
+	struct render_node *node = malloc(sizeof(struct render_node));
+	*node = (struct render_node) {0};
 
-	update_render_node(animation, r_node);
+	update_render_node(animation, node);
 
-	r_node->animation = animation;
-	r_node->customRenderFunc = NULL;
-	node_insert_z_over(graphics, r_node, animation->z);
-	animation->render_node = r_node;
+	node->animation = animation;
+
+	node_insert_z_over(graphics, node, animation->z);
+
+	if (graphics != &graphics->master_graphics->graphics) {
+		node->uniforms = shader_glow_uniforms;
+		node->shader = shaders.glow_behind;
+		//update_quad_vertices(*node->rect_in, node->rect_out, node, animation->img_y_convention);
+		//TODO: Get border FX working
+		//struct render_node *border = add_border_vertices(node, graphics,
+		//	shaders.glow, 0.5, 0.5, 0.5, 0.5);
+		//border->uniforms = shader_glow_uniforms;
+		//border->animation = animation;
+		//node_insert_over(graphics, border, node);
+	} else {
+		node->shader = shaders.simple;
+	}
+
+	animation->render_node = node;
 
 	return 0;
 }
@@ -804,7 +821,6 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 					frame_array[k].anchor_hook = (struct size_ratio_struct) {0.5, 0.5}; //TODO: Actually assign this properly, maybe have it in animation.cfg
 				//frame_array[k].anchor_hook = (struct size_ratio_struct) { 0, 0 }; //TODO: Actually assign this properly, maybe have it in animation.cfg
 				}
-					printf("Anchor hook: x=%f, y=%f\n", frame_array[k].anchor_hook.w, frame_array[k].anchor_hook.h);
 			}	
 		}
 	}
