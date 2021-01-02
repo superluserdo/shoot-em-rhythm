@@ -167,11 +167,7 @@ struct size_ratio_struct pos_at_custom_anchor_hook(struct visual_container_struc
 		/* Requires knowing the absolute dimensions when you have a fixed aspect ratio: */
 
 		/* Get up-to-date aspect ratios */
-		if (!container->screen_scale_uptodate) {
-			decascade_visual_container(container, screen_size);
-		}
-
-		if (!container->inherit->screen_scale_uptodate) {
+		if (!container->screen_scale_uptodate || !container->inherit->screen_scale_uptodate) {
 			decascade_visual_container(container, screen_size);
 		}
 

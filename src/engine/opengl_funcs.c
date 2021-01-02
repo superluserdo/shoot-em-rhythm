@@ -34,10 +34,15 @@ float vertices_tmp[] = {
 	//-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
 };
 unsigned int indices_box[] = {0, 1, 2, 3, 0};
+unsigned int indices_quad[] = {
+	0, 1, 3, // first triangle
+	1, 2, 3  // second triangle
+};
 
 //Screen dimension constants
 unsigned int texture_shader_simple = 0;
 unsigned int texture_shader_white = 0;
+unsigned int texture_shader_solid = 0;
 unsigned int texture_shader_glow_behind = 0;
 unsigned int texture_shader_glow = 0;
 struct int_rect default_viewport = {0, 0, 1280, 720};
@@ -335,10 +340,6 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
         //-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
     };
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
 
 	node->n_vertices = 4;
 	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
@@ -346,7 +347,7 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
 	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
 	memcpy(node->vertices, vertices, sizeof(vertices));
-	memcpy(node->indices, indices, sizeof(indices));
+	memcpy(node->indices, indices_quad, sizeof(indices_quad));
 }
 
 void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
@@ -367,10 +368,6 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
         //-0.5f, -0.5f,    0.0f, 1.0f, // top left
         //-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
     };
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
 
 	node->n_vertices = 4;
 	node->vertices = realloc(node->vertices, sizeof(float) * 4*4);
@@ -378,7 +375,7 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
 	node->indices = realloc(node->indices, sizeof(unsigned int) * 3*2);
 
 	memcpy(node->vertices, vertices, sizeof(vertices));
-	memcpy(node->indices, indices, sizeof(indices));
+	memcpy(node->indices, indices_quad, sizeof(indices_quad));
 }
 
 #if 0
@@ -622,6 +619,21 @@ int initGL(void)
 		"}"
 	};
 
+	const char *fShaderCode_solid = {
+		"#version 330 core\n"
+		"out vec4 FragColor;\n"
+
+		"in vec2 TexCoord;\n"
+		"in vec4 in_colour;"
+
+		"uniform vec4 colour;\n"
+
+		"void main()\n"
+		"{ \n"
+		"	FragColor = colour;\n"
+		"}"
+	};
+
 	const char *fShaderCode = {
 		"#version 330 core\n"
 		"out vec4 FragColor;\n"
@@ -638,6 +650,7 @@ int initGL(void)
 	};
 	texture_shader_simple = create_texture_shader(1, &vShaderCode, 1, &fShaderCode);
 	texture_shader_white = create_texture_shader(1, &vShaderCode, 1, &fShaderCode_white);
+	texture_shader_solid = create_texture_shader(1, &vShaderCode, 1, &fShaderCode_solid);
 	texture_shader_glow_behind = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animate_behind_texture, fShaderCode_glow_animated});
 	texture_shader_glow = create_texture_shader(1, &vShaderCode, 2, (const char *[]){fShaderCode_animated, fShaderCode_glow_animated});
 
@@ -773,7 +786,13 @@ void clear_render_target(struct glrenderer *renderer) {
 }
 
 
-int draw_box(struct float_rect float_rect, struct glrenderer *renderer) {
+int draw_square(float x, float y, float w, float colour[4]) {
+	/* Draw a solid colour square, with side length r, centred at (x,y) */
+	draw_box_solid_colour((struct float_rect) {x-w/2, y-w/2, w, w}, colour);
+	return 0;
+}
+
+int draw_box_lines(struct float_rect float_rect) {
     float vertices_box[] = {
 		// Have to load textures "upside down" since SDL and openGL
 		// have opposite y conventions
@@ -791,6 +810,31 @@ int draw_box(struct float_rect float_rect, struct glrenderer *renderer) {
 	glActiveTexture(GL_TEXTURE0);
 	glUseProgram(texture_shader_white); 
 	glDrawElements(GL_LINE_STRIP, 5, GL_UNSIGNED_INT, 0);
+	return 0;
+}
+
+int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
+    float vertices_box[] = {
+		// Have to load textures "upside down" since SDL and openGL
+		// have opposite y conventions
+        /*
+		x positions             y positions              texture coords (SDL)
+		*/
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y+float_rect.h),   1.0f, 1.0f, // bottom right
+        -1.0+2*(float_rect.x+float_rect.w), 1.0-2*(float_rect.y),                1.0f, 0.0f, // top right
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y),                0.0f, 0.0f, // top left
+        -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f  // bottom left 
+    };
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_quad, GL_STATIC_DRAW);
+	glActiveTexture(GL_TEXTURE0);
+	glUseProgram(texture_shader_solid); 
+
+	int test_colour_loc = glGetUniformLocation(texture_shader_solid, "colour");
+	glUniform4fv(test_colour_loc, 1, colour);
+
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	return 0;
 }
 

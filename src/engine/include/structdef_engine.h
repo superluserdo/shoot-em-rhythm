@@ -320,7 +320,7 @@ enum layer_mode_e { TIGHT, GLOBAL };
 
 struct frame {
 	struct float_rect rect;
-	struct xy_struct anchor_hook; /* The position of the texture that "hooks" onto anchors */
+	struct size_ratio_struct anchor_hook; /* The position of the texture that "hooks" onto anchors */
 	float duration;
 };
 

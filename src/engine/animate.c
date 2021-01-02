@@ -88,33 +88,39 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			(*node_ptr->customRenderFunc)(node_ptr->customRenderArgs);
 		}
 
-		//if (*master_graphics->debug_anchors) {
-		//	int rc;
-		//	int anchor_width = 6;
-		//	//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
-		//	if (node_ptr->animation->container.anchors_exposed) {
-		//		SDL_Rect anchor_exposed_rect = {
-		//			.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
-		//			.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
-		//			.w = anchor_width,
-		//			.h = anchor_width,
-		//		};
-		//		rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_exposed_rect);
-		//	}
-		//	SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
-		//	SDL_Rect anchor_hook_rect = {
-		//		.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
-		//		.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
-		//		.w = anchor_width,
-		//		.h = anchor_width,
-		//	};
-		//	rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_hook_rect);
-		//	if (rc != 0) {
-		//		printf("%s\n", SDL_GetError());
-		//		FILEINFO
-		//	}
-		//	SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
-		//}
+		if (*graphics->master_graphics->debug_anchors) {
+			//int rc;
+			//int anchor_width = 6;
+			float anchor_width = 0.01;
+			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
+			float colour_blue[4] = {0, 0, 1, 1};
+			if (node_ptr->animation->container.anchors_exposed) {
+				struct float_rect anchor_exposed_rect = {
+					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
+					.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
+					.w = anchor_width,
+					.h = anchor_width,
+				};
+				draw_box_solid_colour(anchor_exposed_rect, colour_blue);
+				//rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_exposed_rect);
+			}
+			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
+			float colour_red[4] = {1, 0, 0, 1};
+			struct float_rect anchor_hook_rect = {
+				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
+				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
+				.w = anchor_width,
+				.h = anchor_width,
+			};
+			//rc = SDL_RenderFillRect(master_graphics->graphics.renderer, &anchor_hook_rect);
+			draw_box_solid_colour(anchor_hook_rect, colour_red);
+			//if (rc != 0) {
+			//	printf("%s\n", SDL_GetError());
+			//	FILEINFO
+			//}
+			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
+		}
+
 		if (*graphics->master_graphics->debug_containers) {
 			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
 			struct visual_container_struct *container = &node_ptr->animation->container;
@@ -124,7 +130,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 						(struct xy_struct){graphics->master_graphics->width, graphics->master_graphics->height});
 				//SDL_Rect abs_container = visual_container_to_pixels(container,
 				//		(struct xy_struct){master_graphics->width, master_graphics->height});
-				draw_box(float_rect, graphics->renderer);
+				draw_box_lines(float_rect);
 										
 				//SDL_Point points[5] = {
 				//	{abs_container.x, abs_container.y},
@@ -516,8 +522,8 @@ struct animation_struct *new_animation(struct std *std, enum animate_mode_e anim
 		struct frame frame = generic->clips[control->clip]->frames[control->frame];
 
 		struct size_ratio_struct anchor_hook_pos_internal = {
-			.w = (float)frame.anchor_hook.x / (float)frame.rect.w,
-			.h = (float)frame.anchor_hook.y / (float)frame.rect.h,
+			.w = (float)frame.anchor_hook.w,
+			.h = (float)frame.anchor_hook.h,
 		};
 		animation->container.anchor_hook = anchor_hook_pos_internal;
 	} else {
@@ -577,8 +583,6 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr,
 			animate_mode = TEXTURE;
 		} else {
 			animate_mode = GENERIC;
-		}
-		if (animate_mode == GENERIC) {
 			generic = dict_void_get_val(generic_anim_dict, animation_type_array[i]);
 			if (!generic) {
 				fprintf(stderr, "Could not find generic animation for \"%s\". Aborting...\n", animation_type_array[i]);
@@ -657,6 +661,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 	config_setting_t *frames_setting;
 	config_setting_t *frame_setting;
 	config_setting_t *rect_setting;
+	config_setting_t *anchor_hook_setting = NULL;
 
 	for (int i = 0; i < num_generics; i++) {
 		generic_setting = config_setting_get_elem(generics_setting, i);
@@ -785,9 +790,21 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 				double dub;
 				config_setting_lookup_float(frame_setting, "duration", &dub);
 				frame_array[k].duration = (float)dub;
-				/* By default, make the frame's anchor hook in the centre of the image: */
-				frame_array[k].anchor_hook = (struct xy_struct) {.x=frame_array[k].rect.w/2, .y=frame_array[k].rect.h/2}; //TODO: Actually assign this properly, maybe have it in animation.cfg
-				//frame_array[k].anchor_hook = (struct xy_struct) { 0, 0 }; //TODO: Actually assign this properly, maybe have it in animation.cfg
+
+				anchor_hook_setting = config_setting_lookup(frame_setting, "anchor_hook");
+				if (anchor_hook_setting) {
+					frame_array[k].anchor_hook = (struct size_ratio_struct) {
+						.w = config_setting_get_float_elem(anchor_hook_setting, 0),
+						.h = config_setting_get_float_elem(anchor_hook_setting, 1),
+					};
+				} else {
+					/* Don't worry, it's optional */
+					/* By default, make the frame's anchor hook in the centre of the image: */
+					//frame_array[k].anchor_hook = (struct size_ratio_struct) {.w=frame_array[k].rect.w/2, .h=frame_array[k].rect.h/2}; //TODO: Actually assign this properly, maybe have it in animation.cfg
+					frame_array[k].anchor_hook = (struct size_ratio_struct) {0.5, 0.5}; //TODO: Actually assign this properly, maybe have it in animation.cfg
+				//frame_array[k].anchor_hook = (struct size_ratio_struct) { 0, 0 }; //TODO: Actually assign this properly, maybe have it in animation.cfg
+				}
+					printf("Anchor hook: x=%f, y=%f\n", frame_array[k].anchor_hook.w, frame_array[k].anchor_hook.h);
 			}	
 		}
 	}

@@ -187,6 +187,7 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	anim->next->next->container.inherit = &anim->next->container;
 	anim->next->next->container.anchor_grabbed = &anim->next->container.anchors_exposed[0];
 	anim->next->next->container.aspctr_lock = WH_INDEPENDENT;
+	anim->next->next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
 	anim->next->next->container.rect_out_parent_scale = 
 		(struct float_rect) {.w = 1, .h = 1};
 
