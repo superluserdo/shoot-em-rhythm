@@ -6,53 +6,48 @@ extern struct shaders_struct shaders;
 
 /* For debugging */
 
-int node_ptr_count = 0;
-int rule_node_count = 0;
-int transform_node_count = 0;
-int skip_tmp = 0;
-
 void print_object_list_stack(struct std_list *object_list_stack) {
 	struct std_list *object = object_list_stack;
 	while (object) {
-		printf("%s:		rendernode=", object->std->name);
-		printf("%p\n", object->std->animation->render_node);
+		printf("%s:		animation=", object->std->name);
+		printf("%p\n", object->std->animation);
 		object = object->prev;
 	}
 }
 
-void print_render_list(struct render_node *render_node_head) {
-	struct render_node *node = render_node_head;
-	printf("render_node_head:	%p\n", render_node_head);
+void print_render_list(struct animation_struct *render_node_head) {
+	struct animation_struct *node = render_node_head;
+	printf("animation render_node_head:	%p\n", render_node_head);
 	while (node) {
-		printf("%s->", node->animation->object->name);
-		node = node->next;
+		printf("%s->", node->object->name);
+		node = node->render_next;
 	}
 	printf("\n");
 
 }
 
-void test_render_list_robustness(struct std_list *object_list_stack, struct graphical_stage_struct *graphics) {
-	/* TEST that render node list is robust against deletions by deleting whole list every frame */
-	printf("BEFORE list_rm:\n");
-	print_object_list_stack(object_list_stack);
-	print_render_list(graphics->render_node_head);
-
-	render_list_rm(&graphics->render_node_head);
-	graphics->render_node_tail = NULL;
-
-	printf("AFTER list_rm:\n");
-	print_object_list_stack(object_list_stack);
-	print_render_list(graphics->render_node_head);
-}
+//void test_render_list_robustness(struct std_list *object_list_stack, struct graphical_stage_struct *graphics) {
+//	/* TEST that render node list is robust against deletions by deleting whole list every frame */
+//	printf("BEFORE list_rm:\n");
+//	print_object_list_stack(object_list_stack);
+//	print_render_list(graphics->render_node_head);
+//
+//	render_list_rm(&graphics->render_node_head);
+//	graphics->render_node_tail = NULL;
+//
+//	printf("AFTER list_rm:\n");
+//	print_object_list_stack(object_list_stack);
+//	print_render_list(graphics->render_node_head);
+//}
 
 /* RENDER */
 
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat) {
 	query_resize(master_graphics);
 
-	if (*master_graphics->debug_test_render_list_robustness) {
-		test_render_list_robustness(object_list_stack, graphics);
-	}
+	//if (*master_graphics->debug_test_render_list_robustness) {
+	//	test_render_list_robustness(object_list_stack, graphics);
+	//}
 
 	advance_frames_and_create_render_list(object_list_stack, graphics, currentbeat);
 
@@ -60,16 +55,12 @@ void render_process(struct std_list *object_list_stack, struct graphical_stage_s
 
 }
 
-int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics) {
+int renderlist(struct animation_struct *node_ptr, struct graphical_stage_struct *graphics) {
 
 	//printf("---------------- Calling renderlist() again -------------------\n");
-	if  (&graphics->master_graphics->graphics == graphics) {
-		skip_tmp = 1;
-	} else {
-		skip_tmp = 0;
-	}
 	change_renderer(graphics->renderer);
 
+	int animation_count = 0;
 	while (node_ptr != NULL) {
 		if (node_ptr->customRenderFunc == NULL){
 			//int rc = 0;
@@ -96,10 +87,10 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			float anchor_width = 0.01;
 			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
 			float colour_blue[4] = {0, 0, 1, 1};
-			if (node_ptr->animation->container.anchors_exposed) {
+			if (node_ptr->container.anchors_exposed) {
 				struct float_rect anchor_exposed_rect = {
-					.x = node_ptr->rect_out.x + node_ptr->animation->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
-					.y = node_ptr->rect_out.y + node_ptr->animation->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
+					.x = node_ptr->rect_out.x + node_ptr->container.anchors_exposed[0].w * node_ptr->rect_out.w - anchor_width/2,
+					.y = node_ptr->rect_out.y + node_ptr->container.anchors_exposed[0].h * node_ptr->rect_out.h - anchor_width/2,
 					.w = anchor_width,
 					.h = anchor_width,
 				};
@@ -109,8 +100,8 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 255, 0, 0, 255);
 			float colour_red[4] = {1, 0, 0, 1};
 			struct float_rect anchor_hook_rect = {
-				.x = node_ptr->rect_out.x + node_ptr->animation->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
-				.y = node_ptr->rect_out.y + node_ptr->animation->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
+				.x = node_ptr->rect_out.x + node_ptr->container.anchor_hook.w * node_ptr->rect_out.w - anchor_width/2,
+				.y = node_ptr->rect_out.y + node_ptr->container.anchor_hook.h * node_ptr->rect_out.h - anchor_width/2,
 				.w = anchor_width,
 				.h = anchor_width,
 			};
@@ -125,7 +116,7 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 
 		if (*graphics->master_graphics->debug_containers) {
 			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 255, 255);
-			struct visual_container_struct *container = &node_ptr->animation->container;
+			struct visual_container_struct *container = &node_ptr->container;
 
 			while (container) {
 				struct float_rect float_rect = decascade_visual_container(container,
@@ -151,22 +142,25 @@ int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *grap
 			//SDL_SetRenderDrawColor(master_graphics->graphics.renderer, 0, 0, 0, 255);
 		}
 
-		node_ptr = node_ptr->next;
 
+		printf("Rendered %d animation %p\n", animation_count, node_ptr); 
+		node_ptr = node_ptr->render_next;
+		animation_count++;
 	}
+
 	return 0;
 }
 
-int node_insert_over(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_over(struct graphical_stage_struct *graphics, struct animation_struct *node_src, struct animation_struct *node_dest) {
 	if (node_dest == NULL) {
 		graphics->render_node_head = node_src;
 		graphics->render_node_tail = node_src;
 		node_src->z = 0;
 	}
 	else {
-		node_src->next = node_dest->next;
-		node_src->prev = node_dest;
-		node_dest->next = node_src;	
+		node_src->render_next = node_dest->render_next;
+		node_src->render_prev = node_dest;
+		node_dest->render_next = node_src;	
 		node_src->z = node_dest->z;
 	}
 	if (node_dest == graphics->render_node_tail) {
@@ -175,16 +169,16 @@ int node_insert_over(struct graphical_stage_struct *graphics, struct render_node
 	return 0;
 }
 
-int node_insert_under(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest) {
+int node_insert_under(struct graphical_stage_struct *graphics, struct animation_struct *node_src, struct animation_struct *node_dest) {
 	if (node_dest == NULL) {
 		graphics->render_node_head = node_src;
 		graphics->render_node_tail = node_src;
 		node_src->z = 0;
 	}
 	else {
-		node_src->next = node_dest;
-		node_src->prev = node_dest->prev;
-		node_dest->prev = node_src;	
+		node_src->render_next = node_dest;
+		node_src->render_prev = node_dest->render_prev;
+		node_dest->render_prev = node_src;	
 		node_src->z = node_dest->z;
 	}
 	if (node_dest == graphics->render_node_head) {
@@ -193,19 +187,18 @@ int node_insert_under(struct graphical_stage_struct *graphics, struct render_nod
 	return 0;
 }
 
-int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
+int node_insert_z_under(struct graphical_stage_struct *graphics, struct animation_struct *node_src) {
 	if (graphics->render_node_head == NULL) {
 		graphics->render_node_head = node_src;
 		graphics->render_node_tail = node_src;
-		node_src->z = z;
 	}
 	else {
-		struct render_node *node = graphics->render_node_head;
+		struct animation_struct *node = graphics->render_node_head;
 		while (node) {
 			if ( node_src->z <= node->z) {
-				node_src->next = node;
-				node_src->prev = node->prev;
-				node->prev = node_src;	
+				node_src->render_next = node;
+				node_src->render_prev = node->render_prev;
+				node->render_prev = node_src;	
 				if (node == graphics->render_node_head) {
 					graphics->render_node_head = node_src;
 				}
@@ -215,111 +208,117 @@ int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_n
 				break;
 			}		
 			if (node == graphics->render_node_tail) {
-				node_src->prev = graphics->render_node_tail;
-				node_src->next = NULL;
-				graphics->render_node_tail->next = node_src;
+				node_src->render_prev = graphics->render_node_tail;
+				node_src->render_next = NULL;
+				graphics->render_node_tail->render_next = node_src;
 				graphics->render_node_tail = node_src;
 				break;
 			}
-			node = node->next;
+			node = node->render_next;
 		}
 	}
 	return 0;
 }
+int node_insert_z_over(struct graphical_stage_struct *graphics, struct animation_struct *node_src) {
 
-int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_node *node_src, float z) {
-	node_src->z = z;
 	if (graphics->render_node_head == NULL) {
 		graphics->render_node_head = node_src;
 		graphics->render_node_tail = node_src;
+		return 0;
 	}
-	else {
-		struct render_node *node = graphics->render_node_head;
-		while (node) {
-			if ( node_src->z < node->z) {
-				node_src->next = node;
-				if (node->prev) {
-					node->prev->next = node_src;
-				}
-				node_src->prev = node->prev;
-				node->prev = node_src;	
-				if (node == graphics->render_node_head) {
-					graphics->render_node_head = node_src;
-				}
-				//if (node == render_node_tail) {
-				//	graphics->render_node_tail = node_src;
-				//}
-				break;
-			}		
-			if (node == graphics->render_node_tail) {
-				node_src->prev = graphics->render_node_tail;
-				node_src->next = NULL;
-				graphics->render_node_tail->next = node_src;
-				graphics->render_node_tail = node_src;
-				break;
+
+	struct animation_struct *node = graphics->render_node_head;
+	int node_count = 0;
+	while (node) {
+		node_count++;
+		if ( node_src->z < node->z) {
+			node_src->render_next = node;
+			if (node->render_prev) {
+				node->render_prev->render_next = node_src;
 			}
-			node = node->next;
+			node_src->render_prev = node->render_prev;
+			node->render_prev = node_src;	
+			if (node == graphics->render_node_head) {
+				graphics->render_node_head = node_src;
+			}
+			//if (node == render_node_tail) {
+			//	graphics->render_node_tail = node_src;
+			//}
+			break;
+		}		
+		if (node == graphics->render_node_tail) {
+			node_src->render_prev = graphics->render_node_tail;
+			node_src->render_next = NULL;
+			graphics->render_node_tail->render_next = node_src;
+			graphics->render_node_tail = node_src;
+			break;
 		}
+		node = node->render_next;
 	}
+	return node_count;
+}
+
+int render_node_rm(struct graphical_stage_struct *graphics, struct animation_struct *node_ptr) {
+	if (node_ptr->render_prev) {
+		node_ptr->render_prev->render_next = node_ptr->render_next;
+	} else {
+		graphics->render_node_head = node_ptr->render_next;
+	}
+
+	if (node_ptr->render_next) {
+		node_ptr->render_next->render_prev = node_ptr->render_prev;
+	} else {
+		graphics->render_node_tail = node_ptr->render_prev;
+	}
+
+	node_ptr->render_prev = NULL;
+	node_ptr->render_next = NULL;
+	//free(node_ptr);
 	return 0;
 }
 
-int render_node_rm(struct graphical_stage_struct *graphics, struct render_node *node_ptr) {
-	if (node_ptr->prev) {
-		node_ptr->prev->next = node_ptr->next;
-	}
-	else {
-		graphics->render_node_head = node_ptr->next;
-	}
-
-	if (node_ptr->next) {
-		node_ptr->next->prev = node_ptr->prev;
-	}
-	else {
-		graphics->render_node_tail = node_ptr->prev;
-	}
-	free(node_ptr);
-	return 0;
-}
-
-int render_list_rm(struct render_node **node_ptr_ptr) {
-	struct render_node *node_ptr = *node_ptr_ptr;
-
-	if (node_ptr) {
-		
-		struct render_node *node_ptr_back = node_ptr->prev;
-		struct render_node *node_ptr_fwd = node_ptr->next;
-		while (node_ptr_back) {
-			struct render_node *ptr_tmp = node_ptr_back;
-			node_ptr_back = node_ptr_back->prev;
-			if (ptr_tmp->animation) {
-				ptr_tmp->animation->render_node = NULL;
-			}
-			free(ptr_tmp);
-		}
-	
-		while (node_ptr_fwd) {
-			struct render_node *ptr_tmp = node_ptr_fwd;
-			node_ptr_fwd = node_ptr_fwd->next;
-			if (ptr_tmp->animation) {
-				ptr_tmp->animation->render_node = NULL;
-			}
-			free(ptr_tmp);
-		}
-		//node_ptr->animation->render_node = NULL;
-		free(node_ptr);
-	}
-	*node_ptr_ptr = NULL;
-	return 0;
-}
+//int render_list_rm(struct animation_struct **node_ptr_ptr) {
+//	struct animation_struct *node_ptr = *node_ptr_ptr;
+//
+//	if (node_ptr) {
+//		
+//		struct render_node *node_ptr_back = node_ptr->render_prev;
+//		struct render_node *node_ptr_fwd = node_ptr->render_next;
+//		while (node_ptr_back) {
+//			struct render_node *ptr_tmp = node_ptr_back;
+//			node_ptr_back = node_ptr_back->render_prev;
+//			if (ptr_tmp->animation) {
+//				ptr_tmp->animation->render_node = NULL;
+//			}
+//			free(ptr_tmp);
+//		}
+//	
+//		while (node_ptr_fwd) {
+//			struct render_node *ptr_tmp = node_ptr_fwd;
+//			node_ptr_fwd = node_ptr_fwd->render_next;
+//			if (ptr_tmp->animation) {
+//				ptr_tmp->animation->render_node = NULL;
+//			}
+//			free(ptr_tmp);
+//		}
+//		//node_ptr->animation->render_node = NULL;
+//		free(node_ptr);
+//	}
+//	*node_ptr_ptr = NULL;
+//	return 0;
+//}
 
 /* ANIMATE */
 
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat) {
 
 	struct std_list *std_list_node = object_list_stack;
-	int std_list_node_count = 0;
-	int render_node_count = 0;
+	float z_prev;
+	struct animation_struct *render_z_prev = NULL;
+	int animation_count = 0;
+	graphics->render_node_head = NULL;
+	graphics->render_node_tail = NULL;
+
 	while (std_list_node) {
 		struct std *object = std_list_node->std;
 
@@ -399,7 +398,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			while (transform_node) {
 				transform_node->func((void *)&container->rect_out_parent_scale, transform_node->data);
 				transform_node = transform_node->next;
-				transform_node_count++;
 			}
 
 			struct rule_node *rule_node = animation->rules_list;
@@ -407,7 +405,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 			while (rule_node) {
 				(rule_node->rule)(rule_node->data);
 				rule_node = rule_node->next;
-				rule_node_count++;
 			}
 
 			/* Convert from container-scale relative width to global scale absolute width */
@@ -428,46 +425,41 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 					animation->img = generic->clips[control->clip]->img;
 				}
 
-				struct render_node *render_node = animation->render_node;
 				/* Create and insert render node if necessary */
-				if (!render_node) {
-					generate_render_node(animation, graphics);
-					render_node = animation->render_node;
+				update_render_node(animation);
+				//TODO: Remove this:
+				if (graphics != &graphics->master_graphics->graphics) {
+					animation->uniforms = shader_glow_uniforms;
+					animation->shader = shaders.glow_behind;
 				} else {
-					update_render_node(animation, render_node);
+					animation->shader = shaders.simple;
 				}
 
-				if (render_node->z != animation->z) {
-					/* Take render node out of the list */
-					if (render_node->prev) {
-						render_node->prev->next = render_node->next;
-					} else {
-						graphics->render_node_head = render_node->next;
-					}
-					if (render_node->next) {
-						render_node->next->prev = render_node->prev;
-					} else {
-						graphics->render_node_tail = render_node->prev;
-					}
-					/* Put render node back in the list in the right place */
-					node_insert_z_over(graphics, render_node, animation->z);
-				}
 
-				render_node->rect_out = abs_rect;
-				if (!render_node->rect_in) {
-					render_node->rect_in = malloc(sizeof(*render_node->rect_in));
-					*render_node->rect_in = (struct float_rect) {0, 0, 1, 1};
+				//if (!(!animation->render_prev && !animation->render_next && 
+				//			graphics->render_node_head != animation)) {
+				//	render_node_rm(graphics, animation);
+				//}
+				animation->render_prev = NULL;
+				animation->render_next = NULL;
+				/* Put render node back in the list in the right place */
+				int node_count = node_insert_z_over(graphics, animation);
+				//reorder_list_node_z(graphics, animation, &z_prev, &render_z_prev);
+
+				animation->rect_out = abs_rect;
+				if (!animation->rect_in) {
+					animation->rect_in = malloc(sizeof(*animation->rect_in));
+					*animation->rect_in = (struct float_rect) {0, 0, 1, 1};
 				}
-				update_quad_vertices(*render_node->rect_in, render_node->rect_out, render_node, animation->img_y_convention);
+				update_quad_vertices(*animation->rect_in, animation->rect_out, animation, animation->img_y_convention);
 				
-				//render_node = render_node->next;
-				render_node_count++;
 			}
 
-			animation = animation->next;
+
+			animation = animation->anim_next;
+			animation_count++;
 		}
 		std_list_node = std_list_node->prev;
-		std_list_node_count++;
 	}		
 
 	de_update_containers(object_list_stack);
@@ -486,7 +478,7 @@ void de_update_containers(struct std_list *std_list_node) {
 				container->screen_scale_uptodate = 0;
 				container = container->inherit;
 			}
-			animation = animation->next;
+			animation = animation->anim_next;
 		}
 		std_list_node = std_list_node->prev;
 	}
@@ -540,7 +532,9 @@ struct animation_struct *new_animation(struct std *std, enum animate_mode_e anim
 	 * not by an anchor but by its std object's "pos" */
 	animation->container.anchor_grabbed = NULL;
 
-	animation->z = 0; //TODO Not sure where this should actually be set but not having this line causes valgrind to complain because this result gets passed to generate_render_node which uses z for node_insert_z_over
+	animation->z = 0; //TODO Not sure where this should actually be set but 
+	//not having this line causes valgrind to complain because this result 
+	//gets passed to generate_render_node which uses z for node_insert_z_over
 
 	return animation;
 }
@@ -548,30 +542,30 @@ struct animation_struct *new_animation(struct std *std, enum animate_mode_e anim
 int generate_render_node(struct animation_struct *animation, struct graphical_stage_struct *graphics) {
 	/* Creates, populates, and inserts a rendering node	*/
 
-	struct render_node *node = malloc(sizeof(struct render_node));
-	*node = (struct render_node) {0};
+	//struct render_node *node = malloc(sizeof(struct render_node));
+	//*node = (struct render_node) {0};
 
-	update_render_node(animation, node);
+	update_render_node(animation);
 
-	node->animation = animation;
+	//node->animation = animation;
 
-	node_insert_z_over(graphics, node, animation->z);
+	node_insert_z_over(graphics, animation);
 
 	if (graphics != &graphics->master_graphics->graphics) {
-		node->uniforms = shader_glow_uniforms;
-		node->shader = shaders.glow_behind;
-		//update_quad_vertices(*node->rect_in, node->rect_out, node, animation->img_y_convention);
+		animation->uniforms = shader_glow_uniforms;
+		animation->shader = shaders.glow_behind;
+		//update_quad_vertices(*animation->rect_in, animation->rect_out, animation, animation->img_y_convention);
 		//TODO: Get border FX working
-		//struct render_node *border = add_border_vertices(node, graphics,
+		//struct animation_struct *border = add_border_vertices(animation, graphics,
 		//	shaders.glow, 0.5, 0.5, 0.5, 0.5);
 		//border->uniforms = shader_glow_uniforms;
 		//border->animation = animation;
-		//node_insert_over(graphics, border, node);
+		//node_insert_over(graphics, animation);
 	} else {
-		node->shader = shaders.simple;
+		animation->shader = shaders.simple;
 	}
 
-	animation->render_node = node;
+	//animation->render_node = node;
 
 	return 0;
 }
@@ -609,7 +603,7 @@ int graphic_spawn(struct std *std, struct std_list **object_list_stack_ptr,
 		}
 		anim = new_animation(std, animate_mode, generic);
 		*a_ptr = anim;
-		a_ptr = (&(*a_ptr)->next);
+		a_ptr = (&(*a_ptr)->anim_next);
 	}
 	// Make final "next" ptr NULL to prevent segfaults
 	*a_ptr = NULL;
@@ -900,11 +894,11 @@ void rules_ui_counter(void *animvoid) {
 	}
 
 
-	animation = animation->next;
+	animation = animation->anim_next;
 	for (int i = 0; i < counter->digits; i++) {
 		if (animation) {
 			animation->control->clip = counter->array[i];
-			animation = animation->next;
+			animation = animation->anim_next;
 		}
 		else {
 			break;

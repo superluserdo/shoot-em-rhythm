@@ -30,5 +30,5 @@ void change_render_target(struct glrenderer *renderer);
 //Renders quad to the screen
 void render(struct graphics_struct *master_graphics);
 
-void update_render_node(struct animation_struct *specific, struct render_node *r_node);
+void update_render_node(struct animation_struct *animation);
 #endif

@@ -11,22 +11,21 @@
 /* Funcs */
 
 void print_object_list_stack(struct std_list *object_list_stack);
-void print_render_list(struct render_node *render_node_head);
-int advanceFrames(struct render_node *render_node_head, float currentbeat);
+void print_render_list(struct animation_struct *render_node_head);
+int advanceFrames(struct animation_struct *render_node_head, float currentbeat);
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat);
 
 //void render_process(struct graphics_struct *graphics, struct time_struct *timing);
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat);
-int renderlist(struct render_node *node_ptr, struct graphical_stage_struct *graphics);
+int renderlist(struct animation_struct *node_ptr, struct graphical_stage_struct *graphics);
 
-int node_insert_over(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest);
-int node_insert_under(struct graphical_stage_struct *graphics, struct render_node *node_src, struct render_node *node_dest);
-int node_insert_z_over(struct graphical_stage_struct *graphics, struct render_node *node_src, float z);
-int node_insert_z_under(struct graphical_stage_struct *graphics, struct render_node *node_src, float z);
-struct render_node *create_render_node();
+int node_insert_over(struct graphical_stage_struct *graphics, struct animation_struct *node_src, struct animation_struct *node_dest);
+int node_insert_under(struct graphical_stage_struct *graphics, struct animation_struct *node_src, struct animation_struct *node_dest);
+int node_insert_z_over(struct graphical_stage_struct *graphics, struct animation_struct *node_src);
+int node_insert_z_under(struct graphical_stage_struct *graphics, struct animation_struct *node_src);
 
-int render_node_rm(struct graphical_stage_struct *graphics, struct render_node *node_ptr);
-int render_list_rm(struct render_node **node_ptr_ptr);
+int render_node_rm(struct graphical_stage_struct *graphics, struct animation_struct *node_ptr);
+int render_list_rm(struct animation_struct **node_ptr_ptr);
 
 struct dict_void *generic_anim_dict_populate(struct dict_void *image_dict, struct status_struct *status);
 int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **image_dict_ptr, struct status_struct *status, renderer_t renderer);

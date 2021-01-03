@@ -137,10 +137,10 @@ void object_logic_monster(struct std *monster_std, void *data) {
 		struct animation_struct *anim = monster_std->animation;
 
 		/* Append explosion to end of animations */
-		while (anim->next) {
-			anim = anim->next;
+		while (anim->anim_next) {
+			anim = anim->anim_next;
 		}
-		anim->next = explosion_anim;
+		anim->anim_next = explosion_anim;
 		explosion_anim->container.inherit = monster_std->container;
 		explosion_anim->container.rect_out_parent_scale.x = 0.5;
 		explosion_anim->container.rect_out_parent_scale.y = 0.5;

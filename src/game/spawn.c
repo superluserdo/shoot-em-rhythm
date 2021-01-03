@@ -53,10 +53,10 @@ void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *st
 
 	prepare_anim_ui(anim, status);
 
-	anim->next->next->rules_list = malloc(sizeof(struct rule_node));
-	anim->next->next->rules_list->rule = &rules_ui_bar;
-	anim->next->next->rules_list->data = anim->next->next;
-	anim->next->next->rules_list->next = NULL;
+	anim->anim_next->anim_next->rules_list = malloc(sizeof(struct rule_node));
+	anim->anim_next->anim_next->rules_list->rule = &rules_ui_bar;
+	anim->anim_next->anim_next->rules_list->data = anim->anim_next->anim_next;
+	anim->anim_next->anim_next->rules_list->next = NULL;
 
 }
 
@@ -176,19 +176,19 @@ struct ui_bar *spawn_ui_bar(struct std_list **object_list_stack_ptr,
 	anim->container.num_anchors_exposed = 1;
 	anim->container.anchors_exposed[0] = (struct size_ratio_struct) {0.29, 0.52};
 
-	anim->next->container.inherit = &anim->container;
-	anim->next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
-	anim->next->container.anchor_grabbed = &anim->container.anchors_exposed[0];
-	anim->next->container.aspctr_lock = WH_INDEPENDENT;
-	anim->next->container.rect_out_parent_scale.w = 0.5;
-	anim->next->container.rect_out_parent_scale.h = 0.40;
-	anim->next->container.anchors_exposed[0] = (struct size_ratio_struct) {0, 0.5};
+	anim->anim_next->container.inherit = &anim->container;
+	anim->anim_next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
+	anim->anim_next->container.anchor_grabbed = &anim->container.anchors_exposed[0];
+	anim->anim_next->container.aspctr_lock = WH_INDEPENDENT;
+	anim->anim_next->container.rect_out_parent_scale.w = 0.5;
+	anim->anim_next->container.rect_out_parent_scale.h = 0.40;
+	anim->anim_next->container.anchors_exposed[0] = (struct size_ratio_struct) {0, 0.5};
 
-	anim->next->next->container.inherit = &anim->next->container;
-	anim->next->next->container.anchor_grabbed = &anim->next->container.anchors_exposed[0];
-	anim->next->next->container.aspctr_lock = WH_INDEPENDENT;
-	anim->next->next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
-	anim->next->next->container.rect_out_parent_scale = 
+	anim->anim_next->anim_next->container.inherit = &anim->anim_next->container;
+	anim->anim_next->anim_next->container.anchor_grabbed = &anim->anim_next->container.anchors_exposed[0];
+	anim->anim_next->anim_next->container.aspctr_lock = WH_INDEPENDENT;
+	anim->anim_next->anim_next->container.anchor_hook = (struct size_ratio_struct) {0, 0.5};
+	anim->anim_next->anim_next->container.rect_out_parent_scale = 
 		(struct float_rect) {.w = 1, .h = 1};
 
 	return bar;
@@ -229,7 +229,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 	
 	prepare_anim_ui(dummy_anim, status);
 
-	struct animation_struct *anim = dummy_anim->next;
+	struct animation_struct *anim = dummy_anim->anim_next;
 
 	for (int i = 0; i < counter->digits; i++) {
 		struct visual_container_struct digit_container = (struct visual_container_struct) {
@@ -238,7 +238,7 @@ struct ui_counter *spawn_ui_counter(struct std_list **object_list_stack_ptr,
 			.aspctr_lock = WH_INDEPENDENT,
 		};
 		anim->container = digit_container;
-		anim = anim->next;
+		anim = anim->anim_next;
 	}
 
 	struct rule_node *rule_node = dummy_anim->rules_list;
@@ -290,13 +290,13 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	};
 
 	animation->container = hamster_sub_container;
-	animation->next->container = hamster_sub_container;
-	animation->next->container.rect_out_parent_scale.w = 0.2;
-	animation->next->container.rect_out_parent_scale.h = 0.2;
-	animation->next->container.anchor_grabbed = &container->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
-	animation->next->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
+	animation->anim_next->container = hamster_sub_container;
+	animation->anim_next->container.rect_out_parent_scale.w = 0.2;
+	animation->anim_next->container.rect_out_parent_scale.h = 0.2;
+	animation->anim_next->container.anchor_grabbed = &container->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	animation->anim_next->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 	set_anchor_hook(new_flyinghamster->std.container, 0, 0.5);
-	//set_anchor_hook(&animation->next->container, 0, 0.5);
+	//set_anchor_hook(&animation->anim_next->container, 0, 0.5);
 
 	animation->rules_list = malloc(sizeof(struct rule_node));
 	animation->rules_list->rule = &rules_player;
@@ -316,7 +316,7 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	tr_node->next = NULL;
 
 	new_flyinghamster->animation->rules_list->data = (void *)status;
-	//new_flyinghamster->animation->next->rules_list->data = (void *)status;
+	//new_flyinghamster->animation->anim_next->rules_list->data = (void *)status;
 
 	struct tr_orbit_xyz_data *orbit_data = malloc(sizeof(*orbit_data));
 	*orbit_data = (struct tr_orbit_xyz_data) {
@@ -325,7 +325,7 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 		.z = (struct cycle_struct) {.freq = 0.5, .ampl = 0.6, .phase = 0.5*PI},
 		.z_eqm = new_flyinghamster->animation->z, /* z value at equilibrium */
 		.z_layer_ampl = 0.1, /* Only for layer ordering */
-		.z_set = &new_flyinghamster->animation->next->z,
+		.z_set = &new_flyinghamster->animation->anim_next->z,
 		.currentbeat = &status->timing->currentbeat,
 	};
 	struct tr_blink_data *blink_data = malloc(sizeof(*blink_data));
@@ -336,21 +336,21 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	};
 
 
-	//new_flyinghamster->animation->next->container.anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
-	//new_flyinghamster->animation->next->transform_list->next = malloc(sizeof(struct rule_node));
+	//new_flyinghamster->animation->anim_next->container.anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
+	//new_flyinghamster->animation->anim_next->transform_list->next = malloc(sizeof(struct rule_node));
 	//
-	//new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_orbit_xyz;
-	//new_flyinghamster->animation->next->transform_list->next->data = (void *)orbit_data;
+	//new_flyinghamster->animation->anim_next->transform_list->next->func = (void *)tr_orbit_xyz;
+	//new_flyinghamster->animation->anim_next->transform_list->next->data = (void *)orbit_data;
 
-	new_flyinghamster->animation->next->transform_list = malloc(sizeof(struct rule_node));
+	new_flyinghamster->animation->anim_next->transform_list = malloc(sizeof(struct rule_node));
 	
-	new_flyinghamster->animation->next->transform_list->func = (void *)tr_orbit_xyz;
-	new_flyinghamster->animation->next->transform_list->data = (void *)orbit_data;
-	new_flyinghamster->animation->next->transform_list->next = NULL;
+	new_flyinghamster->animation->anim_next->transform_list->func = (void *)tr_orbit_xyz;
+	new_flyinghamster->animation->anim_next->transform_list->data = (void *)orbit_data;
+	new_flyinghamster->animation->anim_next->transform_list->next = NULL;
 
-	//new_flyinghamster->animation->next->transform_list->next->func = (void *)tr_blink;
-	//new_flyinghamster->animation->next->transform_list->next->data = (void *)blink_data;
-	//new_flyinghamster->animation->next->transform_list->next->next = NULL;
+	//new_flyinghamster->animation->anim_next->transform_list->next->func = (void *)tr_blink;
+	//new_flyinghamster->animation->anim_next->transform_list->next->data = (void *)blink_data;
+	//new_flyinghamster->animation->anim_next->transform_list->next->next = NULL;
 
 	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
 	//new_flyinghamster->animation->rules_list->data = (void *)&status;
@@ -539,9 +539,8 @@ void animation_struct_rm(struct animation_struct *animation, struct graphical_st
 		transform = transform->next;
 		free(transform_to_free);
 	}
-	if (animation->render_node) {
-		render_node_rm(graphics, animation->render_node);
-	}
+	
+	render_node_rm(graphics, animation);
 
 	free(animation->container.anchors_exposed);
 
@@ -551,13 +550,13 @@ void animation_struct_rm_recurse(struct animation_struct *animation, struct grap
 	while (animation) {
 		struct animation_struct *animation_to_free = animation;
 		animation_struct_rm(animation_to_free, graphics);
-		animation = animation->next;
+		animation = animation->anim_next;
 	}
 }
 
 void exit_graphical_stage_child(struct graphical_stage_child_struct *stage) {
 	struct graphical_stage_struct *graphics = &stage->graphics;
-	render_list_rm(&graphics->render_node_head);
+	//render_list_rm(&graphics->render_node_head);
 	std_list_rm(&graphics->object_list_stack, graphics, 0);
 	dict_void_rm(graphics->generic_anim_dict);
 	//dict_void_rm(graphics->image_dict); // Already done by SLD_DestroyRenderer

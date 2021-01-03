@@ -7,7 +7,6 @@
 #include "structdef_engine.h"
 #include "opengl_funcs.h"
 
-extern int skip_tmp; //TODO: Remove
 int VERTEX_STRIDE = 6;
 
 #define DEBUG 0
@@ -215,8 +214,8 @@ void max_min_n(int n_nums, float *nums, float *max, float *min) {
 }
 
 //struct globject *add_border_vertices(struct globject *object, struct globject_list *object_list,
-struct render_node *add_border_vertices(struct render_node *node, struct graphical_stage_struct *graphics,
-		unsigned int shader,
+struct animation_struct *add_border_vertices(struct animation_struct *node, 
+		struct graphical_stage_struct *graphics, unsigned int shader,
 		float frac_up, float frac_left, float frac_down, float frac_right) {
 
 	assert(node->n_vertices == 4);
@@ -288,7 +287,7 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 
 	memcpy(indices, indices_stack, sizeof(indices_stack));
 
-	struct render_node *node_new = calloc(sizeof(*node), 1);
+	struct animation_struct *node_new = calloc(sizeof(*node), 1);
 	node_new->vertices = vertices;
 	node_new->n_vertices = 4*4;
 	node_new->indices = indices;
@@ -299,7 +298,7 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 }
 
 void update_quad_vertices(struct float_rect rect_in, struct float_rect rect_out, 
-		struct render_node *node, enum y_convention_e y_convention) {
+		struct animation_struct *node, enum y_convention_e y_convention) {
 
 	if (y_convention == Y_SDL) {
 		update_quad_vertices_sdl(rect_in, rect_out, node);
@@ -308,7 +307,7 @@ void update_quad_vertices(struct float_rect rect_in, struct float_rect rect_out,
 	}
 }
 
-void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
+void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_out, struct animation_struct *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -336,7 +335,7 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
 	memcpy(node->indices, indices_quad, sizeof(indices_quad));
 }
 
-void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct render_node *node) {
+void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect rect_out, struct animation_struct *node) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
@@ -381,13 +380,13 @@ void insert_object_after(struct globject_list *object_list, struct globject *obj
 	}
 }
 
-struct render_node *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
+struct animation_struct *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
 		unsigned int shader,
 		int sdl_coords) {
 
-	struct render_node *node = calloc(sizeof(*node), 1);
+	struct animation_struct *node = calloc(sizeof(*node), 1);
 
-	node->texture = texture;
+	node->img = texture;
 	node->shader = shader;
 	node->rect_out = (struct float_rect) {
 		.x = rect_out.x,
@@ -847,16 +846,16 @@ int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
 	return 0;
 }
 
-int render_copy(struct render_node *node, struct glrenderer *renderer) {
+int render_copy(struct animation_struct *node, struct glrenderer *renderer) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTEX_STRIDE * node->n_vertices, node->vertices, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
 	if (!renderer->framebuffer) {
-		glBindTexture(GL_TEXTURE_2D, node->texture);
+		glBindTexture(GL_TEXTURE_2D, node->img);
 #if DEBUG
 		FILEINFO
-	printf("			Binding normal texture %d\n", node->texture);
+	printf("			Binding normal texture %d\n", node->img);
 #endif
 	} else{ 
 		glBindTexture(GL_TEXTURE_2D, renderer->framebuffer->texture);
@@ -1050,7 +1049,7 @@ void graphics_deinit(struct graphics_struct *master_graphics) {
 	//TODO
 }
 
-void update_render_node(struct animation_struct *animation, struct render_node *r_node) {
+void update_render_node(struct animation_struct *animation) {
 	/* Configuration of render node based on its owner animation struct
 	   that happens on generation and every frame afterwards */
 	if (animation->animate_mode == GENERIC) {
@@ -1060,15 +1059,13 @@ void update_render_node(struct animation_struct *animation, struct render_node *
 
 		/* If rect_in is {0}, make node's rect_in NULL (use whole texture) */
 		if (!rect_in->x && !rect_in->y && !rect_in->w && !rect_in->h) {
-			r_node->rect_in = NULL;
+			animation->rect_in = NULL;
 		} else {
-			r_node->rect_in = rect_in;
+			animation->rect_in = rect_in;
 		}
 
 	} else {
-		r_node->rect_in = NULL;
+		animation->rect_in = NULL;
 	}
-
-	r_node->texture = animation->img;
 }
 

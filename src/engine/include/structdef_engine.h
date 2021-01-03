@@ -70,8 +70,8 @@ struct graphical_stage_struct {
 	/* Something that has its own render target, animations, render nodes.
 	   E.g. level, startscreen, pause screen, etc. ``graphics`` has master. */
 	renderer_t renderer;
-	struct render_node *render_node_head;
-	struct render_node *render_node_tail;
+	struct animation_struct *render_node_head;
+	struct animation_struct *render_node_tail;
 	struct rendercopyex_struct *rendercopyex_data;
 	struct dict_void *generic_anim_dict;
 	struct dict_void *image_dict;
@@ -242,31 +242,6 @@ struct rendercopyex_struct {
 };
 #endif
 
-struct render_node {
-
-	struct render_node *prev;
-	struct render_node *next;
-	struct float_rect *rect_in;
-	struct float_rect rect_out;
-	//texture_t img;
-	int (*customRenderFunc)(void*);
-	void *customRenderArgs;
-	struct animation_struct *animation;
-	struct func_node *transform_list;
-	float z; // Player defined as z = 0. +z defined as out of screen towards human.
-#if USE_OPENGL
-	// Formerly struct globject gl;
-	unsigned int texture;
-	unsigned int n_vertices;
-	//size_t vert_stride; //TODO
-	float *vertices;
-	unsigned int n_indices;
-	unsigned int *indices;
-	unsigned int shader;
-	void (*uniforms)(unsigned int shader);
-#endif
-};
-
 	/*  z	Reserved for
 	 * -1	background
 	 *  0	player
@@ -383,11 +358,29 @@ struct animation_struct {
 	struct visual_container_struct container;
 	enum layer_mode_e layer_mode; // Not used yet -- whether z describes placement within one
 								  // or all animations (I think? Can't remember)
-	float z;
 	struct rule_node *rules_list;
+	struct animation_struct *anim_next;
+	
+	/* Previously in its own "render node" */
+	struct animation_struct *render_prev;
+	struct animation_struct *render_next;
+	struct float_rect *rect_in;
+	struct float_rect rect_out;
+	int (*customRenderFunc)(void*);
+	void *customRenderArgs;
 	struct func_node *transform_list;
-	struct render_node *render_node;
-	struct animation_struct *next;
+	float z; // Player defined as z = 0. +z defined as out of screen towards human.
+#if USE_OPENGL
+	// Formerly struct globject gl;
+	unsigned int n_vertices;
+	//size_t vert_stride; //TODO
+	float *vertices;
+	unsigned int n_indices;
+	unsigned int *indices;
+	unsigned int shader;
+	void (*uniforms)(unsigned int shader);
+#endif
+
 };
 
 struct rule_node {

@@ -206,6 +206,10 @@ int main() {
 		present_screen(timing, &master_graphics);
 		update_time(&timing);
 
+		if (timing.framecount > 300) {
+			break;
+		}
+
 	}
 
 	/* Finish Suspended Python Functions */
