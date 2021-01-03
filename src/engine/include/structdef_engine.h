@@ -267,7 +267,7 @@ struct render_node {
 #endif
 };
 
-	/* z	Reserved for
+	/*  z	Reserved for
 	 * -1	background
 	 *  0	player
 	 *  1	enemies

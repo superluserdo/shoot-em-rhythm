@@ -8,6 +8,7 @@
 #include "opengl_funcs.h"
 
 extern int skip_tmp; //TODO: Remove
+int VERTEX_STRIDE = 6;
 
 #define DEBUG 0
 struct float_rect rect_fullsize = {
@@ -254,15 +255,15 @@ struct render_node *add_border_vertices(struct render_node *node, struct graphic
 	float tex_xs[4] = {-frac_left, 0, 1, 1+frac_right};
 	float tex_ys[4] = {-frac_down, 0, 1, 1+frac_up};
 
-    float *vertices = calloc(sizeof(*vertices),6*4*4);
+    float *vertices = calloc(sizeof(*vertices),VERTEX_STRIDE*4*4);
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
-			vertices[4*(i*6+j)] = xs[i];
-			vertices[4*(i*6+j)+1] = ys[j];
-			vertices[4*(i*6+j)+2] = tex_xs[i];
-			vertices[4*(i*6+j)+3] = tex_ys[3-j];
-			vertices[4*(i*6+j)+4] = tex_xs[i];
-			vertices[4*(i*6+j)+5] = tex_ys[3-j];
+			vertices[4*(i*VERTEX_STRIDE+j)] = xs[i];
+			vertices[4*(i*VERTEX_STRIDE+j)+1] = ys[j];
+			vertices[4*(i*VERTEX_STRIDE+j)+2] = tex_xs[i];
+			vertices[4*(i*VERTEX_STRIDE+j)+3] = tex_ys[3-j];
+			vertices[4*(i*VERTEX_STRIDE+j)+4] = tex_xs[i];
+			vertices[4*(i*VERTEX_STRIDE+j)+5] = tex_ys[3-j];
 		}
 	}
 
@@ -699,13 +700,13 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
     // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, VERTEX_STRIDE * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, VERTEX_STRIDE * sizeof(float), 
 			(void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, VERTEX_STRIDE * sizeof(float), 
 			(void*)(4 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
@@ -813,7 +814,7 @@ int draw_box_lines(struct float_rect float_rect) {
         -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f, 0.0, 0.0, // bottom left 
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTEX_STRIDE * 4, vertices_box, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 5, indices_box, GL_STATIC_DRAW);
 	glActiveTexture(GL_TEXTURE0);
 	glUseProgram(shaders.white); 
@@ -834,7 +835,7 @@ int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
         -1.0+2*(float_rect.x),              1.0-2*(float_rect.y+float_rect.h),   0.0f, 1.0f, 0.0, 0.0, // bottom left 
     };
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, vertices_box, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTEX_STRIDE * 4, vertices_box, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices_quad, GL_STATIC_DRAW);
 	glActiveTexture(GL_TEXTURE0);
 	glUseProgram(shaders.solid); 
@@ -847,7 +848,7 @@ int draw_box_solid_colour(struct float_rect float_rect, float colour[4]) {
 }
 
 int render_copy(struct render_node *node, struct glrenderer *renderer) {
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * node->n_vertices, node->vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTEX_STRIDE * node->n_vertices, node->vertices, GL_STATIC_DRAW);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * node->n_indices, node->indices, GL_STATIC_DRAW);
 
 	glActiveTexture(GL_TEXTURE0);
