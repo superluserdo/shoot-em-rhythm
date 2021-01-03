@@ -35,18 +35,6 @@ void prepare_anim_character(struct animation_struct *anim, struct status_struct 
 	tr_node->func = &tr_sine_abs;
 	tr_node->next = NULL;
 
-	////test:
-	//tr_node->next = malloc(sizeof(struct func_node));
-	//*tr_node->next = (struct func_node) {0};
-	//tr_node->next->func = tr_blink;
-	//struct tr_blink_data *test_data = malloc(sizeof(*test_data));
-	//*test_data = (struct tr_blink_data) {
-	//	.framecount = &status->timing->framecount,
-	//	.frames_on = 5,
-	//	.frames_off = 5,
-	//};
-	//tr_node->next->data = (void *)test_data;
-
 }
 
 void prepare_anim_ui_bar(struct animation_struct *anim, struct status_struct *status) {
@@ -97,7 +85,6 @@ void spawn_player(struct std_list **object_list_stack_ptr,
 	player->self = player;
 
 	player->name = "player";
-	//graphic_spawn(&player->std, object_list_stack_ptr, generic_bank, graphics, (enum graphic_type_e[]){PLAYER2}, 1);
 	graphic_spawn(&player->std, object_list_stack_ptr, generic_anim_dict, graphics, (const char *[]){"player"}, 1);
 
 	*player->container = *container;
@@ -296,7 +283,6 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	animation->anim_next->container.anchor_grabbed = &container->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
 	animation->anim_next->container.anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 	set_anchor_hook(new_flyinghamster->std.container, 0, 0.5);
-	//set_anchor_hook(&animation->anim_next->container, 0, 0.5);
 
 	animation->rules_list = malloc(sizeof(struct rule_node));
 	animation->rules_list->rule = &rules_player;
@@ -316,7 +302,6 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 	tr_node->next = NULL;
 
 	new_flyinghamster->animation->rules_list->data = (void *)status;
-	//new_flyinghamster->animation->anim_next->rules_list->data = (void *)status;
 
 	struct tr_orbit_xyz_data *orbit_data = malloc(sizeof(*orbit_data));
 	*orbit_data = (struct tr_orbit_xyz_data) {
@@ -335,25 +320,11 @@ struct monster_struct *spawn_flying_hamster(struct status_struct *status, struct
 		.frames_off = 10,
 	};
 
-
-	//new_flyinghamster->animation->anim_next->container.anchor_grabbed = &new_flyinghamster->animation->anchors_exposed[0]; //Lock smiley's hook to hamster main anchor
-	//new_flyinghamster->animation->anim_next->transform_list->next = malloc(sizeof(struct rule_node));
-	//
-	//new_flyinghamster->animation->anim_next->transform_list->next->func = (void *)tr_orbit_xyz;
-	//new_flyinghamster->animation->anim_next->transform_list->next->data = (void *)orbit_data;
-
 	new_flyinghamster->animation->anim_next->transform_list = malloc(sizeof(struct rule_node));
 	
 	new_flyinghamster->animation->anim_next->transform_list->func = (void *)tr_orbit_xyz;
 	new_flyinghamster->animation->anim_next->transform_list->data = (void *)orbit_data;
 	new_flyinghamster->animation->anim_next->transform_list->next = NULL;
-
-	//new_flyinghamster->animation->anim_next->transform_list->next->func = (void *)tr_blink;
-	//new_flyinghamster->animation->anim_next->transform_list->next->data = (void *)blink_data;
-	//new_flyinghamster->animation->anim_next->transform_list->next->next = NULL;
-
-	//graphic_spawn(&new_flyinghamster->std, object_list_stack_ptr, generic_anim_dict, graphics, (enum graphic_type_e[]){FLYING_HAMSTER}, 1);
-	//new_flyinghamster->animation->rules_list->data = (void *)&status;
 	
 	new_flyinghamster->object_logic = object_logic_monster;
 	new_flyinghamster->object_data = status;
@@ -372,9 +343,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	std->name = name;
 	std->container = malloc(sizeof(*std->container));
 	*std->container = (struct visual_container_struct) {
-		//.inherit = NULL,
 		.inherit = &master_graphics->screen,
-		//.rect_out_parent_scale = (struct float_rect) { .x = 0, .y = 0, .w = 1, .h = 1},
 		.rect_out_parent_scale = (struct float_rect) { .x = 0.1, .y = 0.1, .w = 0.8, .h = 0.8},
 		.aspctr_lock = WH_INDEPENDENT,
 	};
@@ -389,19 +358,7 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	std->animation->img = master_graphics->graphics.renderer->framebuffer->texture;
 	std->animation->img_y_convention = Y_OPENGL;
 
-	//texture_t tex_target = create_texture(master_graphics->graphics.renderer, master_graphics->width, master_graphics->height);
-
-	
-	//texture_t tex_target = SDL_CreateTexture(master_graphics->graphics.renderer, SDL_PIXELFORMAT_RGBA8888,
-	//		SDL_TEXTUREACCESS_TARGET, master_graphics->width, master_graphics->height);
-	/* Give this (render target) texture alpha blending so it can layer over other render targets */
-	//SDL_SetTextureBlendMode(tex_target, SDL_BLENDMODE_BLEND);
-
-	//TODO: Swap back
 	struct glrenderer *renderer = make_renderer(master_graphics->graphics.renderer->framebuffer, (float []){0.2f, 0.3f, 0.3f, 1.0f}, 0, (struct int_rect){0});
-	//struct glrenderer *renderer = make_renderer(0, 
-	//		(float []){0.3f, 0.3f, 0.3f, 1.0f}, 1, 
-	//		(struct int_rect){0, 0, master_graphics->width/2, master_graphics->height/2});
 
 	if( !renderer)
 	{
@@ -410,45 +367,11 @@ void spawn_graphical_stage_child(struct graphical_stage_child_struct *stage, str
 	}
 	graphics->renderer = renderer;
 
-	//std->animation->img = tex_target;
-	//texture_t *tex_target_ptr = &std->animation->img;
-
-#if 0
-	struct frame *frame = malloc(sizeof(*frame));
-	*frame = (struct frame) {0};
-
-	struct clip *clip = malloc(sizeof(*clip));
-	*clip = (struct clip) {
-		.img = tex_target,
-		.num_frames = 1,
-		.frames = frame,
-		.container_scale_factor = 1,
-		.aspctr_lock = WH_INDEPENDENT,
-	};
-	SDL_Texture **tex_target_ptr = &clip->img;
-
-	struct clip **clips = malloc(sizeof(*clips));
-	*clips = clip;
-
-	struct animate_generic *generic = malloc(sizeof(*generic));
-	*generic = (struct animate_generic) {
-		.num_clips = 1,
-		.clips = clips,
-	};
-
-	std->animation->control = malloc(sizeof(struct animate_control));
-	*std->animation->control = (struct animate_control) {0};
-	std->animation->control->generic = generic;
-#endif
-
 	/* Graphical vars of the level only */
 	graphics->render_node_head = NULL;
 	graphics->render_node_tail = NULL;
 	graphics->num_images = 0;
 	graphics->master_graphics = master_graphics;
-
-	/* Set the level's texture to draw to */
-	//graphics->tex_target_ptr = tex_target_ptr;
 }
 
 //TODO	Write recursive destructors for each struct type
@@ -556,10 +479,8 @@ void animation_struct_rm_recurse(struct animation_struct *animation, struct grap
 
 void exit_graphical_stage_child(struct graphical_stage_child_struct *stage) {
 	struct graphical_stage_struct *graphics = &stage->graphics;
-	//render_list_rm(&graphics->render_node_head);
 	std_list_rm(&graphics->object_list_stack, graphics, 0);
 	dict_void_rm(graphics->generic_anim_dict);
-	//dict_void_rm(graphics->image_dict); // Already done by SLD_DestroyRenderer
 
 	/* Lose the stage from the graphical_stage_child_struct 
 	   to become just a std object */

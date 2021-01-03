@@ -15,7 +15,6 @@ void print_render_list(struct animation_struct *render_node_head);
 int advanceFrames(struct animation_struct *render_node_head, float currentbeat);
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat);
 
-//void render_process(struct graphics_struct *graphics, struct time_struct *timing);
 void render_process(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, struct graphics_struct *master_graphics, float currentbeat);
 int renderlist(struct animation_struct *node_ptr, struct graphical_stage_struct *graphics);
 

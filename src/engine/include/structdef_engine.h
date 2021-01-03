@@ -219,7 +219,6 @@ struct graphics_struct {
 	int *debug_anchors;
 	int *debug_containers;
 	int *debug_test_render_list_robustness;
-	//struct std_list *object_list_stack;
 	struct graphical_stage_struct graphics;
 	void *font;
 	SDL_Color font_colour;
@@ -371,7 +370,6 @@ struct animation_struct {
 	struct func_node *transform_list;
 	float z; // Player defined as z = 0. +z defined as out of screen towards human.
 #if USE_OPENGL
-	// Formerly struct globject gl;
 	unsigned int n_vertices;
 	//size_t vert_stride; //TODO
 	float *vertices;

@@ -119,7 +119,6 @@ void object_logic_monster(struct std *monster_std, void *data) {
 
 	float Dt = (timing->currentbeat + 1) - monster->entrybeat; /* +1 to align with int */
 	monster_std->container->rect_out_parent_scale.x = 1 - speed * Dt;
-	//printf("%f\n", Dt);
 	if (monster->living.alive == 1) {
 		if (monster->living.HP <= 0) {
 			monster->living.alive = 0;

@@ -277,44 +277,11 @@ int render_node_rm(struct graphical_stage_struct *graphics, struct animation_str
 	return 0;
 }
 
-//int render_list_rm(struct animation_struct **node_ptr_ptr) {
-//	struct animation_struct *node_ptr = *node_ptr_ptr;
-//
-//	if (node_ptr) {
-//		
-//		struct render_node *node_ptr_back = node_ptr->render_prev;
-//		struct render_node *node_ptr_fwd = node_ptr->render_next;
-//		while (node_ptr_back) {
-//			struct render_node *ptr_tmp = node_ptr_back;
-//			node_ptr_back = node_ptr_back->render_prev;
-//			if (ptr_tmp->animation) {
-//				ptr_tmp->animation->render_node = NULL;
-//			}
-//			free(ptr_tmp);
-//		}
-//	
-//		while (node_ptr_fwd) {
-//			struct render_node *ptr_tmp = node_ptr_fwd;
-//			node_ptr_fwd = node_ptr_fwd->render_next;
-//			if (ptr_tmp->animation) {
-//				ptr_tmp->animation->render_node = NULL;
-//			}
-//			free(ptr_tmp);
-//		}
-//		//node_ptr->animation->render_node = NULL;
-//		free(node_ptr);
-//	}
-//	*node_ptr_ptr = NULL;
-//	return 0;
-//}
-
 /* ANIMATE */
 
 void advance_frames_and_create_render_list(struct std_list *object_list_stack, struct graphical_stage_struct *graphics, float currentbeat) {
 
 	struct std_list *std_list_node = object_list_stack;
-	float z_prev;
-	struct animation_struct *render_z_prev = NULL;
 	int animation_count = 0;
 	graphics->render_node_head = NULL;
 	graphics->render_node_tail = NULL;
@@ -336,7 +303,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 
 				if (generic->clips[control->clip]->frames[control->frame].duration > 0.0) {
 					if (currentbeat - control->lastFrameBeat >= generic->clips[control->clip]->frames[control->frame].duration) {
-						//control->lastFrameBeat = currentbeat;
 						control->lastFrameBeat += generic->clips[control->clip]->frames[control->frame].duration;
 						if (control->backwards) {
 							control->frame--;
@@ -351,7 +317,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 							if (control->return_clip >= 0) {
 								/* If return_clip == -1 then just sit on this frame.
 								   Otherwise return and loop until further notice (loops=-1). */
-								//control->clip = control->return_clip;	
 								control->frame = 0;
 								control->loops = -1;
 							} else {
@@ -370,7 +335,6 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 							if (control->return_clip >= 0) {
 								/* If return_clip == -1 then just sit on this frame.
 								   Otherwise return and loop until further notice (loops=-1). */
-								//control->clip = control->return_clip;	
 								control->frame = generic->clips[control->clip]->num_frames - 1;;
 								control->loops = -1;
 							} else {
@@ -436,15 +400,9 @@ void advance_frames_and_create_render_list(struct std_list *object_list_stack, s
 				}
 
 
-				//if (!(!animation->render_prev && !animation->render_next && 
-				//			graphics->render_node_head != animation)) {
-				//	render_node_rm(graphics, animation);
-				//}
 				animation->render_prev = NULL;
 				animation->render_next = NULL;
 				/* Put render node back in the list in the right place */
-				int node_count = node_insert_z_over(graphics, animation);
-				//reorder_list_node_z(graphics, animation, &z_prev, &render_z_prev);
 
 				animation->rect_out = abs_rect;
 				if (!animation->rect_in) {
@@ -648,11 +606,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 	*generic_anim_dict_ptr = malloc(num_generics * sizeof(struct dict_void));
 	struct dict_void *generic_anim_dict = *generic_anim_dict_ptr;
 
-	//*image_dict_ptr = malloc(sizeof(struct dict_void));
-	//struct dict_void *image_dict = *image_dict_ptr;
-
 	*generic_anim_dict = (struct dict_void) {0};
-	//*image_dict = (struct dict_void) {0};
 
 	struct animate_generic *generic_ptr;
 	config_setting_t *generic_setting;
@@ -811,9 +765,7 @@ int dicts_populate(struct dict_void **generic_anim_dict_ptr, struct dict_void **
 				} else {
 					/* Don't worry, it's optional */
 					/* By default, make the frame's anchor hook in the centre of the image: */
-					//frame_array[k].anchor_hook = (struct size_ratio_struct) {.w=frame_array[k].rect.w/2, .h=frame_array[k].rect.h/2}; //TODO: Actually assign this properly, maybe have it in animation.cfg
-					frame_array[k].anchor_hook = (struct size_ratio_struct) {0.5, 0.5}; //TODO: Actually assign this properly, maybe have it in animation.cfg
-				//frame_array[k].anchor_hook = (struct size_ratio_struct) { 0, 0 }; //TODO: Actually assign this properly, maybe have it in animation.cfg
+					frame_array[k].anchor_hook = (struct size_ratio_struct) {0.5, 0.5};
 				}
 			}	
 		}
@@ -867,7 +819,6 @@ void rules_ui(void *data) {
 
 void rules_ui_bar(void *animvoid) {
 	struct animation_struct *animation = (struct animation_struct *)animvoid;
-	//struct ui_bar *bar = animation->object->self_ui_bar;
 	struct ui_bar *bar = animation->object->self;
 	float ratio = (float) *bar->amount / *bar->max;
 	animation->container.rect_out_parent_scale.w = ratio;
@@ -885,7 +836,6 @@ void rules_ui_bar(void *animvoid) {
 }
 void rules_ui_counter(void *animvoid) {
 	struct animation_struct *animation = (struct animation_struct *)animvoid;
-	//struct ui_counter *counter = animation->object->self_ui_counter;
 	struct ui_counter *counter = animation->object->self;
 	if (*counter->value > 0) {
 		int2array(*counter->value, counter->array, counter->digits);

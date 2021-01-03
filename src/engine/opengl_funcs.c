@@ -24,7 +24,6 @@ unsigned int indices_quad[] = {
 	1, 2, 3  // second triangle
 };
 
-//Screen dimension constants
 struct shaders_struct shaders = {0};
 struct int_rect default_viewport = {0, 0, 1280, 720};
 
@@ -78,13 +77,6 @@ void change_render_target(struct glrenderer *renderer) {
 			viewport.y,
 			viewport.w,
 			viewport.h);
-	//printf("framebuffer %d\n"
-	//		"viewport: %d, %d, %d, %d\n",
-	//		framebuffer,
-	//		viewport.x,
-	//		viewport.y,
-	//		viewport.w,
-	//		viewport.h);
 }
 
 void shader_glow_uniforms(unsigned int shader) {
@@ -93,12 +85,7 @@ void shader_glow_uniforms(unsigned int shader) {
 	int r_disc_loc = glGetUniformLocation(shader, "r_disc");
 	int r_rays_loc = glGetUniformLocation(shader, "r_rays");
 	float time = (float)(SDL_GetTicks() )/500;
-	//if (time > 1) {
-	//	time = 2.0 - time;
-	//}
 	glUniform1f(time_loc, time);
-	//glUniform1f(r_disc_loc, 0.58);
-	//glUniform1f(r_rays_loc, 1.0);
 	glUniform1f(r_disc_loc, 0.58*0.5);
 	glUniform1f(r_rays_loc, 1.0*0.5);
 }
@@ -126,7 +113,6 @@ unsigned int create_shader(int n_v_snippets, const char **v_snippets,
 
 
 	glLinkProgram(shader);
-	//checkCompileErrors(shader, "PROGRAM");
 
 	glDeleteShader(vertex);
 	glDeleteShader(fragment);
@@ -140,10 +126,10 @@ int texture_from_path(unsigned int *texture, int *w, int *h, char *path) {
 	FILEINFO
 	printf("			Binding texture %d\n", *texture);
 #endif
-     // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// set texture wrapping to GL_REPEAT (default wrapping method)
+     /* set the texture wrapping parameters */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // set texture filtering parameters (GL_NEAREST or GL_LINEAR)
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -162,7 +148,7 @@ int texture_from_path(unsigned int *texture, int *w, int *h, char *path) {
 	}
 	 
 	glTexImage2D(GL_TEXTURE_2D, 0, Mode1, surface->w, surface->h, 0, Mode1, GL_UNSIGNED_BYTE, surface->pixels);
-    glBindTexture(GL_TEXTURE_2D, 0); //default
+    glBindTexture(GL_TEXTURE_2D, 0); /* Default */
 
 	if (w && h) {
 		*w = surface->w;
@@ -213,7 +199,6 @@ void max_min_n(int n_nums, float *nums, float *max, float *min) {
 	*min = (min_1 < min_2) ? min_1 : min_2;
 }
 
-//struct globject *add_border_vertices(struct globject *object, struct globject_list *object_list,
 struct animation_struct *add_border_vertices(struct animation_struct *node, 
 		struct graphical_stage_struct *graphics, unsigned int shader,
 		float frac_up, float frac_left, float frac_down, float frac_right) {
@@ -320,10 +305,6 @@ void update_quad_vertices_sdl(struct float_rect rect_in, struct float_rect rect_
         -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y,           1.0, 1.0, // top right
         -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y,           0.0, 1.0, // top left
         -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y+rect_in.h, 0.0, 0.0, // bottom left 
-        // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
-        // 0.5f, -0.5f,    1.0f, 1.0f, // top right
-        //-0.5f, -0.5f,    0.0f, 1.0f, // top left
-        //-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
     };
 
 	node->n_vertices = 4;
@@ -348,10 +329,6 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
         -1.0+2*(rect_out.x+rect_out.w), 1.0-2*(rect_out.y),              rect_in.x+rect_in.w, rect_in.y+rect_in.h, 1.0, 1.0, // top right
         -1.0+2*(rect_out.x),            1.0-2*(rect_out.y),              rect_in.x,           rect_in.y+rect_in.h, 0.0, 1.0, // top left
         -1.0+2*(rect_out.x),            1.0-2*(rect_out.y+rect_out.h),   rect_in.x,           rect_in.y,           0.0, 0.0, // bottom left 
-        // 0.5f,  0.5f,    1.0f, 0.0f, // bottom right
-        // 0.5f, -0.5f,    1.0f, 1.0f, // top right
-        //-0.5f, -0.5f,    0.0f, 1.0f, // top left
-        //-0.5f,  0.5f,    0.0f, 0.0f  // bottom left 
     };
 
 	node->n_vertices = 4;
@@ -362,48 +339,6 @@ void update_quad_vertices_opengl(struct float_rect rect_in, struct float_rect re
 	memcpy(node->vertices, vertices, sizeof(vertices));
 	memcpy(node->indices, indices_quad, sizeof(indices_quad));
 }
-
-#if 0
-void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target) {
-	/* Add object to end of list */
-	if (!object_list->head) {
-		object_list->head = object;
-	}
-	if (!target) {
-		target = object_list->tail;
-	}
-	if (target) {
-		target->next = object;
-	}
-	if (target == object_list->tail) {
-		object_list->tail = object;
-	}
-}
-
-struct animation_struct *new_quad(struct float_rect rect_in, struct float_rect rect_out, unsigned int texture, 
-		unsigned int shader,
-		int sdl_coords) {
-
-	struct animation_struct *node = calloc(sizeof(*node), 1);
-
-	node->img = texture;
-	node->shader = shader;
-	node->rect_out = (struct float_rect) {
-		.x = rect_out.x,
-		.y = rect_out.y,
-		.w = rect_out.w,
-		.h = rect_out.h,
-	};
-
-	if (sdl_coords) {
-		update_quad_vertices_sdl(rect_in, rect_out, node);
-	} else {
-		update_quad_vertices_opengl(rect_in, rect_out, node);
-	}
-
-	return node;
-}
-#endif
 
 int init_sdl_opengl(struct graphics_struct *master_graphics) {
 
@@ -498,22 +433,6 @@ int initGL(void)
 		"	ShaderCoord = aShaderCoord;\n"
 		"}"
 	};
-	//const char *fShaderCode_mix = {
-	//	"#version 330 core\n"
-	//	"out vec4 FragColor;\n"
-
-	//	"in vec2 TexCoord;\n"
-
-	//	"// texture samplers\n"
-	//	"uniform sampler2D texture1;\n"
-	//	"uniform sampler2D texture2;\n"
-
-	//	"void main()\n"
-	//	"{\n"
-	//	"	// linearly interpolate between both textures (80% container, 20% awesomeface)\n"
-	//	"	FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
-	//	"}"
-	//};
 
 	const char *fShaderCode_animate_behind_texture = {
 		"#version 330 core\n"
@@ -740,12 +659,6 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0); /* default */
 
-		///* Create quad that will display framebuffer */
-		//struct float_rect quad_rect = {
-		//	.x=0.1, .y=0.1, .w=0.8, .h=0.8
-		//};
-		//
-		//new_quad(rect_fullsize, quad_rect, fb_struct->texture, shaders.simple, 0);
 	}
 
 	*renderer = (struct glrenderer) {
@@ -757,27 +670,6 @@ struct glrenderer *make_renderer(struct framebuffer *render_target, float clear_
 	};
 
 	memcpy(renderer->clear_colour, clear_colour, sizeof(float)*4);
-
-#if 0
-	struct globject_list *object_list = &renderer->object_list;
-
-	struct float_rect rect_bg = {.x=0.35, .y=0.35, .w = 0.3, .h=0.3};
-	struct float_rect rect = {.x=0.0, .y=0.0, .w = 0.5, .h=0.5};
-
-	/* Get texture */
-	if (texture_path) {
-		unsigned int texture_hamster;
-		texture_from_path(&texture_hamster, NULL, NULL, texture_path);
-		struct globject *bg_hamster = new_quad(rect_fullsize, rect_bg, texture_hamster, shaders.glow_behind, object_list, 1);
-		bg_hamster->uniforms = shader_glow_uniforms;
-		struct globject *border = add_border_vertices(bg_hamster, object_list,
-			shaders.glow, 0.5, 0.5, 0.5, 0.5);
-		border->uniforms = shader_glow_uniforms;
-
-		new_quad(rect_fullsize, rect, texture_hamster, shaders.simple, object_list, 1);
-	} else {
-	}
-#endif
 
 	return renderer;
 }
@@ -889,34 +781,6 @@ int render_copy(struct animation_struct *node, struct glrenderer *renderer) {
 	return 0;
 }
 
-#if 0
-void render_list_opengl(struct graphics_struct *master_graphics)
-{
-
-	struct glrenderer *renderer = master_graphics->graphics.renderer;
-    glBindVertexArray(renderer->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->EBO);
-
-
-	change_render_target(master_graphics->graphics.renderer);
-
-	clear_render_target(master_graphics, NULL);
-
-	/* Face culling */
-	//glFrontFace(GL_CCW);
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-
-	struct globject *object = renderer->object_list.head;
-	while (object) {
-
-		render_copy(object, renderer);
-		object = object->next;
-	}
-}
-#endif
-
 void checkCompileErrors(GLuint shader, const char *type)
 {
     // Check shader for errors
@@ -933,7 +797,6 @@ void checkCompileErrors(GLuint shader, const char *type)
     }
 }
 
-//TODO: can prob get rid of these
 void printProgramLog( GLuint program )
 {
 	//Make sure name is shader
@@ -1000,15 +863,6 @@ void query_resize(struct graphics_struct *master_graphics) {
 	SDL_GetWindowSize(master_graphics->window, &w, &h);
 
 	if (((w != master_graphics->width) || (h != master_graphics->height))) {
-		//printf("New size!\n"
-		//		"orig viewport: w=%d, h=%d\n"
-		//		"orig tex: w=%d, h=%d\n"
-		//		"new size:  w=%d, h=%d\n",
-		//		master_graphics->width,
-		//		master_graphics->height,
-		//		master_graphics->graphics.renderer->framebuffer->viewport.w,
-		//		master_graphics->graphics.renderer->framebuffer->viewport.h,
-		//		w, h);
 		master_graphics->width = w;
 		master_graphics->height = h;
 
@@ -1022,7 +876,6 @@ void query_resize(struct graphics_struct *master_graphics) {
 		glGenTextures(1, &new_fb_texture);
 		glBindTexture(GL_TEXTURE_2D, new_fb_texture);
 		master_graphics->graphics.renderer->framebuffer->texture = new_fb_texture;
-		//master_graphics->graphics.renderer->object_list.head->texture = new_fb_texture;
 		  
 		master_graphics->graphics.renderer->framebuffer->viewport.w = w;
 		master_graphics->graphics.renderer->framebuffer->viewport.h = h;

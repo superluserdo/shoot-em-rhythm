@@ -1,43 +1,5 @@
 #include "structure.h"
 
-////int declare_visual_structure(enum visual_structure_name_e name, enum visual_structure_name_e inherit, struct float_rect rect, struct visual_container_struct *visual_structure_list) {
-//int declare_visual_structure(char *name, struct visual_container_struct inherit, struct float_rect rect, struct visual_container_struct *visual_structure_list) {
-//
-//	struct visual_container_struct *container = malloc(sizeof(*container));
-//
-//	container->name = name;
-//	container->inherit = inherit;
-//	container->rect = rect;
-//
-//	//if (visual_structure_list) {
-//
-//
-//	int num_visual_container_structs = 10;
-//	int i = 0;
-//	//struct visual_container_struct *visual_structure_list = malloc(sizeof(*visual_structure_list) * num_visual_container_structs);
-//
-//	struct visual_container_struct container2 = {
-//		.name = SCREEN,
-//		.inherit = SCREEN,
-//		.rect = {0, 0, 1, 1}
-//	};
-//	visual_structure_list[i++] = container2;
-//
-//	//container2.name = LEVEL_UI_TOP;
-//	//container2.inherit = SCREEN;
-//	//container2.rect = {0, 0, 1, 0.2};
-//	//visual_structure_list[i++] = container2;
-//
-//	//container2.name = LEVEL_PLAY_AREA;
-//	//container2.inherit = SCREEN;
-//	//container2.rect = {1, 0.2, 1, 0.8};
-//	//visual_structure_list[i++] = container2;
-//
-//	assert(i+1 == num_visual_container_structs);
-//
-//	return 0;
-//}
-
 struct float_rect decascade_visual_container_recurse(struct visual_container_struct *container, struct xy_struct screen_size, float *aspctr_inherit) {
 	if (!container->inherit) {
 		*aspctr_inherit = (float) screen_size.x / screen_size.y;
@@ -66,8 +28,6 @@ struct float_rect decascade_visual_container_recurse(struct visual_container_str
 		}
 	}
 
-	//*aspctr_inherit = new_rect.w/new_rect.h;
-
 	struct size_ratio_struct anchor_grabbed;
 	if (container->anchor_grabbed) {
 		anchor_grabbed = *container->anchor_grabbed;
@@ -85,7 +45,6 @@ struct float_rect decascade_visual_container_recurse(struct visual_container_str
 	new_rect.y = parent_rect.y + rect.y * parent_rect.h + parent_rect.h * anchor_grabbed.h - anchor_hook_pos.h;
 
 	container->rect_out_screen_scale = new_rect;
-	//container->screen_scale_uptodate = 1;
 
 	return new_rect;
 }

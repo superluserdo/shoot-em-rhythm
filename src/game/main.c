@@ -82,10 +82,6 @@ int main() {
 	program.debug.show_containers = 0;
 	program.debug.test_render_list_robustness = 0;
 
-	//TODO: Put this and other SDL stuff into functions
-	//texture_t screen_texture = 0;
-	//master_graphics.graphics.tex_target_ptr = &screen_texture;
-	
 	/* NOTE: I've moved timing out of its own thread into the main thread.
 	 * frametimer() is no longer used */
 	//pthread_t framethread;

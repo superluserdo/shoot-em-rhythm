@@ -15,10 +15,6 @@ void get_texture_size(unsigned int texture, int *w, int *h);
 
 void checkCompileErrors(GLuint shader, const char *type);
 
-//struct globject *new_object(struct globject_list *object_list);
-
-//void insert_object_after(struct globject_list *object_list, struct globject *object, struct globject *target);
-
 struct render_node *new_quad(struct float_rect rect_in, 
 		struct float_rect rect_out,
 		unsigned int texture, unsigned int texture_shader, int sdl_coords);
